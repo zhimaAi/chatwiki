@@ -1,0 +1,8 @@
+{
+  "section_desc": "Query knowledge already added to the specified knowledge base based on user questions.",
+  "btn_recall_settings": "Recall Settings",
+  "btn_associate_knowledge_base": "Associate Knowledge Base",
+  "btn_unlink": "Unlink",
+  "empty_tip": "No knowledge base is associated yet. Click \"Associate Knowledge Base\" in the top right to add one.",
+  "msg_saved": "Saved successfully"
+}

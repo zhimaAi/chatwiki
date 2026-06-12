@@ -1,0 +1,15 @@
+{
+  "title_add_tool": "Add Tool",
+  "subtitle": "Automatically execute tasks based on tool configuration, such as scheduled notifications, data sync, and automation.",
+  "info_tip": "Select the tools to add. The robot will automatically execute related tasks based on each tool's configuration. Each robot can add multiple tools.",
+  "btn_create_tool": "Create Tool",
+  "btn_refresh": "Refresh",
+  "empty_data": "No data",
+  "tag_unpublished": "(Unpublished)",
+  "btn_cancel": "Cancel",
+  "btn_confirm": "Confirm",
+  "btn_confirm_with_count": "Confirm ({count})",
+  "msg_fetch_tools_failed": "Failed to fetch tool list",
+  "msg_add_success": "Added successfully",
+  "msg_add_failed": "Add failed"
+}

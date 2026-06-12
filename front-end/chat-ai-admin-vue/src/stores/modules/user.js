@@ -3,6 +3,7 @@ import { store } from '../index'
 import { Modal } from 'ant-design-vue'
 import { loginApi, getUserInfo, getUnReadMessageTotal, refreshUserToken } from '@/api/user'
 // import { getTokenCache, setTokenCache } from '@/storage/user'
+import {getUser as getManageUser} from '@/api/manage'
 import router from '@/router'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
 import { i18n } from '@/locales'
@@ -200,7 +201,20 @@ export const useUserStore = defineStore('user', {
     },
     setGuideLearningTips(guideLearningTips) {
       this.guideLearningTips = guideLearningTips
-    }
+    },
+    // 获取用户信息并合并到 store
+    // 参数：userId（可选，默认使用当前用户），baseData（可选，登录接口返回的基础数据）
+    async fetchUserExtraInfo(userId, baseData = {}) {
+      const targetUserId = userId || this.userInfo?.user_id
+      if (!targetUserId) {
+        return Promise.reject(new Error('user_id not found'))
+      }
+      const res = await getManageUser({ id: targetUserId })
+      // 合并数据（getUser 数据优先级更高）
+      const mergedUserInfo = baseData.user_id ? { ...baseData, ...res.data } : { ...this.userInfo, ...res.data }
+      this.setUserInfo(mergedUserInfo)
+      return res.data
+    },
   },
   persist: true
 })

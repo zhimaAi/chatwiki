@@ -1,0 +1,18 @@
+{
+  "page_title": "Agent",
+  "btn_create_agent": "创建 Agent",
+  "ph_search": "搜索",
+  "msg_loading_list": "正在加载 Agent 列表...",
+  "msg_no_matching_agents": "暂无匹配的 Agent",
+  "tag_chatbot": "Chatbot",
+  "tooltip_session_history": "会话记录",
+  "tooltip_analytics": "统计分析",
+  "tooltip_duplicate_agent": "复制 Agent",
+  "action_delete": "删除",
+  "msg_copy_success": "复制成功",
+  "title_delete_agent": "删除 Agent {name}",
+  "msg_confirm_delete_agent": "确定要删除该 Agent 吗？",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功"
+}

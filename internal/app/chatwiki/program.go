@@ -233,6 +233,21 @@ func CreateDefaultBaaiModel(userId int64) {
 	}
 }
 
+func isDuplicateCasbinRuleErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	var sqlerr *pq.Error
+	if errors.As(err, &sqlerr) && sqlerr.Code == `23505` {
+		return true
+	}
+	errMsg := strings.ToLower(err.Error())
+	if strings.Contains(errMsg, `sqlstate 23505`) {
+		return true
+	}
+	return strings.Contains(errMsg, `duplicate key value violates unique constraint`) && strings.Contains(errMsg, `idx_casbin_rule`)
+}
+
 func InitRoleRootPermissions() {
 	roles, err := msql.Model(define.TableRole, define.Postgres).
 		Where(`role_type`, `in`, fmt.Sprintf(`%d,%d`, define.RoleTypeRoot, define.RoleTypeAdmin)).
@@ -263,8 +278,7 @@ func InitRoleRootPermissions() {
 		for _, item := range define.GetAllUniKeyList() {
 			_, err = casbin.Handler.AddPolicies([][]string{{role[`id`], item, "GET"}})
 			if err != nil {
-				var sqlerr *pq.Error
-				if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
+				if isDuplicateCasbinRuleErr(err) { // Unique index constraint
 					//nothing to do
 				} else {
 					panic(err.Error())
@@ -294,8 +308,7 @@ func InitRoleUserPermissions() {
 		rolePermissions = append(rolePermissions, []string{roleInfo[`id`], item, "GET"})
 		_, err = casbin.Handler.AddPolicies([][]string{{roleInfo[`id`], item, "GET"}})
 		if err != nil {
-			var sqlerr *pq.Error
-			if errors.As(err, &sqlerr) && sqlerr.Code == `23505` { // Unique index constraint
+			if isDuplicateCasbinRuleErr(err) { // Unique index constraint
 				//nothing to do
 			} else {
 				panic(err.Error())

@@ -63,7 +63,11 @@
             <div class="time-tag" v-if="cuttentItem.is_success">{{ cuttentItem.use_time }}ms</div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">{{ t('label_input') }}<CopyOutlined @click="handleCopy('input')" /></div>
+            <div class="title-block">
+              {{ t('label_input') }}
+              <CopyOutlined @click="handleCopy('input')" />
+              <ExpandOutlined @click="handleOpenDetail('input')" />
+            </div>
             <div class="preview-code-box">
               <template v-if="isHugeData(cuttentItem.input)">
                 <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
@@ -73,7 +77,11 @@
             </div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">{{ t('label_output') }}<CopyOutlined @click="handleCopy('node_output')" /></div>
+            <div class="title-block">
+              {{ t('label_output') }}
+              <CopyOutlined @click="handleCopy('node_output')" />
+              <ExpandOutlined @click="handleOpenDetail('node_output')" />
+            </div>
             <div class="preview-code-box">
               <template v-if="isHugeData(cuttentItem.node_output)">
                 <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
@@ -83,7 +91,11 @@
             </div>
           </div>
           <div class="preview-content-block">
-            <div class="title-block">{{ t('label_run_log') }}<CopyOutlined @click="handleCopy('output')" /></div>
+            <div class="title-block">
+              {{ t('label_run_log') }}
+              <CopyOutlined @click="handleCopy('output')" />
+              <ExpandOutlined @click="handleOpenDetail('output')" />
+            </div>
             <div class="preview-code-box">
               <template v-if="isHugeData(cuttentItem.output)">
                 <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
@@ -96,6 +108,21 @@
       </div>
     </div>
   </a-modal>
+  <a-modal
+    v-model:open="detailOpen"
+    :title="detailTitle"
+    :footer="null"
+    :width="960"
+    :bodyStyle="{ 'max-height': '700px', 'overflow-y': 'auto' }"
+  >
+    <div class="detail-code-box">
+      <template v-if="isHugeData(detailData)">
+        <div class="large-data-tip">{{ t('msg_data_too_large') }}</div>
+        <textarea class="large-data-textarea" readonly :value="getJsonText(detailData)" />
+      </template>
+      <vue-json-pretty v-else :data="detailData" v-bind="getJsonViewerProps(detailData)" />
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -103,7 +130,8 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   RightCircleOutlined,
-  CopyOutlined
+  CopyOutlined,
+  ExpandOutlined
 } from '@ant-design/icons-vue'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
@@ -119,6 +147,8 @@ const emit = defineEmits(['save', 'getGlobal'])
 const query = useRoute().query
 
 const open = ref(false)
+const detailOpen = ref(false)
+const detailKey = ref('')
 const currentNodeKey = ref('')
 const resultList = ref([])
 
@@ -161,6 +191,21 @@ const handleChangeNodeKey = (item) => {
 const handleCopy = (key) => {
   copyText(JSON.stringify(cuttentItem.value[key]))
   message.success(t('msg_copy_success'))
+}
+
+const detailTitleMap = {
+  input: 'title_input_detail',
+  node_output: 'title_output_detail',
+  output: 'title_run_log_detail'
+}
+
+const detailTitle = computed(() => t(detailTitleMap[detailKey.value] || 'title_log_detail'))
+
+const detailData = computed(() => cuttentItem.value?.[detailKey.value])
+
+const handleOpenDetail = (key) => {
+  detailKey.value = key
+  detailOpen.value = true
 }
 
 // ---- JSON 数据量安全渲染辅助 ----
@@ -348,7 +393,8 @@ defineExpose({
       display: flex;
       align-items: center;
       gap: 4px;
-      .anticon-copy {
+      .anticon-copy,
+      .anticon-expand {
         cursor: pointer;
         &:hover {
           color: #2475fc;
@@ -401,5 +447,18 @@ defineExpose({
   overflow: auto;
   white-space: pre;
   outline: none;
+}
+
+.detail-code-box {
+  min-height: 320px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  overflow-x: auto;
+
+  &::v-deep(.vjs-tree) {
+    width: fit-content;
+    min-width: 100%;
+  }
 }
 </style>

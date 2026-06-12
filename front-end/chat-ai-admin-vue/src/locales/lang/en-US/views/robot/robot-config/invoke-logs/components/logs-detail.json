@@ -5,7 +5,10 @@
   "msg_input_openid": "Please enter openid!",
   "ph_input": "Enter",
   "label_input": "Input",
+  "title_input_detail": "Input Details",
   "label_output": "Output",
+  "title_output_detail": "Output Details",
   "label_run_log": "Run Log",
+  "title_run_log_detail": "Run Log Details",
   "msg_copy_success": "Copied successfully"
 }

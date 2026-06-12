@@ -1,0 +1,12 @@
+{
+  "label_agent_fallback": "Agent",
+  "btn_new_agent": "新建 Agent",
+  "btn_back_chatwiki": "返回 chatwiki",
+  "nav_chat": "对话",
+  "nav_agent": "Agent",
+  "nav_skill": "Skill",
+  "nav_knowledge_base": "知识库",
+  "nav_external_services": "对外服务",
+  "nav_analytics": "统计",
+  "nav_settings": "设置"
+}

@@ -1,4 +1,4 @@
-// Copyright 漏 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
+// Copyright © 2016- 2025 Wuhan Sesame Small Customer Service Network Technology Co., Ltd.
 
 package migrations
 

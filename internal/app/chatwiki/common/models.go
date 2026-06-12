@@ -862,6 +862,12 @@ func (h *ModelCallHandler) RequestChatStream(
 		if err != nil {
 			return adaptor.ZhimaChatCompletionResponse{}, 0, err
 		}
+
+		// clawbot push stream raw
+		if len(robot) > 0 && cast.ToInt(robot[`application_type`]) == define.ApplicationTypeClaw {
+			chanStream <- sse.Event{Event: `stream_raw`, Data: response}
+		}
+
 		if len(response.FunctionToolCalls) > 0 {
 			chunkFunc := response.FunctionToolCalls[0]
 			if len(functionToolCall.Name) == 0 {
@@ -909,6 +915,10 @@ func (h *ModelCallHandler) RequestChatStream(
 				logs.Error(err.Error())
 			}
 		}(adminUserId, cast.ToInt(robot[`id`]), functionToolCall)
+	}
+
+	if len(functionToolCall.Name) > 0 {
+		totalResponse.FunctionToolCalls = []adaptor.FunctionToolCall{functionToolCall}
 	}
 
 	return totalResponse, requestTime, nil

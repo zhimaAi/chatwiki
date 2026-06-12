@@ -42,4 +42,7 @@ func Initialize() {
 	//initialize casbin
 	initCasbin()
 	logs.Info(`initialize casbin finish`)
+	//initialize ripgrep
+	initRipgrep()
+	logs.Info(`initialize ripgrep finish`)
 }

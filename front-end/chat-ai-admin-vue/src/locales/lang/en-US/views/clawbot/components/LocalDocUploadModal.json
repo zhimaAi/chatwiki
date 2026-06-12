@@ -1,0 +1,17 @@
+{
+  "title_upload_file": "Upload File",
+  "text_drag_or_upload": "Drag the file here, or click to upload",
+  "text_file_hint": "Supports {formats}; each file must be no larger than {size}",
+  "btn_remove_file": "Remove",
+  "label_description": "File Description",
+  "ph_description": "Describe the main content of the file to help the Agent understand it quickly and match user questions.",
+  "tip_description": "The file description will be indexed so the Agent can find the matching file faster.",
+  "label_keywords": "Keywords",
+  "ph_keywords": "Enter keywords, one per line",
+  "tip_keywords": "The keywords will be indexed so the Agent can find the matching file faster.",
+  "btn_cancel": "Cancel",
+  "btn_confirm_upload": "Confirm Upload",
+  "msg_select_file": "Please select a file to upload",
+  "msg_unsupported_format": "Unsupported file format. Supported formats: {formats}",
+  "msg_file_too_large": "File size cannot exceed {size}"
+}

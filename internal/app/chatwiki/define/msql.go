@@ -38,6 +38,7 @@ const (
 
 const (
 	RobotManage      = `RobotManage`
+	ClawBot          = `ClawBot`
 	LibraryManage    = `LibraryManage`
 	SystemManage     = `SystemManage`
 	ClientSideManage = `ClientSideManage`
@@ -77,6 +78,7 @@ const (
 const (
 	ApplicationTypeChat = 0
 	ApplicationTypeFlow = 1
+	ApplicationTypeClaw = 2
 )
 
 const (

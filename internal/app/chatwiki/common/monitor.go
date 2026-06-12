@@ -92,6 +92,10 @@ func (m *Monitor) Save(err error) {
 			return
 		}
 		m.LlmCallTime = m.RequestTime // Special data correction
+	case define.ApplicationTypeClaw:
+		if m.Error == nil && m.AllUseTime < 5000 {
+			return
+		}
 	default:
 		return
 	}

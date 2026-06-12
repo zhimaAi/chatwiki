@@ -1,0 +1,5 @@
+{
+  "label_final_answer": "最终回复",
+  "label_generated_by": "由 {name} 生成",
+  "label_agent_fallback": "Agent"
+}

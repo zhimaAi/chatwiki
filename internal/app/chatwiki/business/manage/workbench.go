@@ -3,6 +3,7 @@
 package manage
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -356,12 +357,12 @@ func WorkbenchTeamRobotList(c *gin.Context) {
 		return
 	}
 
-	// Query chat robots (application_type = 0), all are displayed
+	// Query chat robots (application_type in 0,2), all are displayed
 	chatRobots, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Alias(`r`).
 		Field(`r.id, r.robot_name, r.application_type, r.robot_intro, r.robot_avatar, r.robot_key, r.group_id`).
 		Where(`r.admin_user_id`, cast.ToString(adminUserId)).
-		Where(`r.application_type`, `0`).
+		Where(`r.application_type`, `in`, fmt.Sprintf(`%d,%d`, define.ApplicationTypeChat, define.ApplicationTypeClaw)).
 		Select()
 	if err != nil {
 		logs.Error(err.Error())
@@ -374,7 +375,7 @@ func WorkbenchTeamRobotList(c *gin.Context) {
 		Alias(`r`).
 		Field(`r.id, r.robot_name, r.application_type, r.robot_intro, r.robot_avatar, r.robot_key,  r.group_id`).
 		Where(`r.admin_user_id`, cast.ToString(adminUserId)).
-		Where(`r.application_type`, `1`).
+		Where(`r.application_type`, cast.ToString(define.ApplicationTypeFlow)).
 		Where(`EXISTS (SELECT 1 FROM work_flow_node n WHERE n.robot_id = r.id AND n.admin_user_id = r.admin_user_id AND n.data_type = ` + cast.ToString(define.DataTypeRelease) + `)`).
 		Select()
 	if err != nil {
@@ -461,7 +462,7 @@ func getHomeConfig(adminUserId, userId int, config msql.Params) msql.Params {
 	//last created robot
 	chatRobot, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`application_type`, `0`).
+		Where(`application_type`, `in`, fmt.Sprintf(`%d,%d`, define.ApplicationTypeChat, define.ApplicationTypeClaw)).
 		Order(`create_time desc`).
 		Field(`id, robot_key, create_time,robot_name,robot_intro,robot_avatar`).
 		Find()
@@ -473,7 +474,7 @@ func getHomeConfig(adminUserId, userId int, config msql.Params) msql.Params {
 		Alias(`r`).
 		Join(`work_flow_node n`, `r.id = n.robot_id and r.admin_user_id = n.admin_user_id`, `inner`).
 		Where(`r.admin_user_id`, cast.ToString(adminUserId)).
-		Where(`r.application_type`, `1`).
+		Where(`r.application_type`, cast.ToString(define.ApplicationTypeFlow)).
 		Where(`n.data_type`, cast.ToString(define.DataTypeRelease)).
 		Order(`n.update_time desc`).
 		Field(`r.id, r.robot_key, n.update_time,r.robot_name,r.robot_intro,r.robot_avatar`).

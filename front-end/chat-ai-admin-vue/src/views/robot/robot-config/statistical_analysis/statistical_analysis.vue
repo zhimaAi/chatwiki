@@ -91,7 +91,7 @@
 </template>
 <script setup>
 import * as echarts from 'echarts'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { getAnalyse } from '@/api/manage/index.js'
 import DateSelect from './components/date.vue'
 import Echarts from './components/echarts.vue'
@@ -99,8 +99,15 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/hooks/web/useI18n'
 
+// 兼容 clawbot 模块通过 props 传入 robotId，robot 模块仍从 route.query 读取
+const props = defineProps({
+  robotId: { type: [String, Number], default: '' },
+  robotKey: { type: String, default: '' }
+})
 const route = useRoute()
 const { t } = useI18n('views.robot.robot-config.statistical-analysis.statistical-analysis')
+
+const robotId = computed(() => props.robotId || route.query.id)
 // type = 1日活用户数 2日新增用户数 3总消息数 4token消耗数
 const echartItem = [1, 2, 3, 4]
 
@@ -255,7 +262,7 @@ const getData = (type) => {
     type: type,
     start_date: requestParams.start_date,
     end_date: requestParams.end_date,
-    robot_id: route.query.id
+    robot_id: robotId.value
   }
 
   // 全部渠道不传参数到后端
@@ -275,6 +282,13 @@ const handleChangeModel = (val) => {
   requestParams.channel = val
   onSearch()
 }
+
+// clawbot 切换助手时重拉图表数据
+watch(robotId, (val, oldVal) => {
+  if (val && oldVal !== undefined && val !== oldVal) {
+    onSearch()
+  }
+})
 
 onMounted(() => {
 })

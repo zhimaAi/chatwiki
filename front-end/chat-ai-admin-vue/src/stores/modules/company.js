@@ -3,6 +3,17 @@ import { getCompany } from '@/api/user'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const defaultAvatar = 'https://xkf-upload-oss.xiaokefu.com.cn/static/chat-wiki/favicon.ico'
+
+function getDevFixedDomains() {
+  const protocol = window.location.protocol || 'http:'
+  const port = window.location.port ? `:${window.location.port}` : ''
+
+  return {
+    admin_domain: `${protocol}//localhost${port}`,
+    agent_domain: `${protocol}//127.0.0.1${port}`
+  }
+}
+
 const topNavigateDefaultData = [
   {
     id: 'explore',
@@ -15,6 +26,11 @@ const topNavigateDefaultData = [
     name: '机器人',
     open: true,
     isDisabled: true,
+  },
+  {
+    id: 'clawbot',
+    name: 'Clawbot',
+    open: true
   },
   {
     id: 'library',
@@ -59,6 +75,8 @@ export const useCompanyStore = defineStore('company', {
       ali_ocr_switch: '2',
       ali_ocr_key: '',
       ali_ocr_secret: '',
+      admin_domain: '',
+      agent_domain: '',
       is_public_network: '',
       topNavigateDefaultData: topNavigateDefaultData,
       top_navigate: topNavigateDefaultData,
@@ -82,24 +100,33 @@ export const useCompanyStore = defineStore('company', {
 
     setCompanyInfo(data) {
       const { t } = useI18n()
+      // 开发环境固定用 localhost/127.0.0.1 模拟 admin/agent 分域，避免依赖后台真实域名配置。
+      const domainData = import.meta.env.DEV ? getDevFixedDomains() : {}
+      const companyData = data ? { ...data, ...domainData } : data
 
-      this.companyInfo = data;
-      this.name = data ? data.name : '';
-      this.id = data ? data.id : '';
-      this.ali_ocr_switch = data ? data.ali_ocr_switch : '';
-      this.ali_ocr_key = data ? data.ali_ocr_key : '';
-      this.ali_ocr_secret = data ? data.ali_ocr_secret : '2';
-      this.is_public_network = data ? data.is_public_network : '';
+      this.companyInfo = companyData;
+      this.name = companyData ? companyData.name : '';
+      this.id = companyData ? companyData.id : '';
+      this.ali_ocr_switch = companyData ? companyData.ali_ocr_switch : '';
+      this.ali_ocr_key = companyData ? companyData.ali_ocr_key : '';
+      this.ali_ocr_secret = companyData ? companyData.ali_ocr_secret : '2';
+      this.admin_domain = companyData ? companyData.admin_domain : '';
+      this.agent_domain = companyData ? companyData.agent_domain : '';
+      this.is_public_network = companyData ? companyData.is_public_network : '';
 
        // t(`navigation.${item.id}`, item.name)
        let navs = []
-      if(data && data.top_navigate){
-        let top_navigate = JSON.parse(data.top_navigate)
+      if(companyData && companyData.top_navigate){
+        let top_navigate = JSON.parse(companyData.top_navigate)
+        let topNavigateIds = top_navigate.map(item => item.id)
 
-        navs = topNavigateDefaultData.map(item => {
-          let findItem =  top_navigate.find(it => it.id == item.id)
-          return findItem ? findItem : item
-        })
+        navs = top_navigate
+          .map(item => {
+            let defaultItem = topNavigateDefaultData.find(it => it.id == item.id)
+            return defaultItem ? { ...defaultItem, ...item } : null
+          })
+          .filter(Boolean)
+          .concat(topNavigateDefaultData.filter(item => !topNavigateIds.includes(item.id)))
       }else{
         navs = topNavigateDefaultData
       }
@@ -110,7 +137,7 @@ export const useCompanyStore = defineStore('company', {
 
       this.top_navigate = navs
 
-      setFavicon(data?.avatar || defaultAvatar)
+      setFavicon(companyData?.avatar || defaultAvatar)
     },
   },
 })

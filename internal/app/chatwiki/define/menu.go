@@ -47,6 +47,22 @@ var Menus = []Menu{
 		},
 	},
 	{
+		Name:   "[[ZM--ClawBotManageName--ZM]]",
+		UniKey: "ClawBot",
+		Children: []*Menu{
+			{
+				Name:   "[[ZM--ClawBotManageName--ZM]]",
+				UniKey: "ClawBotManage",
+				Children: []*Menu{
+					{
+						Name:   "[[ZM--ClawBotCreateName--ZM]]",
+						UniKey: "ClawBotCreate",
+					},
+				},
+			},
+		},
+	},
+	{
 		Name:   "[[ZM--KnowledgeBaseName--ZM]]",
 		UniKey: "library",
 		Children: []*Menu{
@@ -189,6 +205,8 @@ var Menus = []Menu{
 var AllUniKeyList = []string{
 	"RobotCreate",
 	"RobotManage",
+	"ClawBotCreate",
+	"ClawBotManage",
 	"LibraryCreate",
 	"LibraryManage",
 	"FormCreate",
@@ -204,6 +222,7 @@ var AllUniKeyList = []string{
 
 var UserUniKeyList = []string{
 	"RobotManage",
+	"ClawBotManage",
 	"LibraryManage",
 	"FormManage",
 	"AccountManage",
@@ -217,6 +236,9 @@ var MustUniKeyList = []string{
 var ContainsUniKeyList = []map[string]string{
 	{
 		"RobotCreate": "RobotManage",
+	},
+	{
+		"ClawBotCreate": "ClawBotManage",
 	},
 	{
 		"LibraryCreate": "LibraryManage",

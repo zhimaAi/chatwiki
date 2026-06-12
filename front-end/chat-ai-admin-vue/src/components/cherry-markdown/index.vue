@@ -46,6 +46,10 @@ const props = defineProps({
 })
 
 const md = new CherryEngine({
+  themeSettings: {
+    // 目前应用的主题
+    mainTheme: 'orange',
+  },
   engine: {
     global: {
       classicBr: true,

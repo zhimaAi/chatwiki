@@ -40,6 +40,9 @@ func BuildOpenApiContent(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult
 
 // BuildFunctionTools build function tools
 func BuildFunctionTools(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeClaw {
+		return pipeline.PipeContinue
+	}
 	if len(in.params.Robot[`form_ids`]) > 0 {
 		formIdList := strings.Split(in.params.Robot[`form_ids`], `,`)
 		out.functionTools, out.Error = common.BuildFunctionTools(formIdList, in.params.AdminUserId)
@@ -70,6 +73,20 @@ func BuildImmediatelyReplyHandle(in *ChatInParam, out *ChatOutParam) func(replyC
 		out.replyContentList = append(out.replyContentList, replyContent)
 		in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
 	}
+}
+
+// DoApplicationTypeClaw clawbot logic
+func DoApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeClaw {
+		out.Error = doApplicationTypeClaw(in, out)
+		if out.Error != nil {
+			in.exitChat = true // exit flag
+			in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
+			return pipeline.PipeStop
+		}
+		return pipeline.PipeStop
+	}
+	return pipeline.PipeContinue
 }
 
 // DoApplicationTypeFlow workflow bot logic

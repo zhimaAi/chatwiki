@@ -1,0 +1,12 @@
+{
+  "title_create_agent": "创建 Agent",
+  "tip_upload_avatar": "请上传 Agent 头像，建议尺寸为100*100px，大小不超过100KB",
+  "label_default_avatar": "默认头像",
+  "label_agent_name": "Agent 名称",
+  "ph_input_name": "请输入名称",
+  "label_intro": "简介",
+  "ph_input_intro": "请输入 Agent 简介",
+  "validator_input_agent_name": "请输入 Agent 名称",
+  "validator_agent_name_max": "最多20个字符",
+  "msg_create_success": "创建成功"
+}

@@ -1,0 +1,20 @@
+{
+  "section_desc": "Query knowledge documents in the current robot workspace.",
+  "btn_upload_file": "Upload File",
+  "btn_remove": "Remove",
+  "action_delete": "Delete",
+  "empty_tip": "No documents yet. Click \"Upload File\" above to add one.",
+  "msg_fetch_failed": "Failed to fetch document list",
+  "msg_unsupported_format": "Unsupported file format. Supported formats: {formats}",
+  "msg_file_too_large": "File size cannot exceed 100MB",
+  "msg_invalid_name": "The file name cannot be empty or be . / ..",
+  "msg_no_agent_selected": "No robot selected",
+  "msg_upload_success": "Uploaded successfully",
+  "msg_upload_failed": "Upload failed",
+  "title_delete_document": "Delete Document",
+  "msg_confirm_delete_document": "Are you sure you want to delete \"{name}\"?",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully",
+  "msg_delete_failed": "Delete failed"
+}

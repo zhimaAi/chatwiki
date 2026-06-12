@@ -1,9 +1,11 @@
 {
   "explore": "Explore",
   "robot": "Application",
+  "clawbot": "Clawbot",
   "library": "Knowledge",
   "PublicLibrary-new": "Documents",
   "library-search-new": "Search",
   "chat-monitor": "Session",
-  "user": "System Settings"
+  "user": "System Settings",
+  "workbench": "Workbench"
 }
