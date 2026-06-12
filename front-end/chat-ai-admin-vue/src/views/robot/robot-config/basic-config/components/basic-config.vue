@@ -218,7 +218,7 @@ const robotGroupList = computed(() => {
 })
 
 const showDefaultAvatars = computed(() => {
-  let def_avatar = robotInfo.application_type == 0 ? DEFAULT_ROBOT_AVATAR : DEFAULT_WORKFLOW_AVATAR
+  let def_avatar = Number(robotInfo.application_type) === 1 ? DEFAULT_WORKFLOW_AVATAR : DEFAULT_ROBOT_AVATAR
   return [def_avatar, ...DEFAULT_ROBOT_AVATAR_LIST]
 })
 

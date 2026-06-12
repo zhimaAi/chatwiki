@@ -17,6 +17,8 @@ import mcp from './mcp'
 import templates from './templates'
 import guide from './guide'
 import workbench from './workbench'
+import clawbot from './clawbot'
+import SetToken from '../views/set-token/index.vue'
 
 const routes = [
   {
@@ -38,7 +40,7 @@ const routes = [
   {
     path: '/set_token',
     name: 'SetToken',
-    component: () => import('../views/set-token/index.vue'),
+    component: SetToken,
     meta: {
       title: 'routes.basic.login',
       noCache: true,
@@ -82,6 +84,7 @@ const routes = [
   mcp,
   templates,
   workbench,
+  clawbot,
 ]
 
 if (import.meta.env.DEV) {

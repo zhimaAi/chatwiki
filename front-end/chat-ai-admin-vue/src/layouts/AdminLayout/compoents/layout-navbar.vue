@@ -37,6 +37,46 @@
       margin-left: 16px;
       font-size: 14px;
     }
+    &.clawbot-nav-menu {
+      align-items: center;
+      gap: 10px;
+      padding-right: 18px;
+
+      .clawbot-agent-icon,
+      .clawbot-agent-text,
+      .clawbot-alpha-badge {
+        flex-shrink: 0;
+      }
+
+      .clawbot-alpha-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: -4px;
+        right: -20px;
+        min-width: 32px;
+        height: 14px;
+        padding: 0 5px;
+        line-height: 14px;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        color: #ad6800;
+        background: #fff7e6;
+        border: 1px solid #ffd591;
+        border-radius: 999px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+      }
+
+      &.active {
+        .clawbot-alpha-badge {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.14);
+          border-color: rgba(255, 255, 255, 0.32);
+        }
+      }
+    }
   }
 }
 .robot-ment-item .anticon-check {
@@ -92,11 +132,21 @@
           <div
             v-else
             class="nav-menu"
-            :class="{ active: item.key === rootPath || item.key === activeMenu || item.label == activeMenu  }"
+            :class="{
+              active: item.key === rootPath || item.key === activeMenu || item.label == activeMenu,
+              'clawbot-nav-menu': item.key === 'clawbot'
+            }"
             @click="handleClickNav(item)"
           >
-            <svg-icon class="nav-icon" :name="item.icon"></svg-icon>
-            <span class="nav-name">{{ item.title }}</span>
+            <template v-if="item.key === 'clawbot'">
+              <svg-icon class="clawbot-agent-icon" name="agent" width="14" height="14"></svg-icon>
+              <svg-icon class="clawbot-agent-text" name="agent-text" width="40" height="22"></svg-icon>
+              <span class="clawbot-alpha-badge">ALPHA</span>
+            </template>
+            <template v-else>
+              <svg-icon class="nav-icon" :name="item.icon"></svg-icon>
+              <span class="nav-name">{{ item.title }}</span>
+            </template>
           </div>
         </template>
       </template>
@@ -150,6 +200,15 @@ const baseNavs = computed(() => [
     title: t('robot'),
     icon: 'nav-robot',
     path: '/robot/list',
+    permission: ['RobotManage']
+  },
+  {
+    id: 1.5,
+    key: 'clawbot',
+    label: 'clawbot',
+    title: t('clawbot'),
+    icon: 'nav-robot',
+    path: '/clawbot/chat',
     permission: ['RobotManage']
   },
   {

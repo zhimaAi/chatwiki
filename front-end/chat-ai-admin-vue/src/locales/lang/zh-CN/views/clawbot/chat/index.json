@@ -1,0 +1,13 @@
+{
+  "title_conversation": "对话",
+  "btn_new_chat": "新对话",
+  "label_agent_fallback": "Agent",
+  "msg_empty_desc": "智能对话助手，为您解答各类问题，提供专业建议。",
+  "msg_loading_conversation": "正在加载对话...",
+  "msg_ai_generated_tip": "内容由AI生成，仅供参考",
+  "msg_input_required": "请输入消息内容",
+  "msg_sensitive_words": "消息中包含敏感词：{words}",
+  "msg_assistant_not_ready": "当前 Agent 信息未加载完成，请稍后重试",
+  "msg_model_switched": "模型切换成功",
+  "msg_saved": "保存成功"
+}

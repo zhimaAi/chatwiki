@@ -1,0 +1,19 @@
+{
+  "page_title": "Skill",
+  "btn_add_skill": "Add Skill",
+  "menu_add_tool": "Add Tool",
+  "title_query_knowledge_base": "Query Knowledge Base",
+  "desc_query_knowledge_base": "Query knowledge already added to the specified knowledge base based on user questions.",
+  "title_query_local_docs": "Query Local Docs",
+  "desc_query_local_docs": "Query knowledge documents in the current robot workspace.",
+  "switch_on": "On",
+  "switch_off": "Off",
+  "tag_tool": "TOOL",
+  "tag_skill": "SKILL",
+  "title_remove_tool": "Remove Tool",
+  "msg_confirm_remove_tool": "Are you sure you want to remove this tool?",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_remove_success": "Removed successfully",
+  "msg_remove_failed": "Remove failed"
+}

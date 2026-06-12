@@ -139,6 +139,8 @@ func GetCompany(c *gin.Context) {
 	data[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	data[`version`] = define.Version
 	data[`is_public_network`] = cast.ToString(define.IsPublicNetWork)
+	data[`admin_domain`] = ``
+	data[`agent_domain`] = ``
 	common.FmtOk(c, data)
 }
 

@@ -530,6 +530,12 @@ defineExpose({
       gap: 8px;
       font-size: 14px;
       margin-left: 12px;
+      .node-name{
+        max-width: 200px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
       img {
         width: 16px;
         height: 16px;

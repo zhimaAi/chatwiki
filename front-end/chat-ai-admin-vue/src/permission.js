@@ -4,6 +4,7 @@ import { usePermissionStoreWithOut } from '@/stores/modules/permission'
 import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { checkSystemPermisission } from '@/utils/permission.js'
+import { buildSetTokenRedirectUrl, getCrossDomainTarget } from '@/utils/clawbot-domain'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
 import { i18n } from '@/locales'
@@ -71,6 +72,31 @@ router.beforeEach(async (to, from, next) => {
 
   let { userInfo, getUserInfo } = userStore
   let { getPermissionList, checkPermission } = permissionStore
+
+  const crossDomainTarget = getCrossDomainTarget({
+    toPath: to.path,
+    fromPath: from.path,
+    adminDomain: companyStore.admin_domain,
+    agentDomain: companyStore.agent_domain,
+    currentOrigin: window.location.origin
+  })
+
+  if (crossDomainTarget && userStore.getToken && userStore.userInfo?.user_id) {
+    // admin/clawbot 分域部署时，通过 set_token 把当前登录态带到目标域，再回跳原始页面。
+    const targetUrl = buildSetTokenRedirectUrl({
+      domain: crossDomainTarget,
+      redirectUrl: to.fullPath,
+      token: userStore.getToken,
+      exp: userStore.token?.exp,
+      ttl: userStore.token?.ttl,
+      userId: userStore.userInfo.user_id,
+      userName: userStore.userInfo.user_name,
+      refreshUserInfo: true
+    })
+
+    window.location.replace(targetUrl)
+    return
+  }
 
   if (to.path == '/set_token' || to.path == '/chatclaw/login') {
     next()

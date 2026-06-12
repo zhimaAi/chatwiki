@@ -95,7 +95,7 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { statAiTipAnalyse } from '@/api/manage/index.js'
 import DateSelect from './components/date.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
@@ -106,17 +106,26 @@ import dayjs from 'dayjs'
 import { useI18n } from '@/hooks/web/useI18n'
 const router = useRouter()
 
+// 兼容 clawbot 模块通过 props 传入 robotId/robotKey
+const props = defineProps({
+  robotId: { type: [String, Number], default: '' },
+  robotKey: { type: String, default: '' }
+})
+
 const chatStore = useChatStore()
 const { getChannelList } = chatStore
 const route = useRoute()
 const { t } = useI18n('views.robot.robot-config.statistical-analysis.hit-statics')
+
+const robotId = computed(() => props.robotId || route.query.id)
+const robotKey = computed(() => props.robotKey || route.query.robot_key)
 
 const channelItem = ref([])
 
 const datekey = ref('2')
 
 const requestParams = reactive({
-  robot_id: route.query.id, // 机器人ID
+  robot_id: '', // 由 watch(robotId) 同步
   start_date: '',
   end_date: '',
   channel: ''
@@ -135,9 +144,22 @@ const lineChartData = reactive({
 })
 
 const getChannelLists = async () => {
-  const res = await getChannelList({ robot_id: route.query.id })
+  const res = await getChannelList({ robot_id: robotId.value })
   channelItem.value = [...[{ app_type: '', app_name: t('ph_all_channels'), app_id: '' }], ...res.data]
 }
+
+// 同步 robotId 变化到 requestParams；clawbot 切助手时主动重拉
+watch(
+  robotId,
+  (val, oldVal) => {
+    requestParams.robot_id = val || ''
+    if (val && oldVal !== undefined && val !== oldVal) {
+      getChannelLists()
+      onSearch()
+    }
+  },
+  { immediate: true }
+)
 
 const onDateChange = (date) => {
   requestParams.start_date = date.start_date
@@ -217,11 +239,27 @@ const handleChangeModel = (val, options) => {
 
 const handleToUnknow = () => {
   localStorage.setItem('/robot/config/unknown_issue/activeKey', 1)
+
+  if (route.path.startsWith('/clawbot')) {
+    router.push({
+      path: '/clawbot/settings',
+      query: {
+        ...route.query,
+        menu: 'unknown_issue',
+        id: robotId.value,
+        robot_key: robotKey.value,
+        start_date: requestParams.start_date,
+        end_date: requestParams.end_date
+      }
+    })
+    return
+  }
+
   router.push({
     path: '/robot/config/unknown_issue',
     query: {
-      id: route.query.id,
-      robot_key: route.query.robot_key,
+      id: robotId.value,
+      robot_key: robotKey.value,
       start_date: requestParams.start_date,
       end_date: requestParams.end_date,
     }

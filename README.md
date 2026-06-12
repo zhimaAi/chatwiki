@@ -138,6 +138,17 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/06/12**
+
+1.[STD] After chat session is transferred to human agent, support redirecting to XiaoKeFu to view human agent session
+records<br/>
+2.Workflow node name limited to max 20 characters, expanded log detail display area<br/>
+3.Added Agent-type bot, supporting skill invocation<br/>
+4.[STD] Bot variables support importing XiaoKeFu user variables<br/>
+5.[STD] AI suggested replies: original text mode and traditional mode now support setting reply quantity<br/>
+6.Fixed SQL injection issue: refactored database connection management and SQL rendering<br/>
+7.[STD] Cloud version self-hosted model added upcoming offline notification popup<br/>
+
 **2026/06/05**
 
 1.Fixed error when adding google/gemini model via OpenRouter custom model<br/>
@@ -160,13 +171,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 8.Fixed issue where loop/batch processing node version records did not store parent nodes, causing parent node loss when
 restoring versions<br/>
 9.[STD] REDnote professional account plugin - Reply to intent comments<br/>
-
-**2026/05/22**
-
-1. [STD] Workflow bot: Added REDnote query material node<br/>
-2. Workflow: Added deep thinking log content to run logs<br/>
-3. Workflow bot: Added welcome message and other basic configurations<br/>
-4. [STD] AI employee display template, supports quick bot creation via associated templates<br/>
 
 ## License
 

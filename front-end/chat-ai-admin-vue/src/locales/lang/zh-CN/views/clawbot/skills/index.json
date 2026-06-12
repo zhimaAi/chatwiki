@@ -1,0 +1,19 @@
+{
+  "page_title": "Skill",
+  "btn_add_skill": "添加 Skill",
+  "menu_add_tool": "新增 Tool",
+  "title_query_knowledge_base": "查询知识库",
+  "desc_query_knowledge_base": "根据用户提问查询指定知识库中已添加知识",
+  "title_query_local_docs": "查询本地文档",
+  "desc_query_local_docs": "查询当前机器人工作空间内的知识文档",
+  "switch_on": "开",
+  "switch_off": "关",
+  "tag_tool": "TOOL",
+  "tag_skill": "SKILL",
+  "title_remove_tool": "移除 Tool",
+  "msg_confirm_remove_tool": "确定要移除该 Tool 吗？",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "msg_remove_success": "移除成功",
+  "msg_remove_failed": "移除失败"
+}

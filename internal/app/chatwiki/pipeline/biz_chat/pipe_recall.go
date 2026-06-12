@@ -32,6 +32,14 @@ func CheckPaymentSkipAiAndWorkflow(in *ChatInParam, out *ChatOutParam) pipeline.
 	return pipeline.PipeContinue
 }
 
+// CheckClawRobot check clawbot
+func CheckClawRobot(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeClaw {
+		return pipeline.PipeStop
+	}
+	return pipeline.PipeContinue
+}
+
 // CheckWorkFlowRobot check workflow robot
 func CheckWorkFlowRobot(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {

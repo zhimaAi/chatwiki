@@ -187,7 +187,7 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 	robotCsl.Category = category
 	// Workflow, library, form reference collection
 	switch cast.ToInt(robot[`application_type`]) {
-	case define.ApplicationTypeChat:
+	case define.ApplicationTypeChat, define.ApplicationTypeClaw:
 		if list, listErr := common.GetRobotMultilingualConfigList(id); listErr == nil {
 			robotCsl.RobotMultilingualConfig = common.NormalizeRobotMultilingualConfigs(toRobotMultilingualConfigs(list))
 		} else {
@@ -390,7 +390,7 @@ func ApplyRobotCsl(lang string, adminUserId, userId int, token string, robotCsl 
 	// Start importing robot
 	var newRobot msql.Params
 	switch cast.ToInt(robotCsl.Robot[`application_type`]) {
-	case define.ApplicationTypeChat:
+	case define.ApplicationTypeChat, define.ApplicationTypeClaw:
 		newRobot, err = ApplyChatRobot(lang, robotCsl.Robot, cslIdMaps, models, token)
 		if err != nil {
 			return nil, err
@@ -434,7 +434,7 @@ func ApplyChatRobot(lang string, robot msql.Params, cslIdMaps *common.CslIdMaps,
 	chatRobot[`check_name`] = `1`
 	for key, val := range robot {
 		switch key {
-		case `id`, `admin_user_id`, `robot_key`, `application_type`, `work_flow_ids`, `default_library_id`, `default_app_config`, `start_node_key`, `work_flow_model_config_ids`, `creator`:
+		case `id`, `admin_user_id`, `robot_key`, `work_flow_ids`, `default_library_id`, `default_app_config`, `start_node_key`, `work_flow_model_config_ids`, `creator`:
 		case `library_ids`:
 			newVals := make([]string, 0)
 			if len(val) > 0 {

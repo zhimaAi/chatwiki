@@ -5,6 +5,7 @@ package define
 const (
 	TokenAppTypeRobot    string = `chatwiki_robot`
 	TokenAppTypeWorkflow string = `workflow`
+	TokenAppTypeClawbot  string = `chatwiki_claw`
 	TokenAppTypeOther    string = `other`
 )
 
@@ -12,6 +13,7 @@ func GetTokenAppTypes() []string {
 	return []string{
 		TokenAppTypeRobot,
 		TokenAppTypeWorkflow,
+		TokenAppTypeClawbot,
 		TokenAppTypeOther,
 	}
 }

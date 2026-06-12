@@ -74,7 +74,7 @@ func (c *casbinHandler) DeleteUserRole(pIndex int, role string) (bool, error) {
 }
 
 func (c *casbinHandler) DelRoleRules(role string) (bool, error) {
-	success, err := c.syncedEnforcer.RemoveNamedPolicy("p", role)
+	success, err := c.syncedEnforcer.RemoveFilteredNamedPolicy("p", 0, role)
 	_ = c.syncedEnforcer.LoadPolicy()
 	return success, err
 }

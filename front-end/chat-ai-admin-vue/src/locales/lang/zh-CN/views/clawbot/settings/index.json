@@ -1,0 +1,15 @@
+{
+  "sidebar_title": "设置",
+  "menu_basic_config": "基础配置",
+  "menu_transfer": "转人工客服",
+  "menu_qa_feedback": "问答反馈",
+  "menu_session_record": "会话记录",
+  "menu_api_key_manage": "API Key 管理",
+  "menu_unknown_issue": "未知问题",
+  "menu_export_record": "导出记录",
+  "menu_model_management": "模型管理",
+  "transfer_tab_setting": "设置",
+  "transfer_tab_date_range": "时间范围",
+  "transfer_tab_application": "应用",
+  "msg_save_success": "保存成功"
+}

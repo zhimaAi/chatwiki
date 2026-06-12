@@ -281,6 +281,45 @@ services:
           cpus: '2'
           memory: 1G
 
+  chatwiki_llm_runner:
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/llm_runner:20260520
+    container_name: chatwiki_llm_runner
+    networks:
+      - chatwiki_network
+    volumes:
+      - ../build/llm_runner:/build/llm_runner:ro
+      - ../clawbot/working_dir:/workspace/clawbot/working_dir:rw
+    working_dir: /workspace
+    command: /build/llm_runner
+    restart: always
+    environment:
+      TZ: ${TIMEZONE}
+    ports:
+      - ${LLM_RUNNER_PORT}:9000
+    user: "10001:10001"
+    read_only: true
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stdin_open: true
+    tty: true
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 1024
+      nproc: 128
+      fsize: 104857600
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    deploy:
+      resources:
+        limits:
+          pids: 128
+          cpus: '2'
+          memory: 1G
+
 networks:
   chatwiki_network:
     driver: bridge

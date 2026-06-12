@@ -81,8 +81,25 @@ export function showSuccessMsg(msg) {
  * 把对象转为formData
  */
 export function objToFormData(obj) {
+  if (obj instanceof FormData) {
+    return obj
+  }
+
   const formData = new FormData()
   Object.keys(obj).forEach((key) => {
+    if (obj[key] === void 0 || obj[key] === null) {
+      return
+    }
+
+    if (key.endsWith('[]') && Array.isArray(obj[key])) {
+      obj[key].forEach((item) => {
+        if (item !== void 0 && item !== null) {
+          formData.append(key, item)
+        }
+      })
+      return
+    }
+
     if (obj[key] !== void 0 && obj[key] !== null) {
       formData.append(key, obj[key])
     }

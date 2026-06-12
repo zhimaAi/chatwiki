@@ -1,0 +1,8 @@
+{
+  "section_desc": "根据用户提问查询指定知识库中已添加知识",
+  "btn_recall_settings": "召回设置",
+  "btn_associate_knowledge_base": "关联知识库",
+  "btn_unlink": "取消关联",
+  "empty_tip": "暂未关联知识库，点击右上方“关联知识库”按钮添加",
+  "msg_saved": "保存成功"
+}

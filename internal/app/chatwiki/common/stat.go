@@ -140,11 +140,13 @@ func GetTokenAppType(robot msql.Params) string {
 		return tokenAppType
 	}
 	if len(robot) > 0 && cast.ToInt(robot[`id`]) > 0 {
-		applicationType := cast.ToInt(robot[`application_type`])
-		if applicationType == define.ApplicationTypeChat {
+		switch cast.ToInt(robot[`application_type`]) {
+		case define.ApplicationTypeChat:
 			tokenAppType = define.TokenAppTypeRobot
-		} else if applicationType == define.ApplicationTypeFlow {
+		case define.ApplicationTypeFlow:
 			tokenAppType = define.TokenAppTypeWorkflow
+		case define.ApplicationTypeClaw:
+			tokenAppType = define.TokenAppTypeClawbot
 		}
 	}
 	return tokenAppType

@@ -89,6 +89,12 @@ func init() {
 	Route[http.MethodPost][`/manage/relationLibrary`] = manage.RelationLibrary
 	Route[http.MethodPost][`/manage/cleanRobotChatCache`] = manage.CleanRobotChatCache
 
+	/*robot API*/
+	Route[http.MethodPost][`/manage/saveClawbotConf`] = manage.SaveClawbotConf
+	Route[http.MethodPost][`/manage/uploadClawbotLocalDoc`] = manage.UploadClawbotLocalDoc
+	Route[http.MethodGet][`/manage/getClawbotLocalDocList`] = manage.GetClawbotLocalDocList
+	Route[http.MethodPost][`/manage/deleteClawbotLocalDoc`] = manage.DeleteClawbotLocalDoc
+
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
 	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey

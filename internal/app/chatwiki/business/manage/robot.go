@@ -198,7 +198,8 @@ func GetRobotList(c *gin.Context) {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	list, err := BridgeRobotList(adminUserId, userId, applicationType, common.GetLang(c), userInfo)
+	filterClaw := cast.ToBool(c.DefaultQuery(`filter_claw`, `true`))
+	list, err := BridgeRobotList(adminUserId, userId, applicationType, common.GetLang(c), userInfo, filterClaw)
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
@@ -268,8 +269,7 @@ func BridgeGetRobotListWithOption(adminUserId, userId int, lang string, applicat
 	//Collect robot IDs with application_type=1
 	var workflowRobotIds []string
 	for i := range list {
-		at := cast.ToInt(list[i][`application_type`])
-		if at == 1 {
+		if cast.ToInt(list[i][`application_type`]) == define.ApplicationTypeFlow {
 			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
 		}
 	}
@@ -292,17 +292,17 @@ func BridgeGetRobotListWithOption(adminUserId, userId int, lang string, applicat
 
 	//Set has_published field
 	for i := range list {
-		at := cast.ToInt(list[i][`application_type`])
-		if at == 0 {
+		switch cast.ToInt(list[i][`application_type`]) {
+		case define.ApplicationTypeChat, define.ApplicationTypeClaw:
 			list[i][`has_published`] = `1`
-		} else if at == 1 {
+		case define.ApplicationTypeFlow:
 			robotId := cast.ToString(list[i][`id`])
 			if publishedRobotMap[robotId] {
 				list[i][`has_published`] = `1`
 			} else {
 				list[i][`has_published`] = `0`
 			}
-		} else {
+		default:
 			list[i][`has_published`] = `0`
 		}
 	}
@@ -528,7 +528,6 @@ func SaveRobot(c *gin.Context) {
 		}
 	}
 	//data check
-	var count int
 	var robotKey string
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	if id > 0 {
@@ -543,14 +542,9 @@ func SaveRobot(c *gin.Context) {
 			return
 		}
 	} else {
-		count, err = m.Where(`admin_user_id`, cast.ToString(userId)).Count()
-		if err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if count >= define.MaxRobotNum {
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
+		// check max robot num
+		if err = common.CheckMaxRobotNum(common.GetLang(c), userId, 1, cast.ToInt(c.PostForm(`application_type`))); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
 	}
@@ -792,6 +786,15 @@ func SaveRobot(c *gin.Context) {
 		data[`creator`] = loginUserId
 		data[`group_id`] = groupId
 		data[`is_default`] = isDefault
+		if cast.ToInt(c.PostForm(`application_type`)) == define.ApplicationTypeClaw {
+			data[`application_type`] = define.ApplicationTypeClaw
+			data[`prompt`] = i18n.Show(common.GetLang(c), `clawbot_default_prompt`)
+			data[`prompt_type`] = define.PromptTypeCustom
+			data[`prompt_role_type`] = define.PromptRoleTypeSystem
+			data[`chat_type`] = define.ChatTypeDirect
+			data[`max_token`] = 32 * 1024 // 32k
+			data[`enable_question_guide`] = false
+		}
 		id, err = m.Insert(data, `id`)
 		// add robot api key
 
@@ -1099,14 +1102,9 @@ func AddFlowRobot(c *gin.Context) {
 	//data check
 	var robotKey string
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
-	count, err := m.Where(`admin_user_id`, cast.ToString(userId)).Count()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if count >= define.MaxRobotNum {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
+	// check max robot num
+	if err = common.CheckMaxRobotNum(common.GetLang(c), userId, 1, define.ApplicationTypeFlow); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	//headImg uploaded
@@ -1433,7 +1431,7 @@ func GetRobotInfo(c *gin.Context) {
 	if cast.ToInt(info[`prompt_type`]) == define.PromptTypeStruct { //for legacy data normalization
 		info[`prompt_struct`], _ = common.CheckPromptConfig(common.GetLang(c), define.PromptTypeStruct, info[`prompt_struct`])
 	}
-	if cast.ToInt(info[`application_type`]) == define.ApplicationTypeFlow {
+	if tool.InArrayInt(cast.ToInt(info[`application_type`]), []int{define.ApplicationTypeFlow, define.ApplicationTypeClaw}) {
 		info[`enable_question_guide`] = `false`
 	}
 	//check langs
@@ -1583,17 +1581,6 @@ func RobotCopy(c *gin.Context) {
 		return
 	}
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
-	//data check
-	count, err := m.Where(`admin_user_id`, cast.ToString(userId)).Count()
-	if err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	if count >= define.MaxRobotNum {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_robot_num`, define.MaxRobotNum))))
-		return
-	}
 	//robot check
 	info, err := m.Where(`id`, cast.ToString(fromId)).Where(`admin_user_id`, cast.ToString(userId)).Find()
 	if err != nil {
@@ -1603,6 +1590,11 @@ func RobotCopy(c *gin.Context) {
 	}
 	if len(info) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	// check max robot num
+	if err = common.CheckMaxRobotNum(common.GetLang(c), userId, 1, cast.ToInt(info[`application_type`])); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	//database dispose
@@ -1772,7 +1764,7 @@ func RelationWorkFlow(c *gin.Context) {
 	//data check
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	robot, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`application_type`, cast.ToString(define.ApplicationTypeChat)).Find()
+		Where(`application_type`, `in`, fmt.Sprintf(`%d,%d`, define.ApplicationTypeChat, define.ApplicationTypeClaw)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -1986,13 +1978,17 @@ func CleanRobotChatCache(c *gin.Context) {
 	common.FmtOk(c, nil)
 }
 
-func BridgeRobotList(adminUserId, userId, applicationType int, lang string, userInfo msql.Params) ([]msql.Params, error) {
+func BridgeRobotList(adminUserId, userId, applicationType int, lang string, userInfo msql.Params, filterClaw bool) ([]msql.Params, error) {
 	m := msql.Model(`chat_ai_robot`, define.Postgres).
 		Field(`id,robot_name,robot_intro,robot_avatar,robot_key,application_type,creator,start_node_key,group_id,sort_num,is_top`).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).Order(`is_top desc, sort_num desc ,id desc`)
 
 	if applicationType >= 0 { // Filter by application type
 		m.Where(`application_type`, cast.ToString(applicationType))
+	} else {
+		if filterClaw {
+			m.Where(`application_type`, `<>`, cast.ToString(define.ApplicationTypeClaw))
+		}
 	}
 
 	//check permission
@@ -2016,8 +2012,7 @@ func BridgeRobotList(adminUserId, userId, applicationType int, lang string, user
 	// First, collect all robot IDs with application_type=1
 	var workflowRobotIds []string
 	for i := range list {
-		applicationType := cast.ToInt(list[i][`application_type`])
-		if applicationType == 1 {
+		if cast.ToInt(list[i][`application_type`]) == define.ApplicationTypeFlow {
 			workflowRobotIds = append(workflowRobotIds, cast.ToString(list[i][`id`]))
 		}
 	}
@@ -2040,20 +2035,17 @@ func BridgeRobotList(adminUserId, userId, applicationType int, lang string, user
 
 	// Set has_published field
 	for i := range list {
-		applicationType := cast.ToInt(list[i][`application_type`])
-		if applicationType == 0 {
-			// application_type=0, chat type, has_published=1
+		switch cast.ToInt(list[i][`application_type`]) {
+		case define.ApplicationTypeChat, define.ApplicationTypeClaw:
 			list[i][`has_published`] = `1`
-		} else if applicationType == 1 {
-			// application_type=1, workflow type, check if published version exists
+		case define.ApplicationTypeFlow:
 			robotId := cast.ToString(list[i][`id`])
 			if publishedRobotMap[robotId] {
 				list[i][`has_published`] = `1`
 			} else {
 				list[i][`has_published`] = `0`
 			}
-		} else {
-			// Other types default to 0
+		default:
 			list[i][`has_published`] = `0`
 		}
 	}

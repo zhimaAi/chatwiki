@@ -1,0 +1,12 @@
+{
+  "title_add_skill": "新增 Skill",
+  "subtitle": "根据 Skill 功能为用户提供服务，如知识库查询、文档检索等。",
+  "info_tip": "请选择要添加的 Skill，机器人会根据 Skill 的功能为用户提供服务。每个机器人可添加多个 Skill。",
+  "btn_create_skill": "新增 Skill",
+  "btn_refresh": "刷新",
+  "empty_data": "暂无数据",
+  "tag_unpublished": "(未发布)",
+  "btn_cancel": "取消",
+  "btn_confirm": "确定",
+  "btn_confirm_with_count": "确定 ({count})"
+}

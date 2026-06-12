@@ -1,0 +1,15 @@
+{
+  "title_add_tool": "新增 Tool",
+  "subtitle": "根据工具配置自动执行任务，如定时通知、数据同步、自动化操作等。",
+  "info_tip": "请选择要添加的 Tool，机器人会根据 Tool 的配置自动执行相关任务。每个机器人可添加多个 Tool。",
+  "btn_create_tool": "新增工具",
+  "btn_refresh": "刷新",
+  "empty_data": "暂无数据",
+  "tag_unpublished": "(未发布)",
+  "btn_cancel": "取消",
+  "btn_confirm": "确定",
+  "btn_confirm_with_count": "确定 ({count})",
+  "msg_fetch_tools_failed": "获取工具列表失败",
+  "msg_add_success": "添加成功",
+  "msg_add_failed": "添加失败"
+}

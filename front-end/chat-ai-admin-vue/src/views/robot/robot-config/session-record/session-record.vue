@@ -158,6 +158,17 @@ const onExport = async () => {
 }
 
 const toDownloadPage = () => {
+  if (route.path === '/clawbot/settings') {
+    router.push({
+      path: '/clawbot/settings',
+      query: {
+        ...query,
+        menu: 'export-record'
+      }
+    })
+    return
+  }
+
   router.push({
     path: '/robot/config/export-record',
     query,

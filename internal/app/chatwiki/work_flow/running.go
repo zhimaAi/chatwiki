@@ -359,7 +359,7 @@ func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common
 
 func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monitor, isSwitchManual *bool) (content string, requestTime int64, libUseTime common.LibUseTime, list []msql.Params, replyContentList []common.ReplyContent, err error) {
 	flow, _, err := BaseCallWorkFlow(params)
-	if flow != nil && len(flow.nodeLogs) > 0 {
+	if monitor != nil && flow != nil && len(flow.nodeLogs) > 0 {
 		monitor.NodeLogs = flow.nodeLogs //record monitoring data
 	}
 	if flow == nil || err != nil {
@@ -376,15 +376,17 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	for _, val := range flow.output[`special.lib_paragraph_list`].Vals {
 		list = append(list, val.Params)
 	}
-	*debugLog = append(*debugLog, flow.output[`special.llm_debug_log`].GetVals()...)
-	if cast.ToBool(flow.output[`special.is_switch_manual`].GetVal()) {
+	if debugLog != nil {
+		*debugLog = append(*debugLog, flow.output[`special.llm_debug_log`].GetVals()...)
+	}
+	if isSwitchManual != nil && cast.ToBool(flow.output[`special.is_switch_manual`].GetVal()) {
 		*isSwitchManual = true
 	}
 	return
 }
 
 func BuildFunctionTools(lang string, robot msql.Params) ([]adaptor.FunctionTool, bool) {
-	if len(robot) == 0 || cast.ToInt(robot[`application_type`]) != define.ApplicationTypeChat || len(robot[`work_flow_ids`]) == 0 {
+	if len(robot) == 0 || !tool.InArrayInt(cast.ToInt(robot[`application_type`]), []int{define.ApplicationTypeChat, define.ApplicationTypeClaw}) || len(robot[`work_flow_ids`]) == 0 {
 		return nil, false
 	}
 	//check function call capability
@@ -480,7 +482,7 @@ func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
 	}
 	//finish node to string
 	outputSlice := make([]string, 1000)
-	for outputKey, _ := range flow.output {
+	for outputKey := range flow.output {
 		if !strings.HasPrefix(outputKey, define.FinishReplyPrefixKey) {
 			continue
 		}

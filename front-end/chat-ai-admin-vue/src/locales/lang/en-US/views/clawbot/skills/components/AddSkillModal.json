@@ -1,0 +1,12 @@
+{
+  "title_add_skill": "Add Skill",
+  "subtitle": "Provide services to users based on skill capabilities, such as knowledge base queries and document retrieval.",
+  "info_tip": "Select the skills to add. The robot will provide services based on each skill's capabilities. Each robot can add multiple skills.",
+  "btn_create_skill": "Create Skill",
+  "btn_refresh": "Refresh",
+  "empty_data": "No data",
+  "tag_unpublished": "(Unpublished)",
+  "btn_cancel": "Cancel",
+  "btn_confirm": "Confirm",
+  "btn_confirm_with_count": "Confirm ({count})"
+}

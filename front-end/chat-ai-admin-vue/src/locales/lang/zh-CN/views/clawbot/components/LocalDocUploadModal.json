@@ -1,0 +1,17 @@
+{
+  "title_upload_file": "上传文件",
+  "text_drag_or_upload": "将文件拖拽到此处，或点击上传",
+  "text_file_hint": "支持 {formats} 格式，单文件不超过 {size}",
+  "btn_remove_file": "移除",
+  "label_description": "文件描述",
+  "ph_description": "描述文件的主要内容，帮助 Agent 快速理解文件内容并匹配用户问题",
+  "tip_description": "文件描述会生成索引，方便 Agent 快速找到用户问题对应的文件",
+  "label_keywords": "关键词",
+  "ph_keywords": "请输入关键词，每行一个",
+  "tip_keywords": "关键词会生成索引，方便 Agent 快速找到用户问题对应的文件",
+  "btn_cancel": "取消",
+  "btn_confirm_upload": "确认上传",
+  "msg_select_file": "请选择要上传的文件",
+  "msg_unsupported_format": "不支持的文件格式，仅支持：{formats}",
+  "msg_file_too_large": "文件大小不能超过 {size}"
+}

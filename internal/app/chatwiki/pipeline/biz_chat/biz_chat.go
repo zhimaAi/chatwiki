@@ -44,6 +44,9 @@ type ChatInParam struct {
 
 // Stream push stream events to frontend
 func (in *ChatInParam) Stream(event sse.Event) {
+	if in.chanStreamClosed {
+		return // closed, no more push
+	}
 	if in.useStream && in.chanStream != nil {
 		in.chanStream <- event
 	}
@@ -152,6 +155,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	recall.Pipe(CheckKeywordSkipAi)            // check skip ai reply
 	recall.Pipe(CheckPaymentSkipAiAndWorkflow) // check skip ai and workflow reply
 	recall.Pipe(CheckReplyByChatCache)         // check reply from chat cache
+	recall.Pipe(CheckClawRobot)                // check claw robot
 	recall.Pipe(CheckWorkFlowRobot)            // check workflow robot
 	recall.Pipe(CheckChatTypeDirect)           // direct connect mode logic
 	recall.Pipe(CheckChatTypeNotDirect)        // mixture and knowledge base only mode
@@ -169,6 +173,7 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	callLlm.Pipe(BuildFunctionTools)            // build function tool
 	callLlm.Pipe(SetLlmStartTime)               // set llm request start time
 	callLlm.Pipe(CheckRobotPaymentAuthCode)     // consume auth code count
+	callLlm.Pipe(DoApplicationTypeClaw)         // claw robot logic
 	callLlm.Pipe(DoApplicationTypeFlow)         // workflow robot logic
 	callLlm.Pipe(DoChatByChatCache)             // get response by chat cache
 	callLlm.Pipe(DoChatTypeDirect)              // direct connect mode chat logic

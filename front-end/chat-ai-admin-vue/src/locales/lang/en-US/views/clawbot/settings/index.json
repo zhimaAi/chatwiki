@@ -1,0 +1,15 @@
+{
+  "sidebar_title": "Settings",
+  "menu_basic_config": "Basic Configuration",
+  "menu_transfer": "Human Handoff",
+  "menu_qa_feedback": "Q&A Feedback",
+  "menu_session_record": "Session History",
+  "menu_api_key_manage": "API Key Management",
+  "menu_unknown_issue": "Unknown Issues",
+  "menu_export_record": "Export Records",
+  "menu_model_management": "Model Management",
+  "transfer_tab_setting": "Settings",
+  "transfer_tab_date_range": "Date Range",
+  "transfer_tab_application": "Application",
+  "msg_save_success": "Saved successfully"
+}

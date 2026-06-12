@@ -5,7 +5,10 @@
   "msg_input_openid": "请输入openid!",
   "ph_input": "请输入",
   "label_input": "输入",
+  "title_input_detail": "输入详情",
   "label_output": "输出",
+  "title_output_detail": "输出详情",
   "label_run_log": "运行日志",
+  "title_run_log_detail": "运行日志详情",
   "msg_copy_success": "复制成功"
 }

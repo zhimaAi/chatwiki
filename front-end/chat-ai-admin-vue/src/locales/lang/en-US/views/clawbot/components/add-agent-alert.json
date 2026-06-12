@@ -1,0 +1,12 @@
+{
+  "title_create_agent": "Create Agent",
+  "tip_upload_avatar": "Please upload an agent avatar. Recommended size: 100*100px, maximum 100KB.",
+  "label_default_avatar": "Default Avatar",
+  "label_agent_name": "Agent Name",
+  "ph_input_name": "Enter a name",
+  "label_intro": "Introduction",
+  "ph_input_intro": "Enter an agent introduction",
+  "validator_input_agent_name": "Please enter an agent name",
+  "validator_agent_name_max": "Up to 20 characters",
+  "msg_create_success": "Created successfully"
+}

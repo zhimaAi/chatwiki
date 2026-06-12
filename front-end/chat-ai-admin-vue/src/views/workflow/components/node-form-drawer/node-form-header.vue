@@ -85,7 +85,7 @@
         </slot>
       </div>
       <div class="title-conttent">
-        <a-input class="node-name-input" v-model:value="localTitle" :placeholder="t('ph_input_node_name')" @change.stop="handleTitleChange" />
+        <a-input class="node-name-input" :maxLength="20" v-model:value="localTitle" :placeholder="t('ph_input_node_name')" @change.stop="handleTitleChange" />
       </div>
       <div class="title-right">
         <slot name="runBtn"></slot>

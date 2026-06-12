@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
 	"context"
 	"errors"
@@ -238,6 +239,27 @@ func CleanRobotMessageCache(id, robotKey string) error {
 				logs.Error(`delete cache failed: %s, %v`, iter.Val(), err)
 			}
 		}
+	}
+	return nil
+}
+
+func CheckMaxRobotNum(lang string, adminUserId, addNum, applicationType int) error {
+	limit := define.MaxRobotNum
+	m := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId))
+	if applicationType == define.ApplicationTypeClaw {
+		limit = define.MaxClawBotNum
+		m.Where(`application_type`, cast.ToString(define.ApplicationTypeClaw))
+	} else {
+		m.Where(`application_type`, `<>`, cast.ToString(define.ApplicationTypeClaw))
+	}
+	count, err := m.Count()
+	if err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if count+addNum > limit {
+		return errors.New(i18n.Show(lang, `max_robot_num`, limit))
 	}
 	return nil
 }

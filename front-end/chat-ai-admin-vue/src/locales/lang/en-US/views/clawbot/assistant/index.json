@@ -1,0 +1,18 @@
+{
+  "page_title": "Agent",
+  "btn_create_agent": "Create Agent",
+  "ph_search": "Search",
+  "msg_loading_list": "Loading agent list...",
+  "msg_no_matching_agents": "No matching agents",
+  "tag_chatbot": "Chatbot",
+  "tooltip_session_history": "Session History",
+  "tooltip_analytics": "Analytics",
+  "tooltip_duplicate_agent": "Duplicate Agent",
+  "action_delete": "Delete",
+  "msg_copy_success": "Duplicated successfully",
+  "title_delete_agent": "Delete Agent {name}",
+  "msg_confirm_delete_agent": "Are you sure you want to delete this agent?",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully"
+}

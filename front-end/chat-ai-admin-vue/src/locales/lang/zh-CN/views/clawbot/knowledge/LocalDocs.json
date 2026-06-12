@@ -1,0 +1,20 @@
+{
+  "section_desc": "查询当前机器人工作空间内的知识文档",
+  "btn_upload_file": "上传文件",
+  "btn_remove": "移除",
+  "action_delete": "删除",
+  "empty_tip": "暂无文档，点击上方“上传文件”按钮添加",
+  "msg_fetch_failed": "获取文档列表失败",
+  "msg_unsupported_format": "不支持的文件格式，仅支持：{formats}",
+  "msg_file_too_large": "文件大小不能超过 100MB",
+  "msg_invalid_name": "文件名不能为空或是 . / ..",
+  "msg_no_agent_selected": "未选择机器人",
+  "msg_upload_success": "上传成功",
+  "msg_upload_failed": "上传失败",
+  "title_delete_document": "删除文档",
+  "msg_confirm_delete_document": "确定要删除 \"{name}\" 吗？",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功",
+  "msg_delete_failed": "删除失败"
+}

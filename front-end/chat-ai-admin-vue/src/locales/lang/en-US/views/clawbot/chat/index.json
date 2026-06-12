@@ -1,0 +1,13 @@
+{
+  "title_conversation": "Chats",
+  "btn_new_chat": "New Chat",
+  "label_agent_fallback": "Agent",
+  "msg_empty_desc": "An intelligent chat assistant that answers questions and offers professional suggestions.",
+  "msg_loading_conversation": "Loading conversation...",
+  "msg_ai_generated_tip": "AI-generated content, for reference only",
+  "msg_input_required": "Please enter a message",
+  "msg_sensitive_words": "The message contains sensitive words: {words}",
+  "msg_assistant_not_ready": "The current agent information is still loading. Please try again later.",
+  "msg_model_switched": "Model switched successfully",
+  "msg_saved": "Saved successfully"
+}
