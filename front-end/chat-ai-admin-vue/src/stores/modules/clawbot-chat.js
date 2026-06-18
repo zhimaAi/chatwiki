@@ -60,6 +60,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
   const emitter = useEventBus()
   const clawbotStore = useClawbotStore()
   const messageList = ref([])
+  const lastPushedUserMessageUid = ref('')
 
   let mySSE = null
   let sseRequestSeq = 0
@@ -139,6 +140,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     }
 
     messageList.value = []
+    lastPushedUserMessageUid.value = ''
     chatMessageLoadCompleted.value = false
     sendLock.value = false
     chat_variables.value = getDefaultChatVariables()
@@ -216,6 +218,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     msg.msg_type = msg.msg_type || 1
     msg.is_customer = 1
     messageList.value.push(msg)
+    lastPushedUserMessageUid.value = msg.uid
   }
 
   const pushAiMessage = (msg) => {
@@ -395,6 +398,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
             type: 'thinking',
             title: '思考过程',
             status: 'running',
+            expanded: true,
             roundIndex: currentMessage.current_round_index,
             resultText: '思考中...',
             eventName: 'stream_message',
@@ -426,6 +430,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
         type: 'tool',
         title: nextData?.name || 'tool',
         status: 'running',
+        expanded: true,
         roundIndex: currentMessage.current_round_index,
         paramsText: typeof content === 'string' ? content : JSON.stringify(nextData || {}),
         eventName: 'tool_call',
@@ -836,6 +841,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     chatCreateSeq += 1
     dialogue_id.value = 0
     messageList.value = []
+    lastPushedUserMessageUid.value = ''
     openid.value = ''
     user.admin_user_id = ''
     user.avatar = ''
@@ -859,6 +865,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     openid,
     sendLock,
     messageList,
+    lastPushedUserMessageUid,
     createChat,
     sendMessage,
     getMyChatList,

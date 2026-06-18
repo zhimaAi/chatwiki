@@ -47,3 +47,15 @@ export const delUseModelConfig = (data) => {
 export const setModelConfigWeight = (data) => {
   return request.post({ url: '/manage/setModelConfigWeight', data })
 }
+
+export const getBackupModelConfig = (params) => {
+  return request.get({ url: '/manage/getBackupModelConfig', params })
+}
+
+export const setBackupModelConfig = (data) => {
+  return request.post({ url: '/manage/setBackupModelConfig', data })
+}
+
+export const getModelErrorLogs = (params) => {
+  return request.get({ url: '/manage/getModelErrorLogs', params })
+}

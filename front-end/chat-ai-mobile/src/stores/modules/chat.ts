@@ -153,7 +153,7 @@ export const useChatStore = defineStore('chat', () => {
     lang: 'zh-CN',
     logo: '',
     navbarShow: 2,
-    ai_generated_tip_show: 2,
+    ai_generated_tip_show: 1,
     ai_generated_tip: '',
     accessRestrictionsType: 1,
     pageStyle: {

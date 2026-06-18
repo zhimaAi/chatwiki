@@ -29,21 +29,33 @@
 </style>
 
 <template>
-  <div class="vue-markdown cherry-markdown" v-html="html"></div>
+  <div
+    ref="markdownRef"
+    class="vue-markdown cherry-markdown"
+    v-html="html"
+    @click="handleImagePreview"
+  ></div>
 </template>
 
 <script setup>
 // cherry-markdow 配置详解 https://github.com/Tencent/cherry-markdown/wiki/%E9%85%8D%E7%BD%AE%E9%A1%B9%E5%85%A8%E8%A7%A3
 import CherryEngine from 'cherry-markdown/dist/cherry-markdown.engine.core'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { api as viewerApi } from 'v-viewer'
 import textParseProcessing from '@/utils/textParseProcessing'
 
 const props = defineProps({
   content: {
     type: String,
     default: ''
+  },
+  enableImagePreview: {
+    type: Boolean,
+    default: false
   }
 })
+
+const markdownRef = ref(null)
 
 const md = new CherryEngine({
   themeSettings: {
@@ -93,4 +105,44 @@ const html = computed(() => {
   let str = textParseProcessing(props.content)
   return md.makeHtml(str)
 })
+
+const handleImagePreview = (event) => {
+  if (!props.enableImagePreview) {
+    return
+  }
+
+  const target = event.target instanceof Element ? event.target : null
+  const currentImg = target?.closest('img')
+  if (!currentImg || !markdownRef.value?.contains(currentImg)) {
+    return
+  }
+
+  const imageEntries = Array.from(markdownRef.value.querySelectorAll('img'))
+    .map((img) => ({
+      el: img,
+      src: img.currentSrc || img.getAttribute('src') || ''
+    }))
+    .filter((item) => item.src)
+
+  const initialViewIndex = imageEntries.findIndex((item) => item.el === currentImg)
+  if (initialViewIndex < 0) {
+    return
+  }
+
+  event.preventDefault()
+
+  const viewer = viewerApi({
+    options: {
+      title: false,
+      navbar: false,
+      keyboard: false,
+      loop: false,
+      initialViewIndex
+    },
+    index: initialViewIndex,
+    images: imageEntries.map((item) => item.src)
+  })
+
+  viewer.show()
+}
 </script>

@@ -102,6 +102,7 @@ func SaveUseModelConfig(c *gin.Context) {
 		}
 	}
 	//Model call test
+	var err error
 	if useModel.ModelType != common.Tts { //TTS models are not tested for now
 		handler, err := modelInfo.CallHandlerFunc(modelInfo, modelInfo.ConfigInfo, useModel.UseModelName)
 		if err != nil {
@@ -112,13 +113,12 @@ func SaveUseModelConfig(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return
 		}
-		//Save data
-		err = useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-	} else {
-		err := useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	}
+	err = useModel.ToSave(common.GetLang(c), adminUserId, modelConfigId)
+	if err == nil {
+		common.DelBackupModelConfigCache(adminUserId)
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 }
 
 func DelUseModelConfig(c *gin.Context) {
@@ -133,7 +133,7 @@ func DelUseModelConfig(c *gin.Context) {
 	}
 	//Validate whether the available model exists
 	m := msql.Model(`chat_ai_model_list`, define.Postgres)
-	info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`model_config_id`).Find()
+	info, err := m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`model_config_id,use_model_name`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -150,6 +150,11 @@ func DelUseModelConfig(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelListCacheBuildHandler{ModelConfigId: cast.ToInt(info[`model_config_id`])})
+	if backup, _ := common.GetBackupModelConfig(adminUserId); len(backup) > 0 &&
+		cast.ToInt(backup[`model_config_id`]) == cast.ToInt(info[`model_config_id`]) &&
+		backup[`use_model`] == info[`use_model_name`] {
+		_ = common.SetBackupModelConfig(adminUserId, 0, ``)
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

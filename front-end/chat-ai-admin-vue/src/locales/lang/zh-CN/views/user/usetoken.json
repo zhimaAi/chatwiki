@@ -12,6 +12,7 @@
   "input": "输入",
   "output": "输出",
   "date_label": "日期",
+  "agent": "Agent",
   "robot": "机器人",
   "workflow": "工作流",
   "other": "其他",

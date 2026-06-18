@@ -58,11 +58,6 @@
       white-space: nowrap;
     }
   }
-
-  :deep(.ant-btn) {
-    flex-shrink: 0;
-    margin-left: auto;
-  }
 }
 
 .chat-history-wrapper {
@@ -97,9 +92,37 @@
 }
 
 .chat-messages {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   flex: 1;
+  position: relative;
   overflow: hidden;
-  padding: 0 24px 16px;
+  padding: 0 16px 16px;
+}
+
+.scroll-bottom-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  transform: translateX(-50%);
+  cursor: pointer;
+
+  .anticon {
+    font-size: 18px;
+  }
 }
 
 .chat-loading-state {
@@ -115,7 +138,7 @@
 }
 
 .chat-input-area {
-  padding: 0 32px 28px;
+  padding: 0 32px 0;
   flex-shrink: 0;
 
   .chat-input-tip {
@@ -243,10 +266,20 @@
               ref="messageListRef"
               :messages="messageList"
               :robotInfo="robotInfo"
+              :reserveReplySpace="reserveReplySpace"
               @clickMsgMeun="onClickMsgMenu"
+              @scroll="onMessageListScroll"
               @scrollStart="onScrollStart"
               @scrollEnd="onScrollEnd"
             />
+            <button
+              class="scroll-bottom-btn"
+              type="button"
+              v-if="showScrollBottomButton"
+              @click="scrollMessageListToBottom"
+            >
+              <ArrowDownOutlined />
+            </button>
           </div>
         </template>
 
@@ -286,15 +319,14 @@
 
 <script setup>
 import { generateRandomId } from '@/utils/index'
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useEventBus } from '@/hooks/event/useEventBus'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useClawbotChatStore } from '@/stores/modules/clawbot-chat'
 import { useUserStore } from '@/stores/modules/user'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useLocaleStore } from '@/stores/modules/locale'
-import { PlusOutlined } from '@ant-design/icons-vue'
+import { ArrowDownOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { message as antMessage } from 'ant-design-vue'
 import { getLibraryList } from '@/api/library'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
@@ -308,7 +340,6 @@ import SkillDrawer from './components/skill-drawer.vue'
 import { checkChatRequestPermission } from '@/api/robot/index'
 
 const { t } = useI18n('views.clawbot.chat.index')
-const emitter = useEventBus()
 const chatStore = useClawbotChatStore()
 const clawbotStore = useClawbotStore()
 const localeStore = useLocaleStore()
@@ -332,7 +363,7 @@ const {
   onGetChatMessage,
   $reset
 } = chatStore
-const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(chatStore)
+const { messageList, sendLock, myChatList, robot, dialogue_id, lastPushedUserMessageUid } = storeToRefs(chatStore)
 
 const robotInfo = computed(() => robot.value)
 const emptyTitle = computed(() => {
@@ -375,6 +406,8 @@ const fileList = ref([])
 const libraryList = ref([])
 const wxAppLibary = ref(null)
 const messageListRef = ref(null)
+const showScrollBottomButton = ref(false)
+const reserveReplySpace = ref(false)
 const checkChatRequestPermissionLoading = ref(false)
 const saveRobotModelLoading = ref(false)
 const savePromptLoading = ref(false)
@@ -516,8 +549,7 @@ const onSendMessage = async () => {
       msg = JSON.stringify(messageList)
     }
 
-    isAllowedScrollToBottom = true
-
+    isAllowedScrollToBottom = false
     sendMessage({
       message: msg,
       global: JSON.stringify({}),
@@ -563,6 +595,7 @@ const onChangeChatModel = async (model) => {
       successMessage: t('msg_model_switched')
     })
   } catch (err) {
+    // saveAssistant 已处理错误提示，这里只负责恢复按钮 loading。
   } finally {
     saveRobotModelLoading.value = false
   }
@@ -601,6 +634,7 @@ const onSavePrompt = async (prompt) => {
     })
     promptDrawerOpen.value = false
   } catch (err) {
+    // saveAssistant 已处理错误提示，这里只负责恢复保存状态。
   } finally {
     savePromptLoading.value = false
   }
@@ -611,6 +645,7 @@ const openNewChat = async () => {
 
   isChatSwitching.value = false
   isAllowedScrollToBottom = true
+  reserveReplySpace.value = false
   message.value = ''
 
   const assistant = currentAssistant.value
@@ -640,6 +675,7 @@ const handleOpenChat = async (data) => {
 
   isChatSwitching.value = true
   isAllowedScrollToBottom = true
+  reserveReplySpace.value = false
 
   const assistant = currentAssistant.value
 
@@ -660,6 +696,8 @@ const handleOpenChat = async (data) => {
 
     let res = await onGetChatMessage()
     if (res) {
+      isChatSwitching.value = false
+      await nextTick()
       messageListScrollToBottom()
     }
   } finally {
@@ -668,15 +706,25 @@ const handleOpenChat = async (data) => {
 }
 
 const onClickMsgMenu = (text) => {
-  isAllowedScrollToBottom = true
+  isAllowedScrollToBottom = false
 
   sendMessage({
     message: text
   })
 }
 
-const onUpdateAiMessage = () => {
-  messageListScrollToBottom()
+const onMessageListScroll = (scrollOption) => {
+  showScrollBottomButton.value = !scrollOption.isAtBottom
+
+  if (
+    reserveReplySpace.value &&
+    !sendLock.value &&
+    scrollOption.scrollDirection === 'up' &&
+    !scrollOption.isReplySpaceVisible
+  ) {
+    // 占位块离开视口后再清理，避免回答结束时直接回收高度造成页面抖动。
+    reserveReplySpace.value = false
+  }
 }
 
 const onScrollStart = async () => {
@@ -692,18 +740,26 @@ const onScrollStart = async () => {
 }
 
 const onScrollEnd = () => {
-  // 滚动到底部
+  showScrollBottomButton.value = false
 }
 
 const messageListScrollToBottom = () => {
   if (messageListRef.value && isAllowedScrollToBottom) {
     messageListRef.value.scrollToBottom()
+    showScrollBottomButton.value = false
   }
 }
 
-const scrollToMessageById = (id) => {
+const scrollMessageListToBottom = () => {
   if (messageListRef.value) {
-    messageListRef.value.scrollToMessage(id)
+    messageListRef.value.scrollToBottom()
+    showScrollBottomButton.value = false
+  }
+}
+
+const scrollToMessageById = (id, direction) => {
+  if (messageListRef.value) {
+    messageListRef.value.scrollToMessage(id, direction)
   }
 }
 
@@ -711,6 +767,8 @@ const resetScroll = () => {
   if (messageListRef.value) {
     messageListRef.value.resetScroll()
   }
+  reserveReplySpace.value = false
+  showScrollBottomButton.value = false
 }
 
 const onChatListScrollEnd = () => {
@@ -718,9 +776,16 @@ const onChatListScrollEnd = () => {
 }
 
 watch(
-  () => messageList.value,
-  () => {
-    // messageList 变化时的处理
+  lastPushedUserMessageUid,
+  async (uid) => {
+    if (!uid) {
+      return
+    }
+
+    isAllowedScrollToBottom = false
+    reserveReplySpace.value = true
+    await nextTick()
+    scrollToMessageById(uid, 'top')
   }
 )
 
@@ -737,12 +802,10 @@ watch(
 )
 
 onMounted(() => {
-  emitter.on('updateAiMessage', onUpdateAiMessage)
   loadWxLibraryStatus()
 })
 
 onUnmounted(() => {
   $reset()
-  emitter.off('updateAiMessage', onUpdateAiMessage)
 })
 </script>

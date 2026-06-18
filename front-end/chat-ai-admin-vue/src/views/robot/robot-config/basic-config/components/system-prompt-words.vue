@@ -285,14 +285,14 @@
       </a-flex>
 
       <AtInput
+        class="diy-prompt-input"
         type="textarea"
-        inputStyle="height: 126px"
         :defaultValue="formState.prompt"
         :options="chatVariables"
         :disabled="true"
         :checkAnyLevel="true"
         ref="atinputRef"
-        @change="(text, selectedList) => changeValue(text, selectedList)"
+        @change="(text) => changeValue(text)"
       >
         <template #option="{ label, payload }">
           <div class="field-list-item">
@@ -318,6 +318,7 @@ import {
   ToTopOutlined,
   DownloadOutlined
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import AiCreatePrompt from './ai-create-prompt.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
@@ -388,7 +389,7 @@ watch(
   }
 )
 
-const changeValue = (text, selectedList) => {
+const changeValue = (text) => {
   formState.prompt = text
 }
 
@@ -796,6 +797,20 @@ const handleGetChatVariables = () => {
 
 .diy-prompt-box {
   position: relative;
+
+  .diy-prompt-input {
+    &::v-deep(.j-mention.type-textarea) {
+      height: 126px;
+      resize: vertical;
+      overflow: auto;
+
+      &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+    }
+  }
+
   &.is-disabled {
     &::before {
       content: '';

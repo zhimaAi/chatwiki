@@ -261,13 +261,12 @@ const onClickMeun = (item) => {
 
 .robot-message {
   .item-body {
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 0;
     width: auto;
     min-height: 32px;
     max-width: 100%;
     overflow: hidden;
-    background-color: #fff;
+    background: transparent;
   }
 
   .item-body.item-body-final {
@@ -278,11 +277,12 @@ const onClickMeun = (item) => {
 }
 
 .message-content {
-  line-height: 1.2;
+  line-height: 22px;
   font-size: 14px;
   font-weight: 400;
   color: #262626;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-loading {

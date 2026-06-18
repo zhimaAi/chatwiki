@@ -190,6 +190,9 @@ const sendMessage = () => {
 
 <style lang="less" scoped>
 .message-input-wrapper {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
   position: relative;
   border: 2px solid #e5e7eb;
   border-radius: 16px;
@@ -204,7 +207,7 @@ const sendMessage = () => {
   }
 
   .message-input-box {
-    min-height: 72px;
+    min-height: 48px;
   }
 
   .message-input {

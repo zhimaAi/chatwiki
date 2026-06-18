@@ -113,6 +113,13 @@
   }
 }
 
+.ai-disclaimer {
+  text-align: center;
+  padding-top: 8px;
+  font-size: 12px;
+  color: #999;
+}
+
 </style>
 
 <template>
@@ -173,6 +180,7 @@
             :loading="sendLoading"
             :showUpload="robotInfo.question_multiple_switch == 1"
             @send="onSendMesage" />
+          <div class="ai-disclaimer">{{ t('ai_generated_disclaimer') }}</div>
         </div>
       </div>
       <!-- right -->

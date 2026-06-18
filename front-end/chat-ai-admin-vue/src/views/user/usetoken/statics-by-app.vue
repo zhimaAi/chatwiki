@@ -102,9 +102,14 @@ const onTableChange = (pagination) => {
 }
 
 let token_app_type_map = {
+  chatwiki_claw: t('views.user.usetoken.agent'),
   chatwiki_robot: t('views.user.usetoken.robot'),
   workflow: t('views.user.usetoken.workflow'),
   other: t('views.user.usetoken.other')
+}
+
+const getTokenAppTypeDesc = (tokenAppType) => {
+  return token_app_type_map[tokenAppType] || tokenAppType || ''
 }
 
 const getAppList = () => {
@@ -118,7 +123,7 @@ const getAppList = () => {
     tableData.value = lsit.map((item) => {
       return {
         ...item,
-        token_app_type_desc: token_app_type_map[item.token_app_type],
+        token_app_type_desc: getTokenAppTypeDesc(item.token_app_type),
         completion_token_desc: formatNum(item.completion_token),
         prompt_token_desc: formatNum(item.prompt_token),
         total_token_desc: formatNum(item.total_token)
@@ -141,7 +146,7 @@ const handleExport = () => {
       return {
         ...item,
         robot_name: item.robot_name || '',
-        token_app_type_desc: token_app_type_map[item.token_app_type],
+        token_app_type_desc: getTokenAppTypeDesc(item.token_app_type),
         completion_token_desc: formatNum(item.completion_token),
         prompt_token_desc: formatNum(item.prompt_token),
         total_token_desc: formatNum(item.total_token)

@@ -1,5 +1,9 @@
 {
   "msg_thinking": "Thinking...",
+  "label_thinking": "Thinking",
+  "label_thinking_completed": "Thought completed",
+  "label_thinking_process": "Thinking process",
+  "label_thinking_again": "Thinking again",
   "label_params": "Parameters",
   "label_output": "Output",
   "status_running": "Running...",

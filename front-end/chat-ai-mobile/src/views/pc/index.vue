@@ -73,6 +73,9 @@
           :show-upload="showUpload"
           @send="handleSend"
         />
+        <div class="ai-generated-tip-text" :style="{ maxWidth: listMaxWidthPx }">
+          {{ aiGeneratedTipText }}
+        </div>
       </div>
     </div>
     <VariableModal ref="variableModalRef" />
@@ -180,6 +183,7 @@ const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionL
 const showUpload = computed(() => robot.value.question_multiple_switch == 1)
 const showWelcomeDisplay = computed(() => messageList.value.length == 0)
 const isShortcut = computed(() => robot.value.fast_command_switch == '1')
+const aiGeneratedTipText = computed(() => tChat('ai_generated_tip'))
 
 // 事件处理
 const handleNewChat = async () => {
@@ -552,6 +556,14 @@ onUnmounted(() => {
   padding: 0 16px;
   .chat-input-box{
     margin: 0 auto;
+  }
+  .ai-generated-tip-text {
+    margin: 4px auto 0;
+    width: 100%;
+    line-height: 20px;
+    font-size: 12px;
+    color: #bfbfbf;
+    text-align: center;
   }
 }
 

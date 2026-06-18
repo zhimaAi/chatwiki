@@ -36,8 +36,8 @@
   <div class="edit-box">
     <div class="edit-box-header">
       <div class="left-box">
-        <svg-icon class="edit-box-icon" :name="props.iconName"></svg-icon>
-        <span class="edit-box-title"
+        <svg-icon class="edit-box-icon" v-if="props.iconName" :name="props.iconName"></svg-icon>
+        <span class="edit-box-title" :style="{'font-size': props.fontSize + 'px'}"
           >{{ props.title }}
           <span v-if="$slots.icon"><slot name="icon"></slot></span>
         </span>
@@ -70,6 +70,10 @@ const props = defineProps({
     default: () => {
       return {}
     }
+  },
+  fontSize: {
+    type: Number,
+    default: 16
   }
 })
 

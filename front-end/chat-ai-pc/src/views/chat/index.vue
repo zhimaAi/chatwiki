@@ -235,7 +235,10 @@
           :showUpload="showUpload"
           @send="onSendMesage"
         />
-        <div class="technical-support-text">{{ t('label_powered_by') }}</div>
+        <div class="technical-support-text">
+          <span class="ai-disclaimer-text">{{ t('label_ai_disclaimer') }}，</span>
+          <span class="label_powered_by">{{ t('label_powered_by') }}</span>
+        </div>
       </div>
     </div>
     <VariableModal ref="variableModalRef" />
