@@ -19,16 +19,13 @@
 </style>
 
 <template>
-  <edit-box
-    class="setting-box"
-    :title="t('title_answer_generation_prompt')"
-    icon-name="suggested-issues"
-  >
-    <div class="robot-info-box">
-      <div class="robot-prompt">
-        {{ t('msg_answer_generation_description') }}
-      </div>
-      <div>
+  <edit-box class="setting-box" :fontSize="14" :title="t('title_answer_generation_prompt')">
+    <template #tip>
+      <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
+        <template #title>
+          <span>{{ t('msg_answer_generation_description') }}</span>
+        </template>
+        <QuestionCircleOutlined style="margin: 0 8px 0 2px" />
         <a-switch
           :disabled="!isEdit"
           class="switch-item"
@@ -38,10 +35,14 @@
           :checked-children="t('btn_on')"
           :un-checked-children="t('btn_off')"
         />
-      </div>
+      </a-tooltip>
+    </template>
 
+    <div class="robot-info-box">
       <div>
+        <span v-if="!isEdit">{{ formState.tips_before_answer_content }}</span>
         <a-input
+          v-else
           v-model:value="formState.tips_before_answer_content"
           :readOnly="!isEdit"
           style="width: 480px"
@@ -56,6 +57,7 @@
 <script setup>
 import { ref, reactive, inject, toRaw, computed, watch } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.answer-prompt')

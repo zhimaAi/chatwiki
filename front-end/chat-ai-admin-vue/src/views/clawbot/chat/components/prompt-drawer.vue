@@ -43,7 +43,6 @@
           v-if="editing"
           v-model:value="draftPrompt"
           class="prompt-textarea"
-          :auto-size="{ minRows: 8, maxRows: 18 }"
           :disabled="props.loading"
         />
         <div v-else class="prompt-content">{{ displayPrompt }}</div>
@@ -167,6 +166,9 @@ const handleSave = () => {
 }
 
 .prompt-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
@@ -216,18 +218,19 @@ const handleSave = () => {
 }
 
 .prompt-content-box {
+  flex: 1;
   margin: 0 16px 16px;
   
   border-radius: 8px;
   background: #f2f4f7;
-
+  overflow: hidden;
   &.editing {
     padding: 0;
   }
 }
 
 .prompt-content {
-  max-height: 360px;
+  height: 100% !important;
   padding: 12px 16px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -239,6 +242,7 @@ const handleSave = () => {
 
 .prompt-textarea {
   width: 100%;
+  height: 100% !important;
   border: none !important;
   box-shadow: none !important;
   resize: none !important;

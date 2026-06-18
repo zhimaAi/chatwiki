@@ -1,5 +1,9 @@
 {
   "msg_thinking": "思考中...",
+  "label_thinking": "思考中",
+  "label_thinking_completed": "已完成思考",
+  "label_thinking_process": "思考过程",
+  "label_thinking_again": "再次思考",
   "label_params": "参数",
   "label_output": "输出",
   "status_running": "执行中...",

@@ -1,6 +1,6 @@
 @charset "UTF-8";
 
-.final-answer-markdown.cherry-markdown {
+.chat-markdown-content .cherry-markdown {
   --oc-gray-5: #8f959e;
   --base-border-color: #dee0e3;
   --border-width-1: 1px;
@@ -53,11 +53,12 @@
     Segoe UI Symbol,
     Noto Color Emoji;
   font-size: 16px;
-  line-height: 1.68;
+  line-height: 22px;
   -webkit-text-size-adjust: 100%;
-  max-width: 46rem;
   margin: 0 auto;
-  padding: 1.6rem 3.2rem;
+  padding: 0;
+  word-break: break-word;
+  white-space: normal;
 
   * {
     -moz-box-sizing: border-box;
@@ -70,6 +71,10 @@
   > :first-child,
   > :last-child {
     margin-top: 0 !important;
+  }
+
+  > :last-child {
+    margin-bottom: 0 !important;
   }
 
   code[class*='language-'],
@@ -225,6 +230,16 @@
   ul,
   xmp {
     margin-top: 8px;
+    margin-bottom: 8px;
+  }
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    margin-top: 0;
     margin-bottom: 8px;
   }
 
@@ -446,16 +461,19 @@
     list-style: none;
 
     > li:not([class*='task-list-item']) {
+      position: relative;
       padding-left: 22px;
 
       &::before {
         content: '•';
-        display: inline-block;
-        width: 0;
-        margin-left: -20px;
-        margin-right: 20px;
+        position: absolute;
+        top: 0;
+        left: 6px;
+        width: 8px;
         color: #3370ff;
         font-size: 0.8em;
+        line-height: inherit;
+        text-align: center;
         transform: scale(1.25);
         font-family:
           PingFangSC-Regular,
@@ -1121,10 +1139,8 @@
       counter-increment: level6;
     }
   }
-}
 
-@media print {
-  .final-answer-markdown.cherry-markdown {
+  @media print {
     code[class*='language-'],
     pre[class*='language-'] {
       text-shadow: none;

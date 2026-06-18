@@ -85,5 +85,17 @@
   "Sorting_successful": "Sorting successful",
   "operate": "Operations",
   "edit": "Edit",
-  "delete": "Delete"
+  "delete": "Delete",
+  "model_exception_tab": "Model Exceptions",
+  "exception_alert_tip": "When the selected model fails, the system automatically switches to the backup model to keep serving. Below shows model call exceptions in the last 30 days.",
+  "backup_model_label": "Backup Model",
+  "backup_model_placeholder": "Please select a backup model",
+  "backup_set_success": "Backup model set successfully",
+  "backup_clear_success": "Backup model cleared",
+  "error_logs_title": "Call Exceptions (Last 30 Days)",
+  "error_col_date": "Date",
+  "error_col_model": "Model",
+  "error_col_app": "Application",
+  "error_col_error_num": "Errors",
+  "app_deleted": "App Deleted"
 }

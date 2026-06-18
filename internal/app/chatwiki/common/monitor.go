@@ -6,6 +6,8 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -135,4 +137,34 @@ func NewMonitor(params *define.ChatRequestParam) *Monitor {
 		DebugLog:  make([]any, 0),
 		NodeLogs:  make([]NodeLog, 0),
 	}
+}
+
+func UnifyRunSql(baseTable string, baseSql string) error {
+	list, err := msql.Model(`information_schema.tables`, define.Postgres).
+		Where(`table_schema`, `public`).
+		Where(`table_name`, `like`, baseTable).
+		Order(`table_name`).ColumnArr(`table_name`)
+	if err != nil {
+		logs.Error(err.Error())
+		return err
+	}
+	tableNames := make([]string, 0)
+	tableNameRegex := fmt.Sprintf(`^%s(_\d{6})?$`, regexp.QuoteMeta(baseTable))
+	for _, tableName := range list {
+		ok, err := regexp.MatchString(tableNameRegex, tableName)
+		if err == nil && ok {
+			tableNames = append(tableNames, tableName)
+		}
+	}
+	if len(tableNames) == 0 {
+		return fmt.Errorf(`obtain the %s sharding exception`, baseTable)
+	}
+	for _, curTablename := range tableNames {
+		sql := strings.ReplaceAll(baseSql, baseTable, curTablename)
+		if _, err = msql.RawExec(define.Postgres, sql, nil); err != nil {
+			logs.Error(err.Error())
+			return err
+		}
+	}
+	return nil
 }

@@ -44,7 +44,7 @@
           :class="{ active: route.path === item.path }"
           @click="handleNavigate(item)"
         >
-          <component :is="item.icon" class="nav-icon" />
+          <svg-icon :name="item.icon" class="nav-icon" />
           <span class="nav-label">{{ item.label }}</span>
         </button>
       </nav>
@@ -69,13 +69,6 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  MessageOutlined,
-  UserOutlined,
-  StarOutlined,
-  FileOutlined,
-  PictureOutlined,
-  BarChartOutlined,
-  SettingOutlined,
   DownOutlined,
   PlusOutlined,
   LeftOutlined,
@@ -109,13 +102,13 @@ const currentAssistantAvatar = computed(() => {
 const addAgentAlertRef = ref(null)
 
 const navItems = computed(() => ([
-  { label: t('nav_chat'), path: '/clawbot/chat', icon: MessageOutlined },
-  { label: t('nav_agent'), path: '/clawbot/assistant', icon: UserOutlined },
-  { label: t('nav_skill'), path: '/clawbot/skills', icon: StarOutlined },
-  { label: t('nav_knowledge_base'), path: '/clawbot/knowledge', icon: FileOutlined },
-  { label: t('nav_external_services'), path: '/clawbot/services', icon: PictureOutlined },
-  { label: t('nav_analytics'), path: '/clawbot/stats', icon: BarChartOutlined },
-  { label: t('nav_settings'), path: '/clawbot/settings', icon: SettingOutlined, query: { menu: 'basic' } },
+  { label: t('nav_chat'), path: '/clawbot/chat', icon: 'chat-menu' },
+  { label: t('nav_agent'), path: '/clawbot/assistant', icon: 'agent-menu' },
+  { label: t('nav_skill'), path: '/clawbot/skills', icon: 'skill-menu' },
+  { label: t('nav_knowledge_base'), path: '/clawbot/knowledge', icon: 'knowledge-menu' },
+  { label: t('nav_external_services'), path: '/clawbot/services', icon: 'service-menu' },
+  { label: t('nav_analytics'), path: '/clawbot/stats', icon: 'analytics-menu' },
+  { label: t('nav_settings'), path: '/clawbot/settings', icon: 'settings-menu', query: { menu: 'basic' } },
 ]))
 
 const handleCreateAssistant = () => {

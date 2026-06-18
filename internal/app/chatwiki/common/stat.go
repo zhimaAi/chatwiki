@@ -76,6 +76,7 @@ func LlmLogRequest(
 	}
 
 	corpName := GetModelNameByDefine(lang, config[`model_define`])
+	createTime := tool.Time2Int()
 	data := msql.Datas{
 		`admin_user_id`:    adminUserId,
 		`openid`:           openid,
@@ -87,8 +88,8 @@ func LlmLogRequest(
 		`app_type`:         appType,
 		`request_detail`:   requestDetail,
 		`response_detail`:  responseDetail,
-		`create_time`:      tool.Time2Int(),
-		`update_time`:      tool.Time2Int(),
+		`create_time`:      createTime,
+		`update_time`:      createTime,
 	}
 
 	if len(robot) > 0 {
@@ -101,6 +102,8 @@ func LlmLogRequest(
 	if len(fileInfo) > 0 {
 		data[`source_file`] = sourceFile
 	}
+
+	data[`source_hash`] = tool.MD5(requestDetail + responseDetail + cast.ToString(createTime))
 
 	// record request logs
 	if err = SaveLlmRequestLogs(data); err != nil {
@@ -132,6 +135,38 @@ func LlmLogRequest(
 		return err
 	}
 	return nil
+}
+
+const modelErrorMsgMaxLen = 2000
+
+func LlmLogModelError(lang string, adminUserId int, config msql.Params, model string, robot msql.Params, errMsg string) {
+	corp := GetModelNameByDefine(lang, config[`model_define`])
+	modelConfigId := cast.ToInt(config[`id`])
+	robotId, applicationType := 0, 0
+	robotName, sourceRobot := ``, `{}`
+	if len(robot) > 0 {
+		robotId = cast.ToInt(robot[`id`])
+		robotName = robot[`robot_name`]
+		applicationType = cast.ToInt(robot[`application_type`])
+		if encoded, err := tool.JsonEncode(robot); err == nil {
+			sourceRobot = encoded
+		} else {
+			logs.Error(err.Error())
+		}
+	}
+	if len([]rune(errMsg)) > modelErrorMsgMaxLen {
+		errMsg = string([]rune(errMsg)[:modelErrorMsgMaxLen])
+	}
+	date := time.Now().Format(`2006-01-02`)
+	nowTime := tool.Time2Int()
+
+	sql := `INSERT INTO llm_model_error_logs
+		(admin_user_id,date,model_config_id,corp,model,robot_id,robot_name,source_robot,application_type,error_msg,create_time)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+	if _, err := msql.RawExec(define.Postgres, sql, nil,
+		adminUserId, date, modelConfigId, corp, model, robotId, robotName, sourceRobot, applicationType, errMsg, nowTime); err != nil {
+		logs.Error(err.Error())
+	}
 }
 
 func GetTokenAppType(robot msql.Params) string {

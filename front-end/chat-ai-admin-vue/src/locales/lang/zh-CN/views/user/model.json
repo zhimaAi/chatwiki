@@ -85,5 +85,17 @@
   "Sorting_successful": "排序成功",
   "operate": "操作",
   "edit": "编辑",
-  "delete": "删除"
+  "delete": "删除",
+  "model_exception_tab": "模型异常管理",
+  "exception_alert_tip": "当所选模型调用失败时,系统将自动切换到备用模型继续服务。下方展示近30天各模型的调用异常记录。",
+  "backup_model_label": "备用模型",
+  "backup_model_placeholder": "请选择备用模型",
+  "backup_set_success": "备用模型设置成功",
+  "backup_clear_success": "已清空备用模型",
+  "error_logs_title": "近30天调用异常",
+  "error_col_date": "日期",
+  "error_col_model": "模型",
+  "error_col_app": "应用",
+  "error_col_error_num": "异常次数",
+  "app_deleted": "应用已删除"
 }

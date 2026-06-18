@@ -70,6 +70,11 @@ const tabs = ref([
     value: 2,
     title: t('beginnerGuide'),
     langKey: 'beginnerGuide'
+  },
+  {
+    value: 3,
+    title: t('model_exception_tab'),
+    langKey: 'model_exception_tab'
   }
 ])
 

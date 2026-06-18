@@ -12,6 +12,7 @@
   "input": "Input",
   "output": "Output",
   "date_label": "Date",
+  "agent": "Agent",
   "robot": "Robot",
   "workflow": "Workflow",
   "other": "Other",

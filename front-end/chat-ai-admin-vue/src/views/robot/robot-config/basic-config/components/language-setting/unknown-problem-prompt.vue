@@ -66,15 +66,15 @@
 <template>
   <edit-box
     class="setting-box"
+    :fontSize="14"
     :title="t('title_unknown_problem_prompt')"
-    icon-name="unknown-prompt"
   >
     <template #tip>
       <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
         <template #title>
           <span>{{ t('tip_knowledge_mode') }}</span>
         </template>
-        <QuestionCircleOutlined />
+        <QuestionCircleOutlined style="margin-left: 2px;" />
       </a-tooltip>
     </template>
     <div class="form-box" v-show="isEdit">

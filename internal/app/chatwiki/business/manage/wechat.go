@@ -223,7 +223,9 @@ func SaveWechatApp(c *gin.Context) {
 	appType := strings.TrimSpace(c.PostForm(`app_type`))
 	//unchangeable
 	var accessKey string
+	var oldAppId string
 	if id > 0 {
+		requestAppId := appId
 		appInfo, err := common.GetWechatAppInfo(`id`, cast.ToString(id))
 		if err != nil {
 			logs.Error(err.Error())
@@ -236,8 +238,9 @@ func SaveWechatApp(c *gin.Context) {
 		}
 		accessKey = appInfo[`access_key`]
 		robotId = cast.ToInt(appInfo[`robot_id`])
-		appId = appInfo[`app_id`]
 		appType = appInfo[`app_type`]
+		oldAppId = appInfo[`app_id`]
+		appId = resolveWechatAppSaveAppID(appType, oldAppId, requestAppId)
 	} else {
 		if appInfo, err := common.GetWechatAppInfo(`app_id`, appId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -326,6 +329,16 @@ func SaveWechatApp(c *gin.Context) {
 		data[`encrypt_key`] = strings.TrimSpace(c.PostForm(`encrypt_key`))
 		data[`verification_token`] = strings.TrimSpace(c.PostForm(`verification_token`))
 	}
+	if id > 0 && appType == lib_define.AppWecomRobot && appId != oldAppId {
+		if appInfo, err := common.GetWechatAppInfo(`app_id`, appId); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		} else if len(appInfo) > 0 && cast.ToInt(appInfo[`id`]) != id {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `app_exist`))))
+			return
+		}
+		data[`app_id`] = appId
+	}
 
 	if len(appAvatar) > 0 {
 		data[`app_avatar`] = appAvatar
@@ -368,6 +381,9 @@ func SaveWechatApp(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: cast.ToString(id)})
 	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appId})
+	if len(oldAppId) > 0 && oldAppId != appId {
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: oldAppId})
+	}
 	lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: accessKey})
 	//configure external service parameters
 	appInfo, err := common.GetWechatAppInfo(`access_key`, accessKey)
@@ -381,6 +397,13 @@ func SaveWechatApp(c *gin.Context) {
 		appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, err))
+}
+
+func resolveWechatAppSaveAppID(appType, oldAppId, requestAppId string) string {
+	if appType == lib_define.AppWecomRobot {
+		return requestAppId
+	}
+	return oldAppId
 }
 
 func SortWechatApp(c *gin.Context) {

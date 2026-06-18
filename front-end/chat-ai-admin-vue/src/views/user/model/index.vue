@@ -219,6 +219,7 @@
       <div class="guide-box" v-if="activeTab == 2">
         <BeginnerGuide></BeginnerGuide>
       </div>
+      <ModelException v-if="activeTab == 3" />
       <ModelList
         :list="canAddModelList"
         :type="2"
@@ -280,6 +281,7 @@ import { useUserStore } from '@/stores/modules/user'
 import HasModalList from './components/has-modal-list.vue'
 import AddModelNew from './components/add-model-new.vue'
 import BeginnerGuide from '@/components/beginner-guide/index.vue'
+import ModelException from './components/model-exception.vue'
 import AddConfingModal from './components/add-confing-modal.vue'
 import { useRoute } from 'vue-router'
 

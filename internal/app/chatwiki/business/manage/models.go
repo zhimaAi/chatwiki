@@ -206,6 +206,9 @@ func DelModelConfig(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: id})
+	if backup, _ := common.GetBackupModelConfig(userId); len(backup) > 0 && cast.ToInt(backup[`model_config_id`]) == id {
+		_ = common.SetBackupModelConfig(userId, 0, ``)
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 
@@ -256,6 +259,7 @@ func EditModelConfig(c *gin.Context) {
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.ModelConfigCacheBuildHandler{ModelConfigId: id})
+	common.DelBackupModelConfigCache(userId)
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
 }
 

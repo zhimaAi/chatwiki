@@ -14,13 +14,14 @@
             @clickMsgMeun="onClickMeun"
           />
         </template>
+        <div class="reply-space" v-if="props.reserveReplySpace" ref="replySpaceRef"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, watch } from 'vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import UserMessageItem from './messages/user-message-item.vue'
 import RobotMessageItem from './messages/robot-message-item.vue'
@@ -57,6 +58,10 @@ const props = defineProps({
   robotInfo: {
     type: Object,
     default: () => {}
+  },
+  reserveReplySpace: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -94,13 +99,16 @@ const onClickMeun = (item) => {
 }
 
 const scrollBoxRef = ref(null)
+const replySpaceRef = ref(null)
 const scrollOption = {
   scrollTop: 0,
   scrollHeight: 0,
   clientHeight: 0,
   scrollStartDiff: 60,
   scrollEndDiff: 60,
-  scrollDirection: ''
+  scrollDirection: '',
+  isAtBottom: true,
+  isReplySpaceVisible: false
 }
 
 let scrollEventTimer = null
@@ -125,10 +133,7 @@ function onScroll(e) {
       scrollOption.scrollDirection = 'down'
     }
 
-    scrollOption.scrollTop = e.target.scrollTop
-    scrollOption.scrollHeight = e.target.scrollHeight
-    scrollOption.clientHeight = e.target.clientHeight
-
+    updateScrollOption(e.target)
     emit('scroll', { ...scrollOption })
 
     let isAtTop = Math.abs(scrollOption.scrollTop) <= scrollOption.scrollStartDiff
@@ -137,14 +142,40 @@ function onScroll(e) {
       onScrollStart()
     }
 
-    let isAtBottom =
-      Math.abs(scrollOption.scrollHeight - scrollOption.scrollTop - scrollOption.clientHeight) <=
-      scrollOption.scrollEndDiff
-
-    if (isAtBottom && scrollOption.scrollDirection === 'down') {
+    if (scrollOption.isAtBottom && scrollOption.scrollDirection === 'down') {
       onScrollEnd()
     }
   }, 50)
+}
+
+function updateScrollOption(scroller) {
+  scrollOption.scrollTop = scroller.scrollTop
+  scrollOption.scrollHeight = scroller.scrollHeight
+  scrollOption.clientHeight = scroller.clientHeight
+  scrollOption.isAtBottom =
+    Math.abs(scrollOption.scrollHeight - scrollOption.scrollTop - scrollOption.clientHeight) <=
+    scrollOption.scrollEndDiff
+
+  if (!replySpaceRef.value) {
+    scrollOption.isReplySpaceVisible = false
+    return
+  }
+
+  let viewportTop = scroller.scrollTop
+  let viewportBottom = viewportTop + scroller.clientHeight
+  let replySpaceTop = replySpaceRef.value.offsetTop
+  let replySpaceBottom = replySpaceTop + replySpaceRef.value.offsetHeight
+
+  scrollOption.isReplySpaceVisible =
+    viewportBottom > replySpaceTop && viewportTop < replySpaceBottom
+}
+
+function emitScrollState() {
+  if (!scrollBoxRef.value) {
+    return
+  }
+  updateScrollOption(scrollBoxRef.value)
+  emit('scroll', { ...scrollOption })
 }
 
 function onScrollStart() {
@@ -174,13 +205,16 @@ const scrollToBottom = () => {
 
     scrollBoxRef.value.scrollTop = scrollBoxRef.value.scrollHeight + 1
     setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+      emitScrollState()
       onScrollEventLock = false
     }, 50)
   })
 }
 
 function scrollToMessage(id, direction) {
+  if (!scrollBoxRef.value) {
+    return
+  }
   nextTick(() => {
     onScrollEventLock = true
 
@@ -190,15 +224,19 @@ function scrollToMessage(id, direction) {
 
     let scroller = scrollBoxRef.value
     let element = document.querySelector('#msg-' + id)
+    if (!element) {
+      onScrollEventLock = false
+      return
+    }
 
     if (direction == 'top') {
-      scroller.scrollTop = element.offsetTop
+      scroller.scrollTop = Math.max(element.offsetTop - 4, 0)
     } else {
       scroller.scrollTop = element.offsetTop - scroller.clientHeight + element.clientHeight
     }
 
     setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+      emitScrollState()
       onScrollEventLock = false
     }, 50)
   })
@@ -207,12 +245,25 @@ function scrollToMessage(id, direction) {
 function resetScroll() {
   scrollOption.scrollTop = 0
   scrollOption.scrollDirection = ''
+  scrollOption.isAtBottom = true
+  emit('scroll', { ...scrollOption })
 }
+
+const isAtBottom = () => scrollOption.isAtBottom
+
+watch(
+  () => [props.messages, props.reserveReplySpace],
+  () => {
+    nextTick(emitScrollState)
+  },
+  { deep: true }
+)
 
 defineExpose({
   scrollToBottom,
   scrollToMessage,
-  resetScroll
+  resetScroll,
+  isAtBottom
 })
 </script>
 
@@ -238,21 +289,33 @@ defineExpose({
     margin-top: 24px;
   }
 
-  :deep(.user-avatar),
-  :deep(.robot-avatar) {
-    display: block;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-  }
-
   :deep(.itme-left) {
-    margin-right: 8px;
+    display: none;
   }
 
   :deep(.itme-right) {
     flex: 1;
     overflow: hidden;
   }
+
+  :deep(.user-message) {
+    justify-content: flex-end;
+  }
+
+  :deep(.user-message .itme-right) {
+    flex: 0 1 auto;
+    max-width: min(72%, 520px);
+  }
+
+  :deep(.robot-message) {
+    justify-content: flex-start;
+  }
+}
+
+.reply-space {
+  height: 65vh;
+  min-height: 320px;
+  max-height: 560px;
+  pointer-events: none;
 }
 </style>

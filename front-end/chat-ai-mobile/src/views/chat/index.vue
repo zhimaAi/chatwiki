@@ -377,7 +377,7 @@ const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionL
 const showUpload = computed(() => robot.question_multiple_switch == 1)
 const aiGeneratedTipText = computed(() => {
   const tipText = externalConfigH5.value.ai_generated_tip
-  return tipText == null ? t('ai_generated_tip') : tipText.trim()
+  return tipText?.trim() || t('ai_generated_tip')
 })
 
 const isShortcut = computed(() => {

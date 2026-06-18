@@ -64,7 +64,7 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" :title="t('title_welcome')" icon-name="huanyingyu">
+  <edit-box class="setting-box" :fontSize="14" :title="t('title_welcome')">
     <div class="form-box" v-show="isEdit">
       <div class="question-title">
         <a-textarea

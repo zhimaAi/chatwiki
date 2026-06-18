@@ -42,15 +42,18 @@ defineProps({
 <style lang="less" scoped>
 .user-message {
   .item-body {
-    padding: 5px 0;
+    padding: 12px;
+    border-radius: 16px 4px 16px 16px;
+    background: #dbe9ff;
   }
 
   .message-content {
     line-height: 22px;
     font-size: 14px;
     font-weight: 400;
-    color: #3a4559;
+    color: #262626;
     white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .msg-img {

@@ -289,6 +289,9 @@ func init() {
 	Route[http.MethodGet][`/manage/getModelConfigOption`] = manage.GetModelConfigOption
 	Route[http.MethodPost][`/manage/saveUseModelConfig`] = manage.SaveUseModelConfig
 	Route[http.MethodPost][`/manage/delUseModelConfig`] = manage.DelUseModelConfig
+	Route[http.MethodGet][`/manage/getBackupModelConfig`] = manage.GetBackupModelConfig
+	Route[http.MethodPost][`/manage/setBackupModelConfig`] = manage.SetBackupModelConfig
+	Route[http.MethodGet][`/manage/getModelErrorLogs`] = manage.GetModelErrorLogs
 	Route[http.MethodGet][`/manage/getMiniMaxVoiceList`] = manage.GetMiniMaxVoiceList
 	/*WeChat API*/
 	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
