@@ -184,7 +184,7 @@ const getStepText = (step) => {
     background: transparent;
     margin: 0;
     padding: 0;
-    
+
     *{
       line-height: 22px;
       font-size: 14px;

@@ -7,6 +7,7 @@ const external_config_h5_default = {
   accessRestrictionsType: 1, // 访问限制
   logo: '',
   pageTitle: '',
+  avatarShow: 1,
   navbarShow: 2,
   ai_generated_tip_show: 1,
   ai_generated_tip: '内容由AI生成，仅供参考',
@@ -24,6 +25,7 @@ const external_config_pc_default = {
   headTitle: '',
   headSubTitle: 'Based on LLM, free and open-source.',
   headImage: '',
+  avatarShow: 1,
   lang: 'zh-CN',
   pageStyle: {
     headBackgroundColor: 'linear-gradient,to right,#2435E7,#01A0FB'
@@ -41,6 +43,19 @@ const external_config_pc_default = {
   window_width: 1200,
   window_height: 650,
   new_session_btn_show: 2,
+}
+
+const getDefaultAvatarShow = (applicationType) => {
+  return Number(applicationType) === 2 ? 2 : 1
+}
+
+const ensureAvatarShow = (config, applicationType, sourceConfig) => {
+  const sourceAvatarShow = Number(sourceConfig?.avatarShow)
+  if (sourceAvatarShow === 1 || sourceAvatarShow === 2) {
+    config.avatarShow = sourceAvatarShow
+  } else {
+    config.avatarShow = getDefaultAvatarShow(applicationType)
+  }
 }
 
 export const useRobotStore = defineStore('robot', () => {
@@ -306,19 +321,26 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.prompt_role_type = data.prompt_role_type || '0'
     // h5配置
     if (data.external_config_h5 !== '') {
-      Object.assign(external_config_h5, JSON.parse(data.external_config_h5))
+      const h5Config = JSON.parse(data.external_config_h5)
+      Object.assign(external_config_h5, h5Config)
+      ensureAvatarShow(external_config_h5, robotInfo.application_type, h5Config)
     } else {
       Object.assign(external_config_h5, JSON.parse(JSON.stringify(external_config_h5_default)))
       external_config_h5.pageTitle = robotInfo.robot_name
       external_config_h5.logo = robotInfo.robot_avatar_url
+      ensureAvatarShow(external_config_h5, robotInfo.application_type)
     }
 
     // 嵌入网站配置
     if (data.external_config_pc !== '') {
-      Object.assign(external_config_pc, JSON.parse(data.external_config_pc))
+      const pcConfig = JSON.parse(data.external_config_pc)
+      Object.assign(external_config_pc, pcConfig)
+      ensureAvatarShow(external_config_pc, robotInfo.application_type, pcConfig)
     } else {
+      Object.assign(external_config_pc, JSON.parse(JSON.stringify(external_config_pc_default)))
       external_config_pc.headTitle = robotInfo.robot_name
       external_config_pc.headImage = robotInfo.robot_avatar_url
+      ensureAvatarShow(external_config_pc, robotInfo.application_type)
     }
 
   }

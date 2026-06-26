@@ -46,6 +46,6 @@ const hasFinalAnswerContent = (item) => {
 }
 
 .message-content {
-  color: #262626;  
+  color: #262626;
 }
 </style>

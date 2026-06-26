@@ -40,10 +40,11 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 	}
 	boolCreate := true
 	if flow.params.SessionId > 0 {
-		_, storeId := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
+		_, storeId, _ := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
 		if cast.ToInt(storeId) > 0 {
 			_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, storeId).Update(msql.Datas{
 				"storage":     tool.JsonEncodeNoError(data),
+				"log_id":      flow.LogID, // preserve the stable identity of this run
 				"update_time": time.Now().Unix(),
 			})
 			if err != nil {
@@ -60,6 +61,7 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 			"session_id":    flow.params.SessionId,
 			"openid":        flow.params.Openid,
 			"storage":       tool.JsonEncodeNoError(data),
+			"log_id":        flow.LogID, // preserve the stable identity of this run
 			"create_time":   time.Now().Unix(),
 			"update_time":   time.Now().Unix(),
 		}, `id`)
@@ -79,7 +81,7 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 	}
 }
 
-func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s string) {
+func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s string, logID int64) {
 	data = &WorkFlowRestoreData{}
 	if dialogId == 0 || sessionId == 0 {
 		return
@@ -100,7 +102,7 @@ func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s s
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	return data, storage[`id`]
+	return data, storage[`id`], cast.ToInt64(storage[`log_id`])
 }
 
 func DelWorkFlowStorage(dialogId, sessionId int) {
@@ -112,14 +114,34 @@ func DelWorkFlowStorage(dialogId, sessionId int) {
 	}
 }
 
+// DelWorkFlowStorageByLogID removes paused snapshots by log_id.
+func DelWorkFlowStorageByLogID(logID int64) {
+	if logID <= 0 {
+		return
+	}
+	_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).
+		Where(`log_id`, cast.ToString(logID)).Delete()
+	if err != nil {
+		logs.Error(err.Error())
+	}
+}
+
 func WorkFlowRestore(flow *WorkFlow) (err error) {
 	defer func() {
 		DelWorkFlowStorage(flow.params.DialogueId, flow.params.SessionId)
 	}()
 	logs.Debug(`to restore，dialog_id %v session_id %v`, flow.params.DialogueId, flow.params.SessionId)
-	data, _ := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
+	data, _, logID := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
 	if data == nil || data.CurNodeKey == `` {
 		return
+	}
+	// Restore reuses the original log identity to avoid inserting another log on completion.
+	if logID > 0 {
+		flow.LogID = logID
+		if GetWorkFlowLogStatus(logID) != define.WorkFlowStatusRunning {
+			flow.isStopped = true
+			return errors.New(i18n.Show(flow.params.Lang, `status_exception`))
+		}
 	}
 	//start params
 	startNode, _, err := GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)

@@ -25,6 +25,16 @@
                   <img v-viewer class="msg-img" :src="item.media_id_to_oss_url" alt="" />
                 </div>
               </template>
+              <template v-else-if="item.msg_type == 4 && getMediaUrl(item)">
+                <div class="message-content media-content">
+                  <audio class="msg-audio" :src="getMediaUrl(item)" controls preload="metadata"></audio>
+                </div>
+              </template>
+              <template v-else-if="item.msg_type == 5 && getMediaUrl(item)">
+                <div class="message-content media-content">
+                  <video class="msg-video" :src="getMediaUrl(item)" controls preload="metadata"></video>
+                </div>
+              </template>
               <!-- 多模态 -->
               <div v-else-if="item.msg_type == 99" class="message-content multiple-content">
                 <MultipleMessage :message="item.content" />
@@ -118,6 +128,16 @@
               <template v-if="item.msg_type == 3">
                 <div class="message-content">
                   <img v-viewer class="msg-img" :src="item.content" alt="" />
+                </div>
+              </template>
+              <template v-if="item.msg_type == 4 && getMediaUrl(item)">
+                <div class="message-content media-content">
+                  <audio class="msg-audio" :src="getMediaUrl(item)" controls preload="metadata"></audio>
+                </div>
+              </template>
+              <template v-if="item.msg_type == 5 && getMediaUrl(item)">
+                <div class="message-content media-content">
+                  <video class="msg-video" :src="getMediaUrl(item)" controls preload="metadata"></video>
                 </div>
               </template>
               <div
@@ -345,6 +365,10 @@ function buildMenuLines(menu_content) {
   return out.slice(0, 20)
 }
 
+function getMediaUrl(item) {
+  return item.media_id_to_oss_url || item.content || ''
+}
+
 function showQuoteFileBox(item) {
   let newItem = JSON.parse(JSON.stringify(item))
   newItem.debug = newItem.debug_log ? JSON.parse(newItem.debug_log) : []
@@ -385,6 +409,25 @@ defineExpose({
   height: auto;
   max-width: 100%;
   max-height: 100%;
+}
+
+.media-content {
+  max-width: 100%;
+}
+
+.msg-audio {
+  display: block;
+  width: 280px;
+  max-width: 100%;
+}
+
+.msg-video {
+  display: block;
+  width: 360px;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 4px;
+  background: #000;
 }
 
 .message-list {

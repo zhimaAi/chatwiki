@@ -39,7 +39,7 @@ func SaveDiyDomain(c *gin.Context) {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	if strings.Contains(req.Url, define.DefaultCustomDomain) {
+	if strings.Contains(strings.ToLower(req.Url), `chatwiki.com`) {
 		common.FmtError(c, `param_invalid`, `url`)
 		return
 	}

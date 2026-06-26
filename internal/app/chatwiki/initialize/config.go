@@ -5,6 +5,7 @@ package initialize
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_web"
+	"chatwiki/internal/pkg/wechat"
 	"fmt"
 	"os"
 	"runtime"
@@ -120,4 +121,10 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config xiaokefu error`)
 	}
+	define.Config.Messenger, err = config.GetSection("messenger")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config messenger error`)
+	}
+	wechat.SetMessengerGraphAPIBase(define.Config.Messenger[`graph_api_base`])
 }

@@ -1,7 +1,9 @@
 <style lang="less">
 .vue-markdown {
-  white-space: pre-wrap;
+  white-space: normal;
+  word-break: break-all;
   width: 100%;
+  
   img {
     width: auto;
     height: auto;

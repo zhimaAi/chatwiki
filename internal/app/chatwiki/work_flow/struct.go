@@ -190,17 +190,18 @@ const (
 )
 
 type CurlNodeParams struct {
-	Method   string               `json:"method"`
-	Rawurl   string               `json:"rawurl"`
-	Headers  []CurlParam          `json:"headers"`
-	Params   []CurlParam          `json:"params"`
-	Type     uint                 `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
-	Body     []CurlParam          `json:"body"`
-	BodyRaw  string               `json:"body_raw"`
-	Timeout  uint                 `json:"timeout"`
-	Output   common.RecurveFields `json:"output"`
-	HttpAuth []CurlAuthParam      `json:"http_auth"`
-	ToolInfo HttpToolInfo         `json:"http_tool_info"` // HTTP tool info stored in workflow to facilitate importing triggers that add HTTP tool group
+	Method    string               `json:"method"`
+	Rawurl    string               `json:"rawurl"`
+	Headers   []CurlParam          `json:"headers"`
+	Params    []CurlParam          `json:"params"`
+	Type      uint                 `json:"type"` //0:none,1:x-www-form-urlencoded,2:application/json
+	Body      []CurlParam          `json:"body"`
+	BodyRaw   string               `json:"body_raw"`
+	Timeout   uint                 `json:"timeout"`
+	Output    common.RecurveFields `json:"output"`
+	HttpAuth  []CurlAuthParam      `json:"http_auth"`
+	ToolInfo  HttpToolInfo         `json:"http_tool_info"` // HTTP tool info stored in workflow to facilitate importing triggers that add HTTP tool group
+	Exception string               `json:"exception"`
 }
 
 type HttpToolInfo struct {
@@ -1139,6 +1140,9 @@ func VerifyWorkFlowNodes(nodeList []WorkFlowNode, adminUserId int, lang string) 
 		if node.NodeType == NodeTypeWorkflow {
 			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Workflow.Exception)
 		}
+		if node.NodeType == NodeTypeCurl {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Curl.Exception)
+		}
 		if tool.InArrayInt(node.NodeType.Int(), []int{NodeTypeFinish, NodeTypeManual}) {
 			finishNodeCount++
 		}
@@ -1768,6 +1772,9 @@ func (params *CurlNodeParams) Verify(lang string) error {
 		return errors.New(i18n.Show(lang, `request_timeout_max_value`))
 	}
 	//Output field validation
+	if len(params.Exception) > 0 && !common.IsMd5Str(params.Exception) {
+		return errors.New(i18n.Show(lang, `exception_handling_next_node_not_specified`))
+	}
 	return params.Output.Verify(lang)
 }
 
@@ -2191,6 +2198,9 @@ func VerityLoopWorkflowNodes(adminUserId int, loopNode WorkFlowNode, nodeList []
 		}
 		if node.NodeType == NodeTypeWorkflow {
 			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Workflow.Exception)
+		}
+		if node.NodeType == NodeTypeCurl {
+			fromNodes.AddRelation(&nodeList[i], node.NodeParams.Curl.Exception)
 		}
 		if node.NextNodeKey == loopNode.NodeKey {
 			finishNodeCount++

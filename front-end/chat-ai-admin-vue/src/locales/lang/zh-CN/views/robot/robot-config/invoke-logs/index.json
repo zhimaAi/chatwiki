@@ -9,5 +9,14 @@
   "label_duration": "耗时",
   "label_token_consumption": "token消耗（K）",
   "label_invoke_time": "调用时间",
-  "label_action": "操作"
+  "label_status": "运行状态",
+  "label_action": "操作",
+  "btn_stop": "停止",
+  "status_running": "运行中",
+  "status_completed": "已完成",
+  "status_stopped": "已停止",
+  "status_unknown": "未知",
+  "msg_stop_success": "已停止",
+  "msg_stop_failed": "停止失败",
+  "msg_stop_unavailable": "工作流可能已结束，当前无法停止"
 }

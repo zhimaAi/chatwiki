@@ -10,6 +10,7 @@ import (
 	"chatwiki/internal/pkg/lib_redis"
 	"chatwiki/internal/pkg/lib_web"
 	"chatwiki/internal/pkg/wechat"
+	"chatwiki/internal/pkg/wechat/messenger"
 	"errors"
 	"fmt"
 	"net/http"
@@ -281,6 +282,13 @@ func SaveWechatApp(c *gin.Context) {
 		return
 	}
 	if _, _, err := app.GetToken(false); err != nil {
+		if appType == lib_define.AppMessenger {
+			if errors.Is(err, messenger.ErrSecretInvalid) {
+				err = errors.New(i18n.Show(common.GetLang(c), `messenger_secret_error`))
+			} else if errors.Is(err, messenger.ErrPageIDMismatch) {
+				err = errors.New(i18n.Show(common.GetLang(c), `messenger_page_id_mismatch`))
+			}
+		}
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
@@ -325,11 +333,24 @@ func SaveWechatApp(c *gin.Context) {
 			return
 		}
 	}
+	//For Messenger, app_id should be globally unique
+	if appType == lib_define.AppMessenger && id == 0 {
+		count, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`app_id`, appId).Where(`app_type`, appType).Count()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if count > 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `app_id_exist`))))
+			return
+		}
+	}
 	if appType == lib_define.FeiShuRobot {
 		data[`encrypt_key`] = strings.TrimSpace(c.PostForm(`encrypt_key`))
 		data[`verification_token`] = strings.TrimSpace(c.PostForm(`verification_token`))
 	}
-	if id > 0 && appType == lib_define.AppWecomRobot && appId != oldAppId {
+	if id > 0 && (appType == lib_define.AppWecomRobot || appType == lib_define.AppMessenger) && appId != oldAppId {
 		if appInfo, err := common.GetWechatAppInfo(`app_id`, appId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
@@ -393,6 +414,9 @@ func SaveWechatApp(c *gin.Context) {
 			appInfo[`push_url`] += fmt.Sprintf(`/%s`, appInfo[`access_key`])
 		}
 		appInfo[`push_token`] = lib_define.SignToken
+		if appInfo[`app_type`] == lib_define.AppMessenger {
+			appInfo[`push_token`] = appInfo[`access_key`]
+		}
 		appInfo[`push_aeskey`] = lib_define.AesKey
 		appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	}
@@ -400,7 +424,7 @@ func SaveWechatApp(c *gin.Context) {
 }
 
 func resolveWechatAppSaveAppID(appType, oldAppId, requestAppId string) string {
-	if appType == lib_define.AppWecomRobot {
+	if appType == lib_define.AppWecomRobot || appType == lib_define.AppMessenger {
 		return requestAppId
 	}
 	return oldAppId
@@ -459,6 +483,9 @@ func GetWechatAppInfo(c *gin.Context) {
 		appInfo[`push_url`] += fmt.Sprintf(`/%s`, appInfo[`access_key`])
 	}
 	appInfo[`push_token`] = lib_define.SignToken
+	if appInfo[`app_type`] == lib_define.AppMessenger {
+		appInfo[`push_token`] = appInfo[`access_key`]
+	}
 	appInfo[`push_aeskey`] = lib_define.AesKey
 	appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, nil))

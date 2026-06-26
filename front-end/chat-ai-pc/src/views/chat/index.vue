@@ -61,74 +61,6 @@
     text-align: center;
   }
 
-  .bottom-btn-box {
-    display: flex;
-    width: 40px;
-    height: 40px;
-    padding: 12px;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    border-radius: 40px;
-    border: 1px solid #fff;
-    background: #fff;
-    box-shadow: 0 4px 16px 0 #0000001f;
-    cursor: pointer;
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    margin-left: -20px;
-    .bottom-btn {
-      font-size: 16px;
-      color: #659efc;
-    }
-  }
-
-  .bottom-btn-box:hover {
-    border: 1px solid #659dfc;
-  }
-
-  /* 定义进入动画 */
-  .slide-down-enter-active {
-    animation: slide-down-in 0.3s ease-in;
-    position: absolute;
-    z-index: 1;
-  }
-
-  /* 定义进入完成后的状态 */
-  .slide-down-enter-from {
-    transform: translateY(150%);
-  }
-
-  /* 定义退出动画 */
-  .slide-down-leave-active {
-    animation: slide-down-out 0.3s ease-out;
-    position: absolute;
-    z-index: 1;
-  }
-
-  /* 定义退出完成后的状态 */
-  .slide-down-leave-to {
-    transform: translateY(150%);
-  }
-
-  @keyframes slide-down-in {
-    from {
-      transform: translateY(150%);
-    }
-    to {
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes slide-down-out {
-    from {
-      transform: translateY(0);
-    }
-    to {
-      transform: translateY(150%);
-    }
-  }
 }
 
 
@@ -218,11 +150,7 @@
             </template>
           </MessageList>
         </div>
-        <transition name="slide-down">
-          <div class="bottom-btn-box" @click="onScrollBottom" v-if="isShowBottomBtn">
-            <svg-icon name="down-arrow" class="bottom-btn" />
-          </div>
-        </transition>
+        <ScrollToBottomBtn :visible="isShowBottomBtn" :loading="sendLoading" @click="onScrollBottom" />
       </div>
       <div class="fast-command-wrap">
         <FastComand v-if="isShortcut" @send="handleSetMessageInputValue"></FastComand>
@@ -234,6 +162,7 @@
           :loading="sendLoading"
           :showUpload="showUpload"
           @send="onSendMesage"
+          @stop="onStopMessage"
         />
         <div class="technical-support-text">
           <span class="ai-disclaimer-text">{{ t('label_ai_disclaimer') }}，</span>
@@ -264,6 +193,7 @@ import { useIM } from '@/hooks/event/useIM'
 import { useChatStore } from '@/stores/modules/chat'
 import ChatHeader from './components/chat-header.vue'
 import MessageInput from './components/message-input.vue'
+import ScrollToBottomBtn from './components/scroll-to-bottom-btn.vue'
 import MessageList from './components/messages/message-list.vue'
 import MessageItem from './components/messages/message-item.vue'
 import FastComand from './components/fast-comand/index.vue'
@@ -317,6 +247,7 @@ const chatStore = useChatStore()
 
 const {
   sendMessage,
+  stopMessage,
   onGetChatMessage,
   $reset,
   robot,
@@ -339,6 +270,7 @@ const isShortcut = computed(()=>{
 })
 
 const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
+let sendRequestSeq = 0
 
 const showUpload = computed(() => {
   return robot.question_multiple_switch == 1
@@ -346,7 +278,7 @@ const showUpload = computed(() => {
 
 // 允许滚动到底部
 let isAllowedScrollToBottom = true
-let lastScrollTop = 0
+const scrollEndDiff = 60
 const messageListRef = ref<null | MessageListComponent>(null)
 
 const scrollToMessageById = (id: number | string) => {
@@ -364,16 +296,10 @@ const handleMessageListScrollToBottom = () => {
 
 // 滚动
 const onScroll = (event) => {
-  if (event.scrollHeight - event.clientHeight > event.scrollTop) {
-    // 不是在底部了，显示回到底部按钮
-    isShowBottomBtn.value = true
-  }
-
-  if (lastScrollTop - event.scrollTop > 0) {
-    isAllowedScrollToBottom = false
-  }
-
-  lastScrollTop = event.scrollTop
+  const isAtBottom = Math.abs(event.scrollHeight - event.clientHeight - event.scrollTop) <= scrollEndDiff
+  isShowBottomBtn.value = !isAtBottom
+  // 只要用户离开底部，就关闭自动滚动；回到底部后再恢复。
+  isAllowedScrollToBottom = isAtBottom
 }
 
 // 滚动到顶部
@@ -396,7 +322,9 @@ const onScrollEnd = () => {
 
 // 回到底部
 const onScrollBottom = () => {
-  if (messageListRef.value && isAllowedScrollToBottom) {
+  isAllowedScrollToBottom = true
+
+  if (messageListRef.value) {
     messageListRef.value.scrollToBottom()
     isShowBottomBtn.value = false
   }
@@ -463,6 +391,7 @@ const onSendMesage = async (content: any) => {
 
   //检查是否含有敏感词
   checkChatRequestPermissionLoding.value = true
+  const currentSendRequestSeq = ++sendRequestSeq
 
   let result
   try {
@@ -473,8 +402,14 @@ const onSendMesage = async (content: any) => {
       question: text
     })
   } catch (error) {
-    checkChatRequestPermissionLoding.value = false
+    if (currentSendRequestSeq === sendRequestSeq) {
+      checkChatRequestPermissionLoding.value = false
+    }
     return showToast(t('msg_send_failed'))
+  }
+
+  if (currentSendRequestSeq !== sendRequestSeq) {
+    return
   }
 
   checkChatRequestPermissionLoding.value = false
@@ -517,12 +452,24 @@ const onSendMesage = async (content: any) => {
   fileList.value = []
 }
 
+const onStopMessage = () => {
+  sendRequestSeq += 1
+  checkChatRequestPermissionLoding.value = false
+  stopMessage()
+}
+
 // 监听 updateAiMessage 触发消息列表滚动
-const onUpdateAiMessage = (msg) => {
-  if (msg.event === 'reasoning_content') {
+const onUpdateAiMessage = (msg: any) => {
+  if (msg?.prevent_auto_scroll) {
     return
   }
 
+  if (messageListRef.value) {
+    handleMessageListScrollToBottom()
+  }
+}
+
+const onSocketMessage = () => {
   if (messageListRef.value) {
     handleMessageListScrollToBottom()
   }
@@ -640,9 +587,7 @@ onMounted(() => {
 
   // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)
-
-  // 监听im消息
-  on('message', onUpdateAiMessage)
+  on('message', onSocketMessage)
 
   emitter.on('openWindow', onOpenWindow)
 

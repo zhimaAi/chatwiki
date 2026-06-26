@@ -101,30 +101,6 @@
   padding: 0 16px 16px;
 }
 
-.scroll-bottom-btn {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: #fff;
-  color: #000;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
-  transform: translateX(-50%);
-  cursor: pointer;
-
-  .anticon {
-    font-size: 18px;
-  }
-}
-
 .chat-loading-state {
   flex: 1;
   display: flex;
@@ -272,14 +248,11 @@
               @scrollStart="onScrollStart"
               @scrollEnd="onScrollEnd"
             />
-            <button
-              class="scroll-bottom-btn"
-              type="button"
-              v-if="showScrollBottomButton"
+            <ScrollBottomBtn
+              :visible="showScrollBottomButton"
+              :loading="sendLoading"
               @click="scrollMessageListToBottom"
-            >
-              <ArrowDownOutlined />
-            </button>
+            />
           </div>
         </template>
 
@@ -326,12 +299,13 @@ import { useClawbotChatStore } from '@/stores/modules/clawbot-chat'
 import { useUserStore } from '@/stores/modules/user'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useLocaleStore } from '@/stores/modules/locale'
-import { ArrowDownOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined } from '@ant-design/icons-vue'
 import { message as antMessage } from 'ant-design-vue'
 import { getLibraryList } from '@/api/library'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
 import { showErrorMsg } from '@/utils/index'
 import MessageList from './components/message-list.vue'
+import ScrollBottomBtn from './components/scroll-bottom-btn.vue'
 import ChatList from './components/chat-list.vue'
 import ConversationBar from './components/conversation-bar.vue'
 import MessageInput from './components/message-input.vue'
@@ -502,6 +476,7 @@ const onSendMessage = async () => {
     return showErrorMsg(t('msg_input_required'))
   }
 
+  showScrollBottomButton.value = false
   checkChatRequestPermissionLoading.value = true
 
   try {

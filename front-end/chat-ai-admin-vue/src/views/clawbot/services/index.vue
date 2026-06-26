@@ -27,6 +27,7 @@ import WeChatCustomerService from '@/views/robot/robot-config/external-service/c
 import WeComRobot from '@/views/robot/robot-config/external-service/components/wecom-robot.vue'
 import FeishuRobot from '@/views/robot/robot-config/external-service/components/feishu-robot.vue'
 import DingDingRobot from '@/views/robot/robot-config/external-service/components/dingding-robot.vue'
+import Messenget from '@/views/robot/robot-config/external-service/components/Messenget.vue'
 
 const clawbotStore = useClawbotStore()
 const robotStore = useRobotStore()
@@ -50,7 +51,8 @@ const tabComponents = {
   WeChatCustomerService,
   WeComRobot,
   FeishuRobot,
-  DingDingRobot
+  DingDingRobot,
+  Messenget
 }
 
 const activeLocalKey = '/clawbot/services/activeKey'

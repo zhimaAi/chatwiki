@@ -152,8 +152,11 @@ function updateScrollOption(scroller) {
   scrollOption.scrollTop = scroller.scrollTop
   scrollOption.scrollHeight = scroller.scrollHeight
   scrollOption.clientHeight = scroller.clientHeight
+  // 计算 isAtBottom 时排除 reply-space 高度，避免占位块导致误判
+  // 不用 Math.abs，内容底部在视口内时（差值 <= 0）也算在底部
+  let replySpaceHeight = replySpaceRef.value ? replySpaceRef.value.offsetHeight : 0
   scrollOption.isAtBottom =
-    Math.abs(scrollOption.scrollHeight - scrollOption.scrollTop - scrollOption.clientHeight) <=
+    scrollOption.scrollHeight - replySpaceHeight - scrollOption.scrollTop - scrollOption.clientHeight <=
     scrollOption.scrollEndDiff
 
   if (!replySpaceRef.value) {

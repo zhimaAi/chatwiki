@@ -19,14 +19,21 @@
         <span class="file-number" :class="{ big: fileList.length > 9 }" v-if="fileList.length > 0">{{ fileList.length }}</span>
       </div>
 
+      <a-tooltip v-if="props.loading" title="停止发送">
+        <button
+          class="send-msg-btn loading"
+          @click="stopMessage"
+        >
+          <svg-icon class="send-pause" name="send-pause"></svg-icon>
+        </button>
+      </a-tooltip>
       <button
+        v-else
         class="send-msg-btn"
-        :class="{ loading: props.loading }"
         :disabled="disabled"
         @click="sendMessage"
       >
-        <a-spin size="small" class="loading-action" style="margin-right: 4px" v-if="props.loading" />
-        <svg-icon class="paper-airplane" name="paper-airplane" v-else></svg-icon>
+        <svg-icon class="paper-airplane" name="paper-airplane"></svg-icon>
       </button>
     </div>
   </div>
@@ -40,7 +47,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-test.components.message-input')
 
-const emit = defineEmits(['send', 'update:value', 'update:fileList'])
+const emit = defineEmits(['send', 'stop', 'update:value', 'update:fileList'])
 
 const props = defineProps({
   value: {
@@ -110,6 +117,10 @@ const handleKeydown = (event) => {
 const sendMessage = () => {
   emit('send', props.value.trim())
 }
+
+const stopMessage = () => {
+  emit('stop')
+}
 </script>
 
 <style lang="less" scoped>
@@ -173,16 +184,10 @@ const sendMessage = () => {
     }
 
     &.loading {
-      background-color: #2475fc;
+      color: #2475fc;
     }
-    .loading-action{
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 3px;
-      ::v-deep(.ant-spin-dot-item) {
-        background-color: #fff;
-      }
+    .send-pause {
+      font-size: 32px;
     }
     
   }

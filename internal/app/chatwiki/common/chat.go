@@ -856,6 +856,16 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 		msgType = define.MsgTypeImage
 		showContent = params.MediaIdToOssUrl
 	}
+	// Display voice message
+	if params.ReceivedMessageType == lib_define.MsgTypeVoice && params.MediaIdToOssUrl != `` {
+		msgType = define.MsgTypeVoice
+		showContent = params.MediaIdToOssUrl
+	}
+	// Display video message
+	if params.ReceivedMessageType == lib_define.MsgTypeVideo && params.MediaIdToOssUrl != `` {
+		msgType = define.MsgTypeVideo
+		showContent = params.MediaIdToOssUrl
+	}
 
 	message := msql.Datas{
 		`admin_user_id`:             params.AdminUserId,

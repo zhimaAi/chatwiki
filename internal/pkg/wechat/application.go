@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/wechat/dingtalk_robot"
 	"chatwiki/internal/pkg/wechat/feishu_robot"
+	"chatwiki/internal/pkg/wechat/messenger"
 	"chatwiki/internal/pkg/wechat/mini_program"
 	"chatwiki/internal/pkg/wechat/official_account"
 	"chatwiki/internal/pkg/wechat/wechat_kefu"
@@ -19,6 +20,16 @@ import (
 	openresponse "github.com/ArtisanCloud/PowerWeChat/v3/src/openPlatform/authorizer/miniProgram/account/response"
 	"github.com/zhimaAi/go_tools/msql"
 )
+
+// MessengerGraphAPIBase Facebook Messenger Graph API base URL, can be overridden via config
+var MessengerGraphAPIBase = "https://graph.facebook.com/v25.0"
+
+// SetMessengerGraphAPIBase sets Messenger Graph API base URL
+func SetMessengerGraphAPIBase(base string) {
+	if len(base) > 0 {
+		MessengerGraphAPIBase = base
+	}
+}
 
 type ApplicationInterface interface {
 	SetTyping(customer, command string) (int, error)
@@ -72,6 +83,8 @@ func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 		return &dingtalk_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	case lib_define.AppWecomRobot:
 		return &wecom_robot.Application{AppID: appInfo[`app_id`]}, nil
+	case lib_define.AppMessenger:
+		return &messenger.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`], GraphAPIBase: MessengerGraphAPIBase}, nil
 	}
 	return nil, errors.New(`app type not support`)
 }

@@ -43,9 +43,26 @@ func OfficeAccountPassiveReply(in *ChatInParam, out *ChatOutParam) pipeline.Pipe
 	return pipeline.PipeContinue
 }
 
-// DisposeClientBreak handle client disconnect logic
+// DisposeClientBreak handle client disconnect logic.
 func DisposeClientBreak(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
-	if *in.params.IsClose {
+	// Opt-in pause path: only interfaces that provided a cancelable ctx.
+	if in.params.StopCtx != nil {
+		if in.params.StopCtx.Err() == nil {
+			return pipeline.PipeContinue // not disconnected
+		}
+		// disconnected: plain chat bot (no workflow this turn) with streaming + partial content
+		if !in.workFlowExecuted && in.useStream && len(out.content) > 0 {
+			return pipeline.PipeContinue
+		}
+		// disconnected: workflow actually invoked this turn + already-pushed reply content
+		if in.workFlowExecuted && len(out.replyContentList) > 0 {
+			return pipeline.PipeContinue
+		}
+		out.Error = errors.New(`client break`)
+		return pipeline.PipeStop
+	}
+	// Legacy path (unchanged): non-opt-in callers stop on client break, no save.
+	if in.params.IsClose != nil && *in.params.IsClose {
 		out.Error = errors.New(`client break`)
 		return pipeline.PipeStop
 	}

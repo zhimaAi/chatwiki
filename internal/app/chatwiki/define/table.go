@@ -53,6 +53,8 @@ const (
 	MsgTypeText  = 1
 	MsgTypeMenu  = 2
 	MsgTypeImage = 3
+	MsgTypeVoice = 4
+	MsgTypeVideo = 5
 )
 
 const (
@@ -152,8 +154,8 @@ const (
 const DefaultCustomerAvatar = `/public/user_avatar_2x.png`
 
 const (
-	DefaultCustomDomain   = `http://cloud.chatwiki.com`
-	DefaultCustomH5Domain = `http://h5.wikichat.com.cn`
+	DefaultCustomDomain   = `https://cloud.chatwiki.com`
+	DefaultCustomH5Domain = `https://h5.wikichat.com.cn`
 )
 
 const (

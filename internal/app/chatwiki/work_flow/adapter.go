@@ -471,19 +471,36 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	resp, err := request.String()
 	flow.Logs(`resp:%s,err:%v`, resp, err)
 	if err != nil {
+		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
+			nextNodeKey = n.params.Exception
+			err = nil
+		}
 		return
 	}
 	response, err := request.Response()
 	if err != nil {
+		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
+			nextNodeKey = n.params.Exception
+			err = nil
+		}
 		return
 	}
 	if response.StatusCode != http.StatusOK {
+		flow.Logs(`StatusCode:%d, unexpected status code`, response.StatusCode)
 		err = errors.New(fmt.Sprintf(`StatusCode:%d`, response.StatusCode))
+		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
+			nextNodeKey = n.params.Exception
+			err = nil
+		}
 		return
 	}
 	result := make(map[string]any)
 	err = request.ToJSON(&result)
 	if err != nil {
+		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
+			nextNodeKey = n.params.Exception
+			err = nil
+		}
 		return
 	}
 	n.httpResultJson = tea.String(tool.JsonEncodeNoError(result))

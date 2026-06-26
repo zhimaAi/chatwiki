@@ -15,6 +15,7 @@ import (
 func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 	if !in.needRunWorkFlow && in.useStream {
 		out.chatResp, out.requestTime, out.Error = common.RequestChatStream(
+			in.params.StopCtx,
 			in.params.Lang,
 			in.params.AdminUserId,
 			in.params.Openid,

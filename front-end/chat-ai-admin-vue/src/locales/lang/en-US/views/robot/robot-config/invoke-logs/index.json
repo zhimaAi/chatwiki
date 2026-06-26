@@ -9,5 +9,14 @@
   "label_duration": "Duration",
   "label_token_consumption": "Token Consumption (K)",
   "label_invoke_time": "Invoke Time",
-  "label_action": "Action"
+  "label_status": "Run Status",
+  "label_action": "Action",
+  "btn_stop": "Stop",
+  "status_running": "Running",
+  "status_completed": "Completed",
+  "status_stopped": "Stopped",
+  "status_unknown": "Unknown",
+  "msg_stop_success": "Stopped",
+  "msg_stop_failed": "Stop failed",
+  "msg_stop_unavailable": "The workflow may have finished and cannot be stopped now"
 }

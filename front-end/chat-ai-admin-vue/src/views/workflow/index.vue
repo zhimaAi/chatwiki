@@ -617,6 +617,14 @@ const getCanvasData = () => {
       }
     }
 
+    if (obj.node_type == 4) {
+      // http请求
+      let exception = edgeMap[obj.nodeSortKey + '-anchor_right_exception']
+      if (exception) {
+        node_params.curl.exception = exception
+      }
+    }
+
     if (obj.node_type == 41) {
       // 工作流
       let exception = edgeMap[obj.nodeSortKey + '-anchor_right_exception']

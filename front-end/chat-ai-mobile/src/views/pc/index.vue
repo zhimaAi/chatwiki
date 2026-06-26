@@ -270,18 +270,12 @@ const handleScrollToBottom = () => {
 
 
 // 滚动事件
-let lastScrollTop = 0
+const scrollEndDiff = 60
 const onScroll = (event: any) => {
-  if (event.scrollHeight - event.clientHeight > event.scrollTop) {
-    // 不是在底部了，显示回到底部按钮
-    isShowBottomBtn.value = true
-  }
-
-  if (lastScrollTop && lastScrollTop - event.scrollTop > 0) {
-    isAllowedScrollToBottom = false
-  }
-
-  lastScrollTop = event.scrollTop
+  const isAtBottom = Math.abs(event.scrollHeight - event.clientHeight - event.scrollTop) <= scrollEndDiff
+  isShowBottomBtn.value = !isAtBottom
+  // 只要用户离开底部，就关闭自动滚动；回到底部后再恢复。
+  isAllowedScrollToBottom = isAtBottom
 
   // 滚动页面就收起
   isScrolled.value = true
@@ -419,10 +413,14 @@ const onUpdateAiMessage = () => {
   scrollToBottom ()
 }
 
+const onSocketMessage = () => {
+  scrollToBottom ()
+}
+
 // 绑定事件监听
 const bindEventListeners = () => {
   emitter.on('updateAiMessage', onUpdateAiMessage)
-  on('message', onUpdateAiMessage)
+  on('message', onSocketMessage)
 }
 
 const init = async () => {

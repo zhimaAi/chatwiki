@@ -28,6 +28,7 @@ type ChatInParam struct {
 	llmStartTime    time.Time // llm request start time
 	// flags
 	needRunWorkFlow          bool
+	workFlowExecuted         bool // pause-feature: set to true only when CallWorkFlow was actually invoked this turn
 	waitChooseWorkFlow       bool
 	showQuoteFile            bool
 	startQuoteFile           bool
@@ -42,13 +43,21 @@ type ChatInParam struct {
 	paymentSkipAIAndWorkflow bool // payment skip ai and workflow
 }
 
-// Stream push stream events to frontend
+// Stream push stream events to frontend.
+// Cancelable send: when the client has disconnected (ctx canceled), drop the
+// event instead of blocking forever on the unbuffered channel. This keeps the
+// background goroutine able to reach LlmLogRequest / SaveRobotMsg / close(chan).
 func (in *ChatInParam) Stream(event sse.Event) {
-	if in.chanStreamClosed {
-		return // closed, no more push
+	if !in.useStream || in.chanStream == nil || in.chanStreamClosed {
+		return
 	}
-	if in.useStream && in.chanStream != nil {
-		in.chanStream <- event
+	var done <-chan struct{}
+	if in.params != nil && in.params.StopCtx != nil {
+		done = in.params.StopCtx.Done()
+	}
+	select {
+	case in.chanStream <- event: // normal push
+	case <-done: // client disconnected: drop event, never block
 	}
 }
 
@@ -160,6 +169,9 @@ func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream c
 	recall.Pipe(CheckChatTypeDirect)           // direct connect mode logic
 	recall.Pipe(CheckChatTypeNotDirect)        // mixture and knowledge base only mode
 	recall.Process()
+	if in.params.StopCtx != nil && in.params.StopCtx.Err() != nil {
+		in.exitChat = true // client disconnected before LLM call; skip LLM
+	}
 	if in.exitChat || out.Error != nil {
 		return // terminate logic on error or switch to manual
 	}

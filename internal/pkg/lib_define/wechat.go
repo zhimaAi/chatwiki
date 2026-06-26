@@ -28,6 +28,7 @@ const AppWechatKefu = `wechat_kefu`
 const FeiShuRobot = `feishu_robot`
 const DingTalkRobot = `dingtalk_robot`
 const AppWecomRobot = `wecom_robot`
+const AppMessenger = `messenger`
 
 const AppYunH5 = `yun_h5`
 const AppYunPc = `yun_pc`
@@ -41,6 +42,7 @@ var AppTypeList = []string{
 	FeiShuRobot,
 	DingTalkRobot,
 	AppWecomRobot,
+	AppMessenger,
 }
 
 const PwdSetType = 1
@@ -96,6 +98,12 @@ const (
 	DingTalkMsgTypeVideo    = `video`
 	DingTalkMsgTypeFile     = `file`
 	DingTalkMsgTypeRichText = `richText`
+
+	MessengerMsgTypeText    = `text`
+	MessengerMsgTypeImage   = `image`
+	MessengerMsgTypeAudio   = `audio`
+	MessengerMsgTypeVideo   = `video`
+	MessengerMsgTypeSticker = `sticker`
 )
 
 var MsgTypeNameMap = map[string]string{

@@ -135,6 +135,12 @@
                   <a-radio :value="2">{{ t('label_hide') }}</a-radio>
                 </a-radio-group>
               </a-form-item>
+              <a-form-item class="form-item" :label="t('label_show_avatar')" name="avatarShow" required>
+                <a-radio-group v-model:value="formState.avatarShow" name="avatarShow">
+                  <a-radio :value="1">{{ t('label_show') }}</a-radio>
+                  <a-radio :value="2">{{ t('label_hide') }}</a-radio>
+                </a-radio-group>
+              </a-form-item>
             </a-form>
           </div>
         </card-box>
@@ -212,7 +218,8 @@ const formState = reactive({
   open_type: external_config_pc.value.open_type,
   window_width: external_config_pc.value.window_width,
   window_height: external_config_pc.value.window_height,
-  new_session_btn_show: external_config_pc.value.new_session_btn_show
+  new_session_btn_show: external_config_pc.value.new_session_btn_show,
+  avatarShow: external_config_pc.value.avatarShow
 })
 
 const previewIframeSrc = computed(() => {

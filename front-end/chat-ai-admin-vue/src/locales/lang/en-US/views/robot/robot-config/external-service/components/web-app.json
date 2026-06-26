@@ -37,5 +37,6 @@
   "please_select_navbar_color": "Please select title bar color",
   "save_success": "Save successful",
   "copy_success": "Copy successful",
-  "show_history_and_new_session_btn_label": "Show History and New Session Buttons"
+  "show_history_and_new_session_btn_label": "Show History and New Session Buttons",
+  "show_avatar_label": "Show Avatar"
 }

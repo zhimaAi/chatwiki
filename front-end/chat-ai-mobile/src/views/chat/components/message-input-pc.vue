@@ -18,14 +18,18 @@
         <span class="file-number" :class="{ big: fileList.length > 9 }" v-if="fileList.length > 0">{{ fileList.length }}</span>
       </div>
 
+      <ATooltip v-if="props.loading" title="停止发送">
+        <button class="send-msg-btn loading" @click="stopMessage">
+          <svg-icon class="send-pause" name="send-pause" />
+        </button>
+      </ATooltip>
       <button
+        v-else
         class="send-msg-btn"
-        :class="{ loading: props.loading }"
         :disabled="disabled"
         @click="sendMessage"
       >
-        <ASpin size="small" class="loading-action" style="margin-right: 4px" v-if="props.loading" />
-        <svg-icon class="paper-airplane" name="paper-airplane-new-active" v-else />
+        <svg-icon class="paper-airplane" name="paper-airplane-new-active" />
       </button>
     </div>
   </div>
@@ -35,7 +39,7 @@
 import { ref, toRefs, computed } from 'vue'
 import { useChatStore } from '@/stores/modules/chat'
 import { useUserStore } from '@/stores/modules/user'
-import { Textarea as ATextarea, Spin as ASpin } from 'ant-design-vue'
+import { Textarea as ATextarea, Tooltip as ATooltip } from 'ant-design-vue'
 import { showToast } from 'vant'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useUpload } from '@/hooks/web/useUpload.js'
@@ -47,7 +51,7 @@ const userStore = useUserStore()
 const { robot } = chatStore
 
 
-const emit = defineEmits(['update:value', 'send', 'showLogin', 'update:fileList'])
+const emit = defineEmits(['update:value', 'send', 'stop', 'showLogin', 'update:fileList'])
 
 const props = defineProps({
   value: {
@@ -104,6 +108,10 @@ const onChange = (event) => {
 
 const sendMessage = async () => {
   emit('send', props.value)
+}
+
+const stopMessage = () => {
+  emit('stop')
 }
 
 const handleKeydown = (event) => {
@@ -195,16 +203,10 @@ defineExpose({
     }
 
     &.loading {
-      background-color: #2475fc;
+      color: #2475fc;
     }
-    .loading-action{
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 3px;
-      ::v-deep(.ant-spin-dot-item) {
-        background-color: #fff;
-      }
+    .send-pause {
+      font-size: 32px;
     }
     
   }

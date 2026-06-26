@@ -346,7 +346,7 @@ func WorkflowLogs(c *gin.Context) {
 	m := msql.Model(`work_flow_logs`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`robot_id`, cast.ToString(robotId)).
-		Field(`id,openid,question,node_logs,version_id,create_time`)
+		Field(`id,openid,question,node_logs,version_id,create_time,status`)
 	m.Where(`create_time`, `>=`, cast.ToString(startDateT.Unix()))
 	m.Where(`create_time`, `<=`, cast.ToString(endDateT.Unix()+86399))
 	if openid != `` {

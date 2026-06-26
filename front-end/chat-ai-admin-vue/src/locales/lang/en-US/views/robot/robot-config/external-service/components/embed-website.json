@@ -25,5 +25,6 @@
   "save_success": "Save successful",
   "label_show_history_and_new_session_btn": "Show history and new session buttons",
   "label_show": "Show",
-  "label_hide": "Hide"
+  "label_hide": "Hide",
+  "label_show_avatar": "Show Avatar"
 }

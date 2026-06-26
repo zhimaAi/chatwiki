@@ -138,6 +138,19 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/06/26**
+
+1.[STD] Added content review menu, supporting Alibaba Cloud machine review and manual review<br/>
+2.Workflow supports stopping running workflows<br/>
+3.External service H5 webApp supports pause generation<br/>
+4.[STD] Fixed custom domain validation and default domain protocol<br/>
+5.[STD] Cloud version login added complaint feedback entry<br/>
+6.External service H5 embedded website optimization<br/>
+7.External service now supports Messenger<br/>
+8.[STD] Added knowledge base capacity limit restriction and prompt notification<br/>
+9.Workflow added HTTP node exception handling branch<br/>
+10.[STD] LLM intelligent tools added session access/transfer/end summary and statistics<br/>
+
 **2026/06/18**
 
 1.llm_request_logs added implicit traceability identifier (hash)<br/>
@@ -158,16 +171,6 @@ records<br/>
 5.[STD] AI suggested replies: original text mode and traditional mode now support setting reply quantity<br/>
 6.Fixed SQL injection issue: refactored database connection management and SQL rendering<br/>
 7.[STD] Cloud version self-hosted model added upcoming offline notification popup<br/>
-
-**2026/06/05**
-
-1.Fixed error when adding google/gemini model via OpenRouter custom model<br/>
-2.Fixed data consistency issue when updating chatbot default library after adding entries<br/>
-3.[STD] Bot variables support importing XiaoKeFu user variables<br/>
-4.[STD] Chat sessions from XiaoKeFu now display source channel and application<br/>
-5.[STD] REDnote professional account customer service node - Added modify customer info node<br/>
-6.[STD] Added cloud version access via chatwikiadmin.xiaokefu.com.cn<br/>
-7.[STD] Self-hosted model: Support customizing response content when credits are insufficient<br/>
 
 ## License
 

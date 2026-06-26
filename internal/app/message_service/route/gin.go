@@ -30,4 +30,6 @@ func init() {
 	Route[http.MethodPost][`/push_pwd/dingtalk_robot/:access_key`] = business.DingTalkPush
 	Route[http.MethodGet][`/push_pwd/wecom_robot`] = business.WecomRobot
 	Route[http.MethodPost][`/push_pwd/wecom_robot`] = business.WecomRobot
+	Route[http.MethodGet][`/push_pwd/messenger/:access_key`] = business.MessengerPush
+	Route[http.MethodPost][`/push_pwd/messenger/:access_key`] = business.MessengerPush
 }

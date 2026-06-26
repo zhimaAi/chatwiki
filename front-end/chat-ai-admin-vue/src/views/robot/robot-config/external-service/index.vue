@@ -43,6 +43,7 @@ import WeChatCustomerService from './components/wechat-customer-service.vue'
 import WeComRobot from './components/wecom-robot.vue'
 import FeishuRobot from './components/feishu-robot.vue'
 import DingDingRobot from './components/dingding-robot.vue'
+import Messenget from './components/Messenget.vue'
 
 const robotStore = useRobotStore()
 
@@ -57,7 +58,8 @@ const tabComponents = {
   WeChatCustomerService,
   WeComRobot,
   FeishuRobot,
-  DingDingRobot
+  DingDingRobot,
+  Messenget
 }
 
 const activeLocalKey = '/robot/config/external-services/activeKey'

@@ -182,6 +182,13 @@
                 </a-radio-group>
               </a-form-item>
 
+              <a-form-item class="form-item" :label="t('show_avatar_label')" name="avatarShow">
+                <a-radio-group v-model:value="formState.avatarShow" name="avatarShow">
+                  <a-radio :value="1">{{ t('show_navbar_yes') }}</a-radio>
+                  <a-radio :value="2">{{ t('show_navbar_no') }}</a-radio>
+                </a-radio-group>
+              </a-form-item>
+
               <a-form-item class="form-item" name="ai_generated_tip_show" required>
                 <template #label>
                   <div class="ai-generated-tip-label">
@@ -316,7 +323,8 @@ const formState = reactive({
   open_type: external_config_h5.value.open_type,
   window_width: external_config_h5.value.window_width,
   window_height: external_config_h5.value.window_height,
-  new_session_btn_show: external_config_h5.value.new_session_btn_show
+  new_session_btn_show: external_config_h5.value.new_session_btn_show,
+  avatarShow: external_config_h5.value.avatarShow
 })
 
 const pc_src = computed(() => {

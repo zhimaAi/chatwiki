@@ -98,6 +98,12 @@
                 <img :src="message.content" alt="image" />
               </div>
               <!-- 菜单消息 -->
+              <div v-else-if="message.msg_type == 4 && getMediaUrl(message)" class="media-content">
+                <audio class="msg-audio" :src="getMediaUrl(message)" controls preload="metadata"></audio>
+              </div>
+              <div v-else-if="message.msg_type == 5 && getMediaUrl(message)" class="media-content">
+                <video class="msg-video" :src="getMediaUrl(message)" controls preload="metadata"></video>
+              </div>
               <div v-else-if="message.msg_type == 2" class="menu-content">
                 <div class="menus-label">{{ message.menu_json.content }}</div>
                 <div
@@ -215,6 +221,10 @@ function buildMenuLines(menu_content) {
     } else if (t === '1') { out.push({ kind: 'keyword', text: txt, serial_no: mc?.serial_no || '' }) }
   })
   return out.slice(0, 20)
+}
+
+function getMediaUrl(message) {
+  return message.media_id_to_oss_url || message.content || ''
 }
 
 const onScroll = (e) => {
@@ -376,6 +386,23 @@ defineExpose({
       width: 100%;
       border-radius: 4px;
     }
+  }
+  .media-content {
+    padding: 12px 16px;
+    max-width: 100%;
+  }
+  .msg-audio {
+    display: block;
+    width: 280px;
+    max-width: 100%;
+  }
+  .msg-video {
+    display: block;
+    width: 360px;
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 4px;
+    background: #000;
   }
   .menu-content {
     padding: 12px 16px;

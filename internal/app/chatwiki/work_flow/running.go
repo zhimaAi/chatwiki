@@ -77,6 +77,8 @@ type WorkFlow struct {
 	running          bool
 	isFinish         bool
 	VersionId        int
+	LogID            int64
+	isStopped        bool
 	LoopIntermediate LoopIntermediate //Intermediate variable; currently only for loop nodes, used in variable assignment
 	isStorage        bool
 }
@@ -165,10 +167,16 @@ func (flow *WorkFlow) Running() (err error) {
 		if flow.isTimeout || err != nil || len(nextNodeKey) == 0 || flow.isStorage {
 			break //end
 		}
+		//cross-node reliable stop path: poll DB status so a stop request that
+		//landed on another node (only updated DB) is honored at node boundary
+		if flow.checkStopRequested() {
+			goto flowExit
+		}
 		//external interruption listener
 		select {
 		case <-flow.context.Done():
-			goto flowExit //note: break cannot exit the for loop!!!
+			flow.isStopped = true //pause-feature: ensure Ending() writes Stopped status
+			goto flowExit         //note: break cannot exit the for loop!!!
 		default: //run next node
 			flow.curNodeKey = nextNodeKey
 		}
@@ -193,20 +201,117 @@ func (flow *WorkFlow) getLastVersionId() int {
 	return cast.ToInt(versionId)
 }
 
-func (flow *WorkFlow) Ending() {
-	flow.Logs(`Saving workflow run logs...`)
-	_, err := msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
+// GetWorkFlowLogStatus returns the current log status, or -1 when the query fails.
+func GetWorkFlowLogStatus(logID int64) int {
+	if logID <= 0 {
+		return -1
+	}
+	status, err := msql.Model(`work_flow_logs`, define.Postgres).
+		Where(`id`, cast.ToString(logID)).
+		Value(`status`)
+	if err != nil {
+		logs.Error(err.Error())
+		return -1
+	}
+	return cast.ToInt(status)
+}
+
+// checkStopRequested checks the database stop status at node boundaries.
+func (flow *WorkFlow) checkStopRequested() bool {
+	if flow.isStopped {
+		return true
+	}
+	if flow.LogID <= 0 {
+		return false // draft/test runs have no log identity, so skip the database check
+	}
+	if GetWorkFlowLogStatus(flow.LogID) == define.WorkFlowStatusStopped {
+		flow.isStopped = true
+		flow.cancel()
+		return true
+	}
+	return false
+}
+
+func getWorkFlowLogOpenid(flow *WorkFlow) string {
+	if flow == nil {
+		return ``
+	}
+	if field, exist := flow.global[`openid`]; exist {
+		return cast.ToString(field.GetVal(common.TypString))
+	}
+	return flow.params.Openid
+}
+
+func getWorkFlowLogQuestion(flow *WorkFlow) string {
+	if flow == nil {
+		return ``
+	}
+	if field, exist := flow.global[`question`]; exist {
+		return cast.ToString(field.GetVal(common.TypString))
+	}
+	return flow.params.Question
+}
+
+// InsertWorkFlowLog writes a running log when the workflow starts.
+func InsertWorkFlowLog(flow *WorkFlow, status int) (int64, error) {
+	return msql.Model(`work_flow_logs`, define.Postgres).Insert(msql.Datas{
 		`admin_user_id`: flow.params.AdminUserId,
 		`robot_id`:      flow.params.RealRobot[`id`],
-		`openid`:        cast.ToString(flow.global[`openid`].GetVal(common.TypString)),
+		`openid`:        getWorkFlowLogOpenid(flow),
 		`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
 		`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
 		`create_time`:   flow.StartTime, //store start time here
-		`update_time`:   flow.EndTime,   //store end time here
+		`update_time`:   tool.Time2Int(),
 		`node_logs`:     tool.JsonEncodeNoError(flow.nodeLogs),
 		`version_id`:    flow.VersionId,
-		`question`:      cast.ToString(flow.global[`question`].GetVal(common.TypString)),
-	})
+		`question`:      getWorkFlowLogQuestion(flow),
+		`status`:        status,
+	}, `id`)
+}
+
+// UpdateWorkFlowLog updates runtime logs; status can only move from running to a terminal state.
+func UpdateWorkFlowLog(flow *WorkFlow, status int) error {
+	if flow.LogID <= 0 {
+		return nil
+	}
+	_, err := msql.Model(`work_flow_logs`, define.Postgres).
+		Where(`id`, cast.ToString(flow.LogID)).
+		Update(msql.Datas{
+			`openid`:        getWorkFlowLogOpenid(flow),
+			`run_node_keys`: strings.Join(flow.runNodeKeys, `,`),
+			`run_logs`:      tool.JsonEncodeNoError(flow.runLogs),
+			`update_time`:   flow.EndTime,
+			`node_logs`:     tool.JsonEncodeNoError(flow.nodeLogs),
+			`version_id`:    flow.VersionId,
+			`question`:      getWorkFlowLogQuestion(flow),
+		})
+	if err != nil {
+		return err
+	}
+	_, err = msql.Model(`work_flow_logs`, define.Postgres).
+		Where(`id`, cast.ToString(flow.LogID)).
+		Where(`status`, cast.ToString(define.WorkFlowStatusRunning)).
+		Update(msql.Datas{
+			`status`:      status,
+			`update_time`: flow.EndTime,
+		})
+	return err
+}
+
+func (flow *WorkFlow) Ending() {
+	flow.Logs(`Saving workflow run logs...`)
+	status := define.WorkFlowStatusCompleted
+	if flow.isStopped {
+		status = define.WorkFlowStatusStopped
+	}
+	if flow.LogID > 0 {
+		if err := UpdateWorkFlowLog(flow, status); err != nil {
+			logs.Error(err.Error())
+			flow.Logs(`Failed to save workflow logs:%s`, err.Error())
+		}
+		return
+	}
+	_, err := InsertWorkFlowLog(flow, status)
 	if err != nil {
 		logs.Error(err.Error())
 		flow.Logs(`Failed to save workflow logs:%s`, err.Error())
@@ -274,7 +379,11 @@ func SysGlobalVariables() []string { //Fixed values, immutable at runtime
 }
 
 func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	parentCtx := context.Background()
+	if params != nil && params.ChatRequestParam != nil && params.ChatRequestParam.StopCtx != nil {
+		parentCtx = params.ChatRequestParam.StopCtx
+	}
+	ctx, cancel := context.WithCancel(parentCtx)
 	flow := &WorkFlow{
 		params:      params,
 		nodeLogs:    make([]common.NodeLog, 0),
@@ -293,6 +402,18 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 	err = WorkFlowRestore(flow)
 	if err != nil {
 		return flow, err
+	}
+	if !flow.params.Draft.IsDraft && flow.VersionId == 0 {
+		flow.VersionId = flow.getLastVersionId()
+	}
+	// Insert a running log only for a fresh run; restore reuses flow.LogID.
+	if flow.LogID == 0 {
+		logID, insertErr := InsertWorkFlowLog(flow, define.WorkFlowStatusRunning)
+		if insertErr != nil {
+			logs.Error(`InsertWorkFlowLog failed:%s`, insertErr.Error())
+		} else {
+			flow.LogID = logID
+		}
 	}
 	go func(flow *WorkFlow) {
 		defer flow.ticker.Stop()
@@ -317,12 +438,31 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 	if err == nil { //additional validation logic
 		if flow.isTimeout {
 			err = errors.New(i18n.Show(flow.params.Lang, "workflow_execution_timeout"))
-		} else if !flow.isFinish {
+		} else if !flow.isFinish && !flow.isStopped {
 			err = errors.New(i18n.Show(flow.params.Lang, "workflow_not_reach_end_node"))
 		}
 	}
+	// pause-feature (B2): treat client abort the same as stop-request — write stopped
+	// terminal status and DO NOT save QuestionNode storage. This is needed because
+	// QuestionNode breaks out of Running() loop via isStorage check (running.go:167),
+	// bypassing the context.Done() check that would otherwise set isStopped.
+	if !flow.isStopped &&
+		flow.params != nil &&
+		flow.params.ChatRequestParam != nil &&
+		flow.params.ChatRequestParam.StopCtx != nil &&
+		flow.params.ChatRequestParam.StopCtx.Err() != nil {
+		flow.isStopped = true
+		flow.cancel()
+	}
+	flow.checkStopRequested()
 	if flow.isStorage {
-		SetWorkFlowStorage(flow)
+		if flow.isStopped {
+			// Manually stopped while paused: write the stopped terminal state.
+			go flow.Ending()
+		} else {
+			// Waiting for user input: keep the running log and persist log_id in storage.
+			SetWorkFlowStorage(flow)
+		}
 	} else {
 		go flow.Ending() //record runtime logs
 	}
@@ -368,6 +508,11 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 
 	content, replyContentList = TakeOutputReply(flow)
 	if len(content) == 0 && len(replyContentList) == 0 {
+		if flow.isStopped {
+			// pause-feature: paused workflow has no finish-node output; the partial
+			// content lives in caller's out.replyContentList (via ImmediatelyReplyHandle).
+			return
+		}
 		err = errors.New(i18n.Show(params.Lang, "workflow_no_reply_content"))
 		return
 	}
