@@ -1,7 +1,43 @@
 <style lang="less">
 .vue-markdown {
-  white-space: pre-wrap;
+  white-space: normal;
+  word-break: break-all;
   width: 100%;
+  color: #262626;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  line-height: 32px;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0 0 4px;
+    color: #262626;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 32px;
+  }
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  table {
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+
+  li,
+  p {
+    color: #262626;
+    font-size: 14px;
+    line-height: 24px;
+  }
 
   ul, ol{
     list-style-type: circle;
@@ -18,6 +54,7 @@
     padding-inline-start: 40px;
     unicode-bidi: isolate;
   }
+
   img{
     width: auto;
     height: auto;
@@ -39,11 +76,11 @@
     background: #000;
     object-fit: contain;
   }
-  p:last-child {
-    margin-bottom: 0 !important;
+  hr {
+    margin: 16px 0;
   }
-  div:last-child {
-    margin-bottom: 0 !important;
+  p{
+    font-size: 14px;
   }
 }
 </style>
@@ -65,6 +102,10 @@ const props = defineProps({
   content: {
     type: String,
     default: ''
+  },
+  mergeLineBreaks: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -107,8 +148,15 @@ const md = new CherryEngine({
   }
 })
 
+function normalizeLineBreaks(str) {
+  if (!props.mergeLineBreaks) return str
+  // 将连续的空行（含 \r\n、\n、\r）合并为一个 \n
+  return String(str ?? '').replace(/(\r?\n)+/g, '\n')
+}
+
 const html = computed(() => {
-  let str = textParseProcessing(props.content)
+  let str = normalizeLineBreaks(props.content)
+  str = textParseProcessing(str)
 
   return md.makeHtml(str)
 })

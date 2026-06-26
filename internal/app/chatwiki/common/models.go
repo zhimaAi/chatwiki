@@ -6,6 +6,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/i18n"
 	"chatwiki/internal/pkg/lib_define"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -670,22 +671,25 @@ func GetVector2000(lang string, adminUserId int, openid string, robot msql.Param
 	return tool.JsonEncode(res.Result)
 }
 
-func requestChatStreamWithState(lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, bool, ModelErrStage, error) {
+func requestChatStreamWithState(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, bool, ModelErrStage, error) {
 	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, false, ModelErrPrecheck, err
 	}
-	chatResp, requestTime, streamed, stage, err := handler.requestChatStreamWithState(lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, streamed, stage, err := handler.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, robot, 0)
 	}
 	return chatResp, requestTime, streamed, stage, err
 }
 
-func RequestChatStream(lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	chatResp, requestTime, streamed, stage, err := requestChatStreamWithState(lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, chanStream, temperature, maxToken)
+func RequestChatStream(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []adaptor.ZhimaChatCompletionMessage, functionTools []adaptor.FunctionTool, chanStream chan sse.Event, temperature float32, maxToken int) (adaptor.ZhimaChatCompletionResponse, int64, error) {
+	chatResp, requestTime, streamed, stage, err := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil {
 		return chatResp, requestTime, nil
+	}
+	if ctx != nil && ctx.Err() != nil {
+		return chatResp, requestTime, err
 	}
 	if GetTokenAppType(robot) == define.TokenAppTypeOther || stage == ModelErrPrecheck {
 		return chatResp, requestTime, err
@@ -698,7 +702,7 @@ func RequestChatStream(lang string, adminUserId int, openid string, robot msql.P
 	if !ok {
 		return chatResp, requestTime, err
 	}
-	bResp, bTime, _, bStage, bErr := requestChatStreamWithState(lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, chanStream, temperature, maxToken)
+	bResp, bTime, _, bStage, bErr := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, chanStream, temperature, maxToken)
 	if bErr == nil {
 		return bResp, bTime, nil
 	}
@@ -713,7 +717,7 @@ func RequestSearchStream(lang string, adminUserId int, modelConfigId int, useMod
 	if err != nil {
 		return adaptor.ZhimaChatCompletionResponse{}, 0, err
 	}
-	chatResp, requestTime, err := handler.RequestChatStream(lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, err := handler.RequestChatStream(context.Background(), lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.PromptToken, chatResp.CompletionToken, msql.Params{}, 0)
 	}
@@ -858,7 +862,25 @@ func AmendFuncToolsPropertiesType(Type string) string {
 	}
 }
 
+// sendOrAbort sends an SSE event but gives up immediately if ctx is canceled
+// (client disconnected), so the streaming loop never blocks on an unbuffered
+// channel whose consumer has stopped reading.
+func sendOrAbort(ctx context.Context, chanStream chan sse.Event, event sse.Event) {
+	if chanStream == nil {
+		return
+	}
+	var done <-chan struct{}
+	if ctx != nil {
+		done = ctx.Done()
+	}
+	select {
+	case chanStream <- event:
+	case <-done:
+	}
+}
+
 func (h *ModelCallHandler) RequestChatStream(
+	ctx context.Context,
 	lang string,
 	adminUserId int,
 	openid string,
@@ -870,11 +892,12 @@ func (h *ModelCallHandler) RequestChatStream(
 	temperature float32,
 	maxToken int,
 ) (adaptor.ZhimaChatCompletionResponse, int64, error) {
-	chatResp, requestTime, _, _, err := h.requestChatStreamWithState(lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
+	chatResp, requestTime, _, _, err := h.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken)
 	return chatResp, requestTime, err
 }
 
 func (h *ModelCallHandler) requestChatStreamWithState(
+	ctx context.Context,
 	lang string,
 	adminUserId int,
 	openid string,
@@ -908,6 +931,24 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 		_ = stream.Close()
 	}(stream)
 
+	// ctx watchdog: llm_adaptor builds its HTTP request without a cancelable
+	// context, so closing the stream is the only way to tear down the upstream
+	// connection. On client disconnect, close it here — severing the TCP conn
+	// (DisableKeepAlives is on) stops the provider generating and unblocks the
+	// stream.Read() below immediately. The read error is treated as cancel
+	// (not a real error) so partial content is still persisted.
+	watchdogDone := make(chan struct{})
+	defer close(watchdogDone)
+	if ctx != nil {
+		go func() {
+			select {
+			case <-ctx.Done():
+				_ = stream.Close()
+			case <-watchdogDone:
+			}
+		}()
+	}
+
 	var totalResponse adaptor.ZhimaChatCompletionResponse
 	var content string
 	var functionToolCall adaptor.FunctionToolCall
@@ -919,7 +960,7 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 		response, err := stream.Read()
 		if requestTime == 0 {
 			requestTime = time.Now().Sub(requestStartTime).Milliseconds()
-			chanStream <- sse.Event{Event: `request_time`, Data: requestTime}
+			sendOrAbort(ctx, chanStream, sse.Event{Event: `request_time`, Data: requestTime})
 		}
 
 		totalResponse.PromptToken += response.PromptToken
@@ -929,12 +970,16 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 			break
 		}
 		if err != nil {
+			if ctx != nil && ctx.Err() != nil {
+				break
+			}
 			return totalResponse, requestTime, streamed, ModelErrStreamRead, err
 		}
 
 		// clawbot push stream raw
 		if len(robot) > 0 && cast.ToInt(robot[`application_type`]) == define.ApplicationTypeClaw {
-			chanStream <- sse.Event{Event: `stream_raw`, Data: response}
+			sendOrAbort(ctx, chanStream, sse.Event{Event: `stream_raw`, Data: response})
+			streamed = true
 		}
 
 		if len(response.FunctionToolCalls) > 0 {
@@ -948,7 +993,7 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 		}
 		if len(response.ReasoningContent) > 0 {
 			if cast.ToInt(robot[`think_switch`]) == define.SwitchOn {
-				chanStream <- sse.Event{Event: `reasoning_content`, Data: response.ReasoningContent}
+				sendOrAbort(ctx, chanStream, sse.Event{Event: `reasoning_content`, Data: response.ReasoningContent})
 				streamed = true
 			}
 			totalResponse.ReasoningContent += response.ReasoningContent
@@ -959,14 +1004,18 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 
 		totalResponse.Result += response.Result
 		content += response.Result
-		chanStream <- sse.Event{Event: `sending`, Data: response.Result}
+		sendOrAbort(ctx, chanStream, sse.Event{Event: `sending`, Data: response.Result})
 		streamed = true
+
+		if ctx != nil && ctx.Err() != nil {
+			break
+		}
 	}
 
 	if h.CheckFunctionArguments(functionToolCall, functionTools) && len(totalResponse.Result) == 0 { // only function call response
 		totalResponse.Result = `ok`
 		totalResponse.IsValidFunctionCall = true
-		chanStream <- sse.Event{Event: `sending`, Data: totalResponse.Result}
+		sendOrAbort(ctx, chanStream, sse.Event{Event: `sending`, Data: totalResponse.Result})
 		streamed = true
 	}
 

@@ -13,6 +13,27 @@
     padding-left: 8px;
   }
 
+  &.hide-avatar-message-item {
+    .message-item-body {
+      padding-left: 0;
+    }
+
+    // 不显示头像时，消息气泡铺满，去掉为头像预留的边距
+    .message-content {
+      margin-right: 0;
+    }
+
+    &.user-message-item {
+      .message-item-body {
+        padding-right: 0;
+      }
+
+      .message-content {
+        margin-left: 0;
+      }
+    }
+  }
+
   .avatar {
     display: block;
     width: 40px;
@@ -35,6 +56,35 @@
       .hover-copy-tool-block {
         opacity: 1;
       }
+    }
+  }
+
+  &.agent-process-message {
+    .message-content {
+      display: inline-block;
+      max-width: 100%;
+      padding: 16px 12px;
+      border-radius: 4px 16px 16px 16px;
+      background: #fff;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .agent-process-divider {
+      height: 1px;
+      margin: 16px 0;
+      background: #f0f2f5;
+    }
+
+    .text-message {
+      display: block;
+      min-height: auto;
+      padding: 0;
+      color: #262626;
+      background: transparent;
+      border-radius: 0;
+      white-space: normal;
+      word-break: break-word;
     }
   }
 
@@ -107,6 +157,19 @@
     .text-message {
       width: 100%;
       border-radius: 4px 16px 16px 16px;
+    }
+  }
+
+  &.agent-process-message.robot-message-item {
+    .text-message {
+      display: block;
+      min-height: auto;
+      padding: 0;
+      color: #262626;
+      background: transparent;
+      border-radius: 0;
+      white-space: normal;
+      word-break: break-word;
     }
   }
 
@@ -391,6 +454,18 @@
     }
   }
 }
+.stopped-label {
+  display: flex;
+  align-items: center;
+  height: auto;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #595959;
+  background: #e4e6eb;
+  margin-bottom: 8px;
+}
 .thinking-content {
   position: relative;
   line-height: 22px;
@@ -545,7 +620,7 @@
 
 <template>
   <div class="message-item" :class="messageItemClasses" :id="'msg-' + msg.uid">
-    <div class="message-item-left">
+    <div class="message-item-left" v-if="isShowAvatar">
       <!-- {{ props.msg }} -->
       <img class="avatar" :src="props.msg.avatar" />
     </div>
@@ -606,9 +681,12 @@
         </div>
       </template>
 
-      <div class="label-flex-block">
+      <div class="label-flex-block" v-if="props.msg.is_stopped">
+        <div class="stopped-label">已停止</div>
+      </div>
+      <div class="label-flex-block" v-else>
 
-        <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && props.msg.startLoading">
+        <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && props.msg.startLoading && !props.msg.reasoning_content">
           <div class="thinking-label">
             <van-loading class="loading" color="#262626" size="16px" type="spinner" />
             <span class="label-text">{{ tips_before_answer_content }}</span>
@@ -647,7 +725,7 @@
         <div
           class="thinking-label-wrapper"
           :class="{ reasoning_open: props.msg.show_reasoning }"
-          v-if="props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
+          v-if="!hasProcessSteps(props.msg) && props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
         >
           <div class="thinking-label" @click="toggleReasonProcess()">
             <van-loading
@@ -672,7 +750,12 @@
       </div>
 
       <div class="message-content" :data-msg-type="props.msg.msg_type" v-if="isShowMessageBody(props.msg)">
-        <div class="thinking-content" v-if="props.msg.show_reasoning">
+        <ProcessTimeline v-if="hasProcessSteps(props.msg)" :item="props.msg" />
+        <div
+          class="agent-process-divider"
+          v-if="hasProcessSteps(props.msg) && props.msg.content !== ''"
+        ></div>
+        <div class="thinking-content" v-if="props.msg.show_reasoning && !hasProcessSteps(props.msg)">
           <cherry-markdown :content="props.msg.reasoning_content" />
         </div>
         <template v-if="props.msg.msg_type == 1">
@@ -885,6 +968,7 @@ import QuoteModal from '../quote-modal/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import VoiceMessage from './voice-message.vue'
 import MultipleMessage from './multiple-message.vue'
+import ProcessTimeline from './process-timeline.vue'
 import { getLang } from '@/utils/getLangConfig'
 
 
@@ -901,7 +985,7 @@ const { t } = useI18n('views.chat.components.messages.message-item')
 
 const emit = defineEmits(['sendTextMessage', 'toggleReasonProcess', 'toggleQuoteFiel'])
 const chatStore = useChatStore()
-const { robot, onAddFeedback, onDelFeedback } = chatStore
+const { robot, onAddFeedback, onDelFeedback, externalConfigPC } = chatStore
 
 const textMessage = ref('.')
 const feedbackContent = ref('')
@@ -1036,11 +1120,15 @@ const tips_before_answer_switch = computed(() => robot.tips_before_answer_switch
 // 是否为欢迎语
 const isWelcomeMessage = computed(() => props.msg.msg_type == 2)
 
+const isShowAvatar = computed(() => externalConfigPC.avatarShow !== 2)
+
 // 计算消息项的类
 const messageItemClasses = computed(() => ({
   'user-message-item': isCustomerMessage.value === true,
   'robot-message-item': isCustomerMessage.value === false,
-  'welcome-message-item': props.msg.menu_json && props.msg.menu_json.question
+  'welcome-message-item': props.msg.menu_json && props.msg.menu_json.question,
+  'agent-process-message': hasProcessSteps(props.msg),
+  'hide-avatar-message-item': !isShowAvatar.value
 }))
 
 // 等待机器人回复增加动态...
@@ -1087,6 +1175,21 @@ function parseReplyList(val) {
   }
 }
 
+const hasProcessSteps = (item: any) => {
+  if (!Array.isArray(item?.process_steps)) {
+    return false
+  }
+  return item.process_steps.some((step: any) => {
+    if (step?.hidden === true) {
+      return false
+    }
+    if (step?.type === 'tool') {
+      return !!step.title || !!step.resultText || step.status === 'running'
+    }
+    return !!step.contentText || !!step.resultText || step.status === 'running'
+  })
+}
+
 type SmartMenuLine =
   | { kind: 'text'; text: string }
   | { kind: 'newline' }
@@ -1125,6 +1228,9 @@ function onClickSmartMenuKeyword(text: string) {
 }
 
 const isShowMessageBody = (item: any) => {
+  if (hasProcessSteps(item)) {
+    return true
+  }
   if(parseReplyList(item.reply_content_list).length && item.content == ''){
     return false
   }

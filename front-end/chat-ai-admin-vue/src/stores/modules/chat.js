@@ -372,11 +372,49 @@ export const useChatStore = defineStore('chat', () => {
   const closeAiMessageLoading = () => {
     let msgIndex = messageList.value.length - 1
 
+    if (!messageList.value[msgIndex]) {
+      return
+    }
+
     messageList.value[msgIndex].loading = false
   }
 
   // 发送消息
   const sendLock = ref(false)
+
+  const getRunningAiMessageIndex = () => {
+    for (let i = messageList.value.length - 1; i >= 0; i--) {
+      const item = messageList.value[i]
+      if (
+        item.is_customer != 1 &&
+        !item.is_stopped &&
+        (item.loading || item.startLoading || item.quote_loading || item.reasoning_status)
+      ) {
+        return i
+      }
+    }
+
+    return -1
+  }
+
+  const stopMessage = () => {
+    const msgIndex = getRunningAiMessageIndex()
+    if (msgIndex > -1) {
+      messageList.value[msgIndex].is_stopped = true
+      messageList.value[msgIndex].loading = false
+      messageList.value[msgIndex].startLoading = false
+      messageList.value[msgIndex].quote_loading = false
+      messageList.value[msgIndex].reasoning_status = false
+    }
+
+    if (mySSE) {
+      mySSE.abort()
+      mySSE = null
+    }
+
+    sendLock.value = false
+    closeAiMessageLoading()
+  }
 
   const sendMessage = (data) => {
     if (sendLock.value) {
@@ -401,6 +439,7 @@ export const useChatStore = defineStore('chat', () => {
       reasoning_status: false,
       quote_loading: false,
       show_quote_file: true,
+      is_stopped: false,
       voice_content: [],
     }
     let params = {
@@ -800,6 +839,7 @@ export const useChatStore = defineStore('chat', () => {
     createChat,
     createMsg,
     sendMessage,
+    stopMessage,
     getMyChatList,
     myChatList,
     openChat,

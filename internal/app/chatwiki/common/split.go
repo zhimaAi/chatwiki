@@ -1546,6 +1546,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 			}()
 		Retry:
 			chatResp, _, err := RequestChatStream(
+				context.Background(),
 				define.LangEnUs,
 				adminUserId,
 				"",

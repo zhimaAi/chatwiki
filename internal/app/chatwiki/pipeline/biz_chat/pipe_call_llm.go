@@ -94,6 +94,7 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
 		workFlowParams := &work_flow.WorkFlowParams{ChatRequestParam: in.params, CurMsgId: int(out.cMsgId), DialogueId: in.dialogueId, SessionId: in.sessionId}
 		workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
+		in.workFlowExecuted = true // pause-feature: mark this request actually invoked a workflow
 		replyContentList := []common.ReplyContent{}
 		out.content, out.requestTime, in.monitor.LibUseTime, out.list, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
 		if len(out.replyContentList) == 0 {
@@ -200,6 +201,7 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 		} else { // build workflow params and execute workflow
 			workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
 			workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
+			in.workFlowExecuted = true // pause-feature: mark this request actually invoked a workflow
 			replyContentList := []common.ReplyContent{}
 			out.content, out.requestTime, _, _, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
 			if len(out.replyContentList) == 0 {

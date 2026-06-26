@@ -83,22 +83,22 @@
   }
 }
 
-.form-banner-top{
+.form-banner-top {
   padding: 16px;
   border-radius: 12px;
-  border: 2px solid var(--10, #FFF);
+  border: 2px solid var(--10, #fff);
   height: 56px;
-  background: linear-gradient(180deg, #EBF2FF 0%, #FFF 22.78%);
+  background: linear-gradient(180deg, #ebf2ff 0%, #fff 22.78%);
   box-shadow: 0 4px 24px 0 #00000014;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  .title{
+  .title {
     font-weight: 600;
     color: #000000;
     font-size: 16px;
   }
-  .edit-block{
+  .edit-block {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -106,8 +106,8 @@
     font-size: 14px;
     cursor: pointer;
     padding: 1px 8px;
-    &:hover{
-      background: var(--07, #E4E6EB);
+    &:hover {
+      background: var(--07, #e4e6eb);
       border-radius: 6px;
     }
   }
@@ -119,7 +119,6 @@
   font-size: 12px;
   color: #999;
 }
-
 </style>
 
 <template>
@@ -128,7 +127,9 @@
       <div class="breadcrumb-box">
         <a-breadcrumb>
           <a-breadcrumb-item
-            ><router-link to="/robot/list">{{ t('breadcrumb_robot_management') }}</router-link></a-breadcrumb-item
+            ><router-link to="/robot/list">{{
+              t('breadcrumb_robot_management')
+            }}</router-link></a-breadcrumb-item
           >
           <a-breadcrumb-item>{{ robot.robot_name }}</a-breadcrumb-item>
         </a-breadcrumb>
@@ -179,7 +180,8 @@
             v-model:fileList="fileList"
             :loading="sendLoading"
             :showUpload="robotInfo.question_multiple_switch == 1"
-            @send="onSendMesage" />
+            @send="onSendMesage"
+            @stop="onStopMessage" />
           <div class="ai-disclaimer">{{ t('ai_generated_disclaimer') }}</div>
         </div>
       </div>
@@ -225,7 +227,6 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-test.index')
 
-
 const rotue = useRoute()
 const query = rotue.query
 
@@ -246,6 +247,7 @@ const messageListRef = ref(null)
 const {
   createChat,
   sendMessage,
+  stopMessage,
   getMyChatList,
   openChat,
   onGetChatMessage,
@@ -254,17 +256,22 @@ const {
 } = chatStore
 const { messageList, sendLock, myChatList, robot, dialogue_id } = storeToRefs(chatStore)
 
-const isShowFromHeader = computed(()=>{
-  return !chatStore.chat_variables.need_fill_variable && chatStore.chat_variables.fill_variables && chatStore.chat_variables.fill_variables.length
+const isShowFromHeader = computed(() => {
+  return (
+    !chatStore.chat_variables.need_fill_variable &&
+    chatStore.chat_variables.fill_variables &&
+    chatStore.chat_variables.fill_variables.length
+  )
 })
 
 const route = useRoute()
 const isRobotInfo = ref(false)
 const checkChatRequestPermissionLoding = ref(false)
 const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
+let sendRequestSeq = 0
 
 const onSendMesage = async () => {
-  if (sendLoading.value){
+  if (sendLoading.value) {
     return
   }
 
@@ -273,71 +280,82 @@ const onSendMesage = async () => {
   }
 
   checkChatRequestPermissionLoding.value = true
+  const currentSendRequestSeq = ++sendRequestSeq
 
   try {
     //检查是否含有敏感词
-  let result = await checkChatRequestPermission({
-    robot_key: robot.value.robot_key,
-    openid: robot.value.openid,
-    question: message.value,
-    form_ids: robot.value.form_ids,
-    dialogue_id: dialogue_id.value,
-  })
+    let result = await checkChatRequestPermission({
+      robot_key: robot.value.robot_key,
+      openid: robot.value.openid,
+      question: message.value,
+      form_ids: robot.value.form_ids,
+      dialogue_id: dialogue_id.value
+    })
 
-  checkChatRequestPermissionLoding.value = false
-
-  if(result.data && result.data.words){
-    return antMessage.error(t('msg_sensitive_words', { words: result.data.words.join(';') }))
+  if (currentSendRequestSeq !== sendRequestSeq) {
+    return
   }
 
-  let msg_type = 1;
-  let msg = message.value;
-
-  if(robotInfo.value.question_multiple_switch == 1){
-    let messageList = []
-
-    msg_type = 99;
-
-    if(message.value){
-      messageList = [{
-        type: "text",
-        uid: generateRandomId(16),
-        text: message.value
-      }]
-    }
-
-    if(fileList.value.length){
-      fileList.value.map((file) => {
-        messageList.push({
-          uid: file.uid,
-          type: 'image_url',
-          image_url: {
-            url: file.url
-          }
-        })
-      })
-    }
-
-    msg = JSON.stringify(messageList)
-  }
-
-
-
-
-  isAllowedScrollToBottom = true
-
-  sendMessage({
-    message: msg,
-    global: JSON.stringify(query),
-    msg_type: msg_type
-  })
-
-  message.value = ''
-  fileList.value = []
-  }catch(err){
     checkChatRequestPermissionLoding.value = false
-  }
 
+    if (result.data && result.data.words) {
+      return antMessage.error(t('msg_sensitive_words', { words: result.data.words.join(';') }))
+    }
+
+    let msg_type = 1
+    let msg = message.value
+
+    if (robotInfo.value.question_multiple_switch == 1) {
+      let messageList = []
+
+      msg_type = 99
+
+      if (message.value) {
+        messageList = [
+          {
+            type: 'text',
+            uid: generateRandomId(16),
+            text: message.value
+          }
+        ]
+      }
+
+      if (fileList.value.length) {
+        fileList.value.map((file) => {
+          messageList.push({
+            uid: file.uid,
+            type: 'image_url',
+            image_url: {
+              url: file.url
+            }
+          })
+        })
+      }
+
+      msg = JSON.stringify(messageList)
+    }
+
+    isAllowedScrollToBottom = true
+
+    sendMessage({
+      message: msg,
+      global: JSON.stringify(query),
+      msg_type: msg_type
+    })
+
+    message.value = ''
+    fileList.value = []
+  } catch (err) {
+    if (currentSendRequestSeq === sendRequestSeq) {
+      checkChatRequestPermissionLoding.value = false
+    }
+  }
+}
+
+const onStopMessage = () => {
+  sendRequestSeq += 1
+  checkChatRequestPermissionLoding.value = false
+  stopMessage()
 }
 
 const openNewChat = async () => {
@@ -447,19 +465,19 @@ const onPromptChange = (e) => {
 const onSaveRobotPrompt = async (formState, isDefault) => {
   let newFormState = JSON.parse(JSON.stringify(formState)) // 深拷贝，不能改变原对象
   Modal.confirm({
-        title: t('confirm_save_prompt'),
-        icon: createVNode(ExclamationCircleOutlined),
-        content: createVNode('div', { style: 'color:red;' }, t('confirm_save_prompt_content')),
-        onOk: async () => {
-          // updateRobotInfo({ ...toRaw(formState) })
-          if (isDefault) {
-            // 传给后端的是默认，渲染的是真实名称
-            newFormState.use_model = '默认'
-          }
-          saveForm(newFormState)
-        },
-        onCancel() {}
-      })
+    title: t('confirm_save_prompt'),
+    icon: createVNode(ExclamationCircleOutlined),
+    content: createVNode('div', { style: 'color:red;' }, t('confirm_save_prompt_content')),
+    onOk: async () => {
+      // updateRobotInfo({ ...toRaw(formState) })
+      if (isDefault) {
+        // 传给后端的是默认，渲染的是真实名称
+        newFormState.use_model = '默认'
+      }
+      saveForm(newFormState)
+    },
+    onCancel() {}
+  })
 }
 
 // 监听 updateAiMessage 触发消息列表滚动

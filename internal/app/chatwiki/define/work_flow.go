@@ -21,6 +21,15 @@ const (
 const FinishReplyPrefixKey = `special.finish_reply_content_`
 
 const (
+	// WorkFlowStatusRunning means the workflow is still running.
+	WorkFlowStatusRunning = 0
+	// WorkFlowStatusCompleted means the workflow completed normally.
+	WorkFlowStatusCompleted = 1
+	// WorkFlowStatusStopped means the workflow was stopped manually or by cancellation.
+	WorkFlowStatusStopped = 2
+)
+
+const (
 	LibraryImportContent = `content` // Import by content
 	LibraryImportUrl     = `url`     // Import by URL
 )

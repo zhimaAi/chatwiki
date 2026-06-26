@@ -32,6 +32,9 @@
     align-items: center;
     
     .send-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 32px;
       height: 32px;
       padding: 0;
@@ -50,6 +53,10 @@
 
       &:disabled {
         opacity: 0.5;
+      }
+
+      .send-pause {
+        font-size: 32px;
       }
     }
 
@@ -139,7 +146,12 @@
           </Tippy>
         </div>
 
-        <button class="send-btn" @click="sendMessage" :disabled="disabled">
+        <Tippy content="停止发送" placement="top" v-if="props.loading">
+          <button class="send-btn" @click="stopMessage">
+            <svg-icon class="send-pause" name="send-pause" />
+          </button>
+        </Tippy>
+        <button class="send-btn" v-else @click="sendMessage" :disabled="disabled">
           <svg-icon name="paper-airplane-new-active" />
         </button>
       </div>
@@ -159,7 +171,7 @@ import { Tippy } from 'vue-tippy'
 const { t } = useI18n('views.chat.components.message-input')
 
 
-const emit = defineEmits(['update:value', 'send', 'update:fileList'])
+const emit = defineEmits(['update:value', 'send', 'stop', 'update:fileList'])
 
 const props = defineProps({
   value: {
@@ -208,7 +220,7 @@ const deleteFile = (index) => {
 
 const disabled = computed(() => {
   if (props.loading) {
-    return true
+    return false
   }
 
   if(props.fileList.length > 0){
@@ -224,6 +236,10 @@ const onChange = (val: string) => {
 
 const sendMessage = () => {
   emit('send', props.value)
+}
+
+const stopMessage = () => {
+  emit('stop')
 }
 
 const onFocus = () => {

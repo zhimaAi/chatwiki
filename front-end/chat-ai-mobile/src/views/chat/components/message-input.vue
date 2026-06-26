@@ -111,7 +111,10 @@
       }
 
       &.loading {
-        background-color: #2475fc;
+        color: #2475fc;
+      }
+      .send-pause {
+        font-size: 32px;
       }
     }
 
@@ -196,9 +199,10 @@
             class="send-btn"
             :class="{ loading: props.loading }"
             :disabled="disabled"
-            @click="sendMessage"
+            :title="props.loading ? '停止发送' : ''"
+            @click="props.loading ? stopMessage() : sendMessage()"
           >
-            <van-loading type="spinner" v-if="props.loading" size="16px" />
+            <svg-icon class="send-pause" name="send-pause" v-if="props.loading"></svg-icon>
             <svg-icon class="paper-airplane" name="paper-airplane-new-active" v-else></svg-icon>
           </button>
         </div>
@@ -222,7 +226,7 @@ const userStore = useUserStore()
 const { robot } = chatStore
 import { checkChatRequestPermission } from '@/api/robot/index'
 
-const emit = defineEmits(['update:value', 'send', 'showLogin', 'update:fileList'])
+const emit = defineEmits(['update:value', 'send', 'stop', 'showLogin', 'update:fileList'])
 
 const props = defineProps({
   value: {
@@ -249,11 +253,15 @@ const { fileList } = toRefs(props)
 const messageTextarea = ref(null)
 
 const disabled = computed(() => {
+  if (props.loading) {
+    return false
+  }
+
   if(props.fileList.length > 0){
     return false
   }
 
-  return props.loading || props.value.trim().length === 0
+  return props.value.trim().length === 0
 })
 
 
@@ -322,6 +330,10 @@ watch(() => props.value, (newValue) => {
 
 const sendMessage = async () => {
   emit('send', props.value)
+}
+
+const stopMessage = () => {
+  emit('stop')
 }
 
 const handleEnter = (event) => {

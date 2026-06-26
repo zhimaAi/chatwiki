@@ -66,6 +66,10 @@ export const workflowLogs = (params) => {
   return request.get({ url: '/manage/stats/workflowLogs', params })
 }
 
+export const stopWorkFlow = (data) => {
+  return request.post({ url: '/manage/workflow/stop', data })
+}
+
 export const editVariables = (data = {}) => {
   return request.post({
     url: '/chat/editVariables',

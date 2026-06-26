@@ -37,5 +37,6 @@
   "please_select_navbar_color": "请选择标题栏颜色",
   "save_success": "保存成功",
   "copy_success": "复制成功",
-  "show_history_and_new_session_btn_label": "是否显示历史对话和新增对话按钮"
+  "show_history_and_new_session_btn_label": "是否显示历史对话和新增对话按钮",
+  "show_avatar_label": "是否显示头像"
 }

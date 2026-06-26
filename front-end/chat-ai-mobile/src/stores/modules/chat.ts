@@ -34,10 +34,30 @@ export interface Message {
   reasoning_content: string
   reasoning_status: boolean
   show_reasoning: boolean
+  reasoning_expanded?: boolean
+  process_steps?: ProcessStep[]
+  current_round_index?: number
+  active_thinking_step_id?: string
   quote_loading: boolean
   show_quote_file: boolean
   voice_content: any
   startLoading: boolean
+  is_stopped?: boolean
+  event?: string
+  prevent_auto_scroll?: boolean
+}
+
+export interface ProcessStep {
+  id: string
+  type: 'thinking' | 'tool' | 'operation'
+  title: string
+  status: 'running' | 'done' | ''
+  expanded: boolean
+  hidden: boolean
+  roundIndex: number
+  contentText: string
+  resultText: string
+  eventName: string
 }
 
 export interface Chat {
@@ -98,6 +118,7 @@ export interface ExternalConfigH5 {
   window_width: number
   window_height: number
   new_session_btn_show: number // 显示新对话按钮
+  avatarShow: number
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -163,7 +184,21 @@ export const useChatStore = defineStore('chat', () => {
     window_width: 1200,
     window_height: 650,
     new_session_btn_show: 2,
+    avatarShow: 1,
   })
+
+  const getDefaultAvatarShow = (applicationType: any) => {
+    return Number(applicationType) === 2 ? 2 : 1
+  }
+
+  const ensureAvatarShow = (config: ExternalConfigH5, applicationType: any, sourceConfig?: Partial<ExternalConfigH5>) => {
+    const sourceAvatarShow = Number(sourceConfig?.avatarShow)
+    if (sourceAvatarShow === 1 || sourceAvatarShow === 2) {
+      config.avatarShow = sourceAvatarShow
+    } else {
+      config.avatarShow = getDefaultAvatarShow(applicationType)
+    }
+  }
 
   const getDefaultChatVariables = () => ({
     need_fill_variable: false,
@@ -202,10 +237,13 @@ export const useChatStore = defineStore('chat', () => {
       const robotInfo = res.data.robot
       // 设置网页标题
       if(robotInfo.external_config_h5){
-        Object.assign(externalConfigH5, JSON.parse(robotInfo.external_config_h5))
+        const h5Config = JSON.parse(robotInfo.external_config_h5)
+        Object.assign(externalConfigH5, h5Config)
+        ensureAvatarShow(externalConfigH5, robotInfo.application_type, h5Config)
       }else{
         externalConfigH5.pageTitle = robotInfo.robot_name
         externalConfigH5.logo = robotInfo.robot_avatar
+        ensureAvatarShow(externalConfigH5, robotInfo.application_type)
       }
       return res
     } catch (e) {
@@ -299,10 +337,13 @@ export const useChatStore = defineStore('chat', () => {
 
       // 设置网页标题
       if(robotInfo.external_config_h5){
-        Object.assign(externalConfigH5, JSON.parse(robotInfo.external_config_h5))
+        const h5Config = JSON.parse(robotInfo.external_config_h5)
+        Object.assign(externalConfigH5, h5Config)
+        ensureAvatarShow(externalConfigH5, robotInfo.application_type, h5Config)
       }else{
         externalConfigH5.pageTitle = robotInfo.robot_name
         externalConfigH5.logo = robotInfo.robot_avatar
+        ensureAvatarShow(externalConfigH5, robotInfo.application_type)
       }
 
       document.title = externalConfigH5.pageTitle
@@ -422,80 +463,280 @@ export const useChatStore = defineStore('chat', () => {
     messageList.value.push(msg)
   }
 
-  const pushAiMessage = (msg) => {
+  const pushAiMessage = (msg: any) => {
     messageList.value.push(msg)
 
     emitter.emit('updateAiMessage', msg)
   }
 
+  const safeParseJson = (value: any, fallback: any) => {
+    if (typeof value !== 'string') {
+      return value ?? fallback
+    }
+
+    try {
+      return JSON.parse(value)
+    } catch {
+      return fallback
+    }
+  }
+
+  const markAutoScroll = (msg: Message, prevent: boolean) => {
+    msg.prevent_auto_scroll = prevent
+  }
+
+  const ensureProcessStepState = (msg: Message) => {
+    if (!Array.isArray(msg.process_steps)) {
+      msg.process_steps = []
+    }
+    if (typeof msg.current_round_index !== 'number') {
+      msg.current_round_index = 0
+    }
+    if (typeof msg.active_thinking_step_id !== 'string') {
+      msg.active_thinking_step_id = ''
+    }
+  }
+
+  const createProcessStep = (step: Partial<ProcessStep> = {}): ProcessStep => ({
+    id: step.id || getUuid(32),
+    type: step.type || 'thinking',
+    title: step.title || '',
+    status: step.status || '',
+    expanded: step.expanded === true,
+    hidden: step.hidden === true,
+    roundIndex: step.roundIndex || 0,
+    contentText: step.contentText || '',
+    resultText: step.resultText || '',
+    eventName: step.eventName || '',
+  })
+
+  const appendProcessStep = (msg: Message, step: Partial<ProcessStep> = {}) => {
+    ensureProcessStepState(msg)
+    const nextStep = createProcessStep(step)
+    msg.process_steps!.push(nextStep)
+    return nextStep
+  }
+
+  const getProcessStepById = (msg: Message, stepId?: string) => {
+    ensureProcessStepState(msg)
+    return msg.process_steps!.find((item) => item.id === stepId)
+  }
+
+  const setRunningProcessStepsDone = (msg: Message) => {
+    ensureProcessStepState(msg)
+    msg.process_steps = msg.process_steps!
+      .filter((step) => !(step.type === 'thinking' && step.status === 'running' && !step.contentText))
+      .map((step) => {
+        if (step.status !== 'running') {
+          return step
+        }
+        return {
+          ...step,
+          status: 'done' as const,
+          resultText: step.type === 'thinking' && !step.contentText ? '' : step.resultText,
+        }
+      })
+    msg.active_thinking_step_id = ''
+    msg.reasoning_status = false
+  }
+
+  const collapseCompletedProcessBlocks = (msg: Message) => {
+    ensureProcessStepState(msg)
+    msg.process_steps = msg.process_steps!.map((step) => ({
+      ...step,
+      expanded: false,
+    }))
+    msg.reasoning_expanded = false
+  }
+
   // 更新AI的消息到列表
   const updateAiMessage = (type: string, content: any, uid: string) => {
     const msgIndex = messageList.value.findIndex((item) => item.uid == uid)
+    if (msgIndex === -1) {
+      return
+    }
+    const currentMessage = messageList.value[msgIndex]
+    markAutoScroll(currentMessage, false)
 
     if (type == 'reply_content_list') {
       if (content !== undefined && typeof content === 'string') {
-        messageList.value[msgIndex].reply_content_list = JSON.parse(content)
+        currentMessage.reply_content_list = JSON.parse(content)
       }
     }
 
     if (type == 'reasoning_content') {
-      const oldText = messageList.value[msgIndex].reasoning_content
-      messageList.value[msgIndex].reasoning_content = oldText + content
+      const oldText = currentMessage.reasoning_content
+      currentMessage.reasoning_content = oldText + content
 
       // 推理开始
-      messageList.value[msgIndex].reasoning_status = true
-      messageList.value[msgIndex].show_reasoning = true
+      currentMessage.reasoning_status = true
+      currentMessage.show_reasoning = true
+      markAutoScroll(currentMessage, true)
     }
 
     if (type == 'sending') {
 
       // 开始生成中答案
-      messageList.value[msgIndex].startLoading = false
+      currentMessage.startLoading = false
       // 推理结束
-      messageList.value[msgIndex].reasoning_status = false
+      currentMessage.reasoning_status = false
 
-      const oldText = messageList.value[msgIndex].content
-      messageList.value[msgIndex].content = oldText + content
+      const oldText = currentMessage.content
+      currentMessage.content = oldText + content
 
-      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
-      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
+      currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
+      currentMessage.content = removeVoiceFormat(currentMessage.content)
+      markAutoScroll(currentMessage, false)
     }
 
     if(type == 'start_quote_file'){
-      messageList.value[msgIndex].quote_loading = true
+      currentMessage.quote_loading = true
     }
 
     if (type == 'quote_file') {
-      messageList.value[msgIndex].quote_file = content.length > 0 ? content : []
-      messageList.value[msgIndex].show_quote_file = true
-      messageList.value[msgIndex].quote_loading = false
+      currentMessage.quote_file = content.length > 0 ? content : []
+      currentMessage.show_quote_file = true
+      currentMessage.quote_loading = false
     }
 
     if (type == 'ai_message') {
+      const hadContent = Boolean(currentMessage.content)
+      const hasProcessSteps = Array.isArray(currentMessage.process_steps) && currentMessage.process_steps.length > 0
       if (content.menu_json && content.msg_type == 2) {
         const menu_json = JSON.parse(content.menu_json)
         // messageList.value[msgIndex].content = menu_json.content
-        messageList.value[msgIndex].menu_json = menu_json
+        currentMessage.menu_json = menu_json
       }
-      messageList.value[msgIndex].startLoading = false
-      messageList.value[msgIndex].id = content.id
-      messageList.value[msgIndex].msg_type = content.msg_type // 更新真实的msg_type
+      currentMessage.startLoading = false
+      currentMessage.id = content.id
+      currentMessage.msg_type = content.msg_type // 更新真实的msg_type
 
-      messageList.value[msgIndex].content = content.content
+      currentMessage.content = content.content
       // 提取语音消息
-      messageList.value[msgIndex].voice_content = extractVoiceInfo(messageList.value[msgIndex].content)
-      messageList.value[msgIndex].content = removeVoiceFormat(messageList.value[msgIndex].content)
+      currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
+      currentMessage.content = removeVoiceFormat(currentMessage.content)
 
       if (content.reply_content_list !== undefined) {
-        messageList.value[msgIndex].reply_content_list = content.reply_content_list
+        currentMessage.reply_content_list = content.reply_content_list
       }
       if (content.quote_file && typeof content.quote_file === 'string') {
-        messageList.value[msgIndex].quote_file = JSON.parse(content.quote_file)
+        currentMessage.quote_file = JSON.parse(content.quote_file)
       }
+      // 流式链路里 ai_message 是收尾同步，正文或过程已渲染过时不再回拉到底部。
+      markAutoScroll(currentMessage, hadContent || hasProcessSteps)
     }
 
     if (type == 'debug') {
-      messageList.value[msgIndex].debug = content.length > 0 ? content : []
+      currentMessage.debug = content.length > 0 ? content : []
+      markAutoScroll(currentMessage, true)
+    }
+
+    if (type == 'llm_rounds') {
+      ensureProcessStepState(currentMessage)
+      if (content === 'begin') {
+        currentMessage.current_round_index! += 1
+      }
+
+      if (content === 'finish') {
+        const activeStep = getProcessStepById(currentMessage, currentMessage.active_thinking_step_id)
+        if (activeStep) {
+          if (!activeStep.contentText) {
+            currentMessage.process_steps = currentMessage.process_steps!.filter((item) => item.id !== activeStep.id)
+          } else {
+            activeStep.status = 'done'
+            activeStep.resultText = ''
+          }
+        }
+        currentMessage.active_thinking_step_id = ''
+        currentMessage.reasoning_status = false
+      }
+      markAutoScroll(currentMessage, true)
+    }
+
+    if (type == 'stream_message') {
+      const nextData = safeParseJson(content, {})
+      const reasoningText = nextData?.reasoning_content || ''
+      const messageText = nextData?.content || ''
+
+      if (reasoningText) {
+        let activeStep = getProcessStepById(currentMessage, currentMessage.active_thinking_step_id)
+        if (!activeStep) {
+          ensureProcessStepState(currentMessage)
+          currentMessage.current_round_index! += 1
+          activeStep = appendProcessStep(currentMessage, {
+            type: 'thinking',
+            title: '思考过程',
+            status: 'running',
+            expanded: true,
+            roundIndex: currentMessage.current_round_index || 0,
+            resultText: '思考中...',
+            eventName: 'stream_message',
+          })
+          currentMessage.active_thinking_step_id = activeStep.id
+        }
+
+        activeStep.contentText = `${activeStep.contentText || ''}${reasoningText}`
+        activeStep.resultText = ''
+        const oldText = currentMessage.reasoning_content || ''
+        currentMessage.reasoning_content = oldText + reasoningText
+        currentMessage.show_reasoning = true
+        currentMessage.reasoning_status = true
+      }
+
+      if (messageText) {
+        currentMessage.startLoading = false
+        currentMessage.reasoning_status = false
+        const oldText = currentMessage.content || ''
+        currentMessage.content = oldText + messageText
+        currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
+        currentMessage.content = removeVoiceFormat(currentMessage.content)
+      }
+      // Agent 新链路下，思考和正文都交给用户手动查看，不跟随 stream_message 自动滚动。
+      markAutoScroll(currentMessage, true)
+    }
+
+    if (type == 'tool_call') {
+      const nextData = safeParseJson(content, {})
+      appendProcessStep(currentMessage, {
+        type: 'tool',
+        title: nextData?.name || nextData?.tool_name || 'tool',
+        status: 'running',
+        expanded: true,
+        roundIndex: currentMessage.current_round_index || 0,
+        eventName: 'tool_call',
+      })
+      currentMessage.show_reasoning = true
+      markAutoScroll(currentMessage, true)
+    }
+
+    if (type == 'tool_result') {
+      const nextData = safeParseJson(content, {})
+      ensureProcessStepState(currentMessage)
+      const matchedStep = [...currentMessage.process_steps!].reverse().find((step) => {
+        return step.type === 'tool' && step.status === 'running' && (!nextData?.tool_name || step.title === nextData.tool_name)
+      })
+
+      if (matchedStep) {
+        matchedStep.status = 'done'
+        matchedStep.resultText = nextData?.content || ''
+      } else {
+        appendProcessStep(currentMessage, {
+          type: 'tool',
+          title: nextData?.tool_name || 'tool',
+          status: 'done',
+          expanded: true,
+          roundIndex: currentMessage.current_round_index || 0,
+          resultText: nextData?.content || '',
+          eventName: 'tool_result',
+        })
+      }
+      markAutoScroll(currentMessage, true)
+    }
+
+    if (type == 'finalize_process_steps') {
+      setRunningProcessStepsDone(currentMessage)
+      collapseCompletedProcessBlocks(currentMessage)
+      markAutoScroll(currentMessage, true)
     }
     if (type == 'guess_you_want') {
       // 猜你想问 插入
@@ -508,6 +749,7 @@ export const useChatStore = defineStore('chat', () => {
       })
       messageList.value[msgIndex].guess_you_want = content;
       messageList.value[msgIndex].question_tabkey = content.length > 0 ? 1 : 2;
+      markAutoScroll(messageList.value[msgIndex], true)
     }
     if (type == 'set_question_tabkey') {
       messageList.value = messageList.value.map((item) => {
@@ -518,6 +760,7 @@ export const useChatStore = defineStore('chat', () => {
       })
       // 猜你想问 常见问题的tabkey  1为 猜你想问 2为 常见问题
       messageList.value[msgIndex].question_tabkey = content;
+      markAutoScroll(messageList.value[msgIndex], true)
     }
     emitter.emit('updateAiMessage', messageList.value[msgIndex])
   }
@@ -526,11 +769,50 @@ export const useChatStore = defineStore('chat', () => {
   const closeAiMessageLoading = () => {
     const msgIndex = messageList.value.length - 1
 
+    if (!messageList.value[msgIndex]) {
+      return
+    }
+
     messageList.value[msgIndex].loading = false
   }
 
   // 发送消息
   const sendLock = ref(false)
+
+  const getRunningAiMessageIndex = () => {
+    for (let i = messageList.value.length - 1; i >= 0; i--) {
+      const item = messageList.value[i]
+      if (
+        item.is_customer != 1 &&
+        !item.is_stopped &&
+        (item.loading || item.startLoading || item.quote_loading || item.reasoning_status)
+      ) {
+        return i
+      }
+    }
+
+    return -1
+  }
+
+  const stopMessage = () => {
+    const msgIndex = getRunningAiMessageIndex()
+    if (msgIndex > -1) {
+      messageList.value[msgIndex].is_stopped = true
+      messageList.value[msgIndex].loading = false
+      messageList.value[msgIndex].startLoading = false
+      messageList.value[msgIndex].quote_loading = false
+      messageList.value[msgIndex].reasoning_status = false
+    }
+
+    if (mySSE) {
+      mySSE.abort()
+      mySSE = null
+    }
+
+    robot.is_sending = false
+    sendLock.value = false
+    closeAiMessageLoading()
+  }
 
   const sendMessage = (data: any) => {
     if (sendLock.value) {
@@ -552,7 +834,16 @@ export const useChatStore = defineStore('chat', () => {
       debug: [],
       reasoning_status: false,
       show_reasoning: false,
+      quote_loading: false,
+      show_quote_file: true,
+      voice_content: [],
+      is_stopped: false,
+      reasoning_expanded: false,
+      process_steps: [],
+      current_round_index: 0,
+      active_thinking_step_id: '',
       event: 'robot',
+      prevent_auto_scroll: false,
     }
     const userStore = useUserStore()
     const params: any = {
@@ -622,9 +913,25 @@ export const useChatStore = defineStore('chat', () => {
         updateAiMessage('reasoning_content', res.data, aiMsg.uid)
       }
 
+      if (res.event == 'llm_rounds') {
+        updateAiMessage('llm_rounds', res.data, aiMsg.uid)
+      }
+
+      if (res.event == 'stream_message') {
+        updateAiMessage('stream_message', res.data, aiMsg.uid)
+      }
+
       // 更新机器人的消息
       if (res.event == 'sending') {
         updateAiMessage('sending', res.data, aiMsg.uid)
+      }
+
+      if (res.event == 'tool_call') {
+        updateAiMessage('tool_call', res.data, aiMsg.uid)
+      }
+
+      if (res.event == 'tool_result') {
+        updateAiMessage('tool_result', res.data, aiMsg.uid)
       }
 
       // 更新机器人消息的消息id时间等
@@ -681,6 +988,9 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     mySSE.onClose = () => {
+      if (aiMsg.process_steps.length) {
+        updateAiMessage('finalize_process_steps', null, aiMsg.uid)
+      }
       closeAiMessageLoading()
       sendLock.value = false
 
@@ -863,6 +1173,10 @@ export const useChatStore = defineStore('chat', () => {
         item.uid = getUuid(32)
         item.show_reasoning = false;
         item.reasoning_status = false;
+        item.reasoning_expanded = false;
+        item.process_steps = Array.isArray(item.process_steps) ? item.process_steps : safeParseJson(item.process_steps, [])
+        item.current_round_index = Number(item.current_round_index || 0)
+        item.active_thinking_step_id = item.active_thinking_step_id || ''
 
         item.name = item.name || item.nickname
         if (item.is_customer == 1) {
@@ -960,6 +1274,7 @@ export const useChatStore = defineStore('chat', () => {
   // 更新预览 ui
   const upDataUiStyle = (data) => {
     Object.assign(externalConfigH5, data)
+    ensureAvatarShow(externalConfigH5, robot.application_type, data)
     let currentConfig = getCurrentConfig(robot.multi_lang_configs)
     robot.tips_before_answer_content = currentConfig?.tips_before_answer_content || ''
     robot.tips_before_answer_switch = currentConfig?.tips_before_answer_switch == 'true';
@@ -1027,6 +1342,7 @@ export const useChatStore = defineStore('chat', () => {
     messageList,
     createChat,
     sendMessage,
+    stopMessage,
     getMyChatList,
     myChatList,
     openChat,

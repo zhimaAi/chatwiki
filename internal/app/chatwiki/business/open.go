@@ -169,7 +169,7 @@ func ChatMessages(c *gin.Context) {
 func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatRequestParam, error) {
 	//  openId parse
 	if !common.CheckRobotKey(r.RobotKey) {
-		return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))
+		return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))
 	}
 	robot, err := common.GetRobotInfo(r.RobotKey)
 	if err != nil {
@@ -183,11 +183,11 @@ func (r *ChatMessagesReq) buildChatRequestParam(c *gin.Context) (*define.ChatReq
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
 	if len(c.GetString(`wechatapp_appid`)) > 0 {
 		if !common.IsXkfOpenid(r.OpenID) {
-			return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
+			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
 		}
 	} else {
 		if !common.IsChatOpenid(r.OpenID) {
-			return nil, fmt.Errorf(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
+			return nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `openid`))
 		}
 	}
 	customer, err := common.GetCustomerInfo(r.OpenID, adminUserId)

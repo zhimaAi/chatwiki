@@ -180,6 +180,16 @@
             </div>
           </div>
         </div>
+
+        <div class="field-item">
+          <div class="field-item-label">异常处理</div>
+          <div class="field-item-content">
+            <div class="field-value">
+              <span class="field-key">接口请求异常时执行该分支</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </node-common>

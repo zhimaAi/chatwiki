@@ -4,6 +4,7 @@ package initialize
 
 import (
 	"chatwiki/internal/app/message_service/define"
+	"chatwiki/internal/pkg/wechat"
 	"runtime"
 
 	"github.com/Unknwon/goconfig"
@@ -59,4 +60,10 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config nsqd error`)
 	}
+	define.Config.Messenger, err = config.GetSection("messenger")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config messenger error`)
+	}
+	wechat.SetMessengerGraphAPIBase(define.Config.Messenger[`graph_api_base`])
 }

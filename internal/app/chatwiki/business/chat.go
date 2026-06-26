@@ -361,6 +361,7 @@ func ChatRequest(c *gin.Context) {
 		c.Header(`Access-Control-Allow-Origin`, `*`)
 	}
 	params := getChatRequestParam(c)
+	params.StopCtx = c.Request.Context() // canceled when client aborts SSE
 	chanStream := make(chan sse.Event)
 	go func() {
 		_, _ = DoChatRequest(params, true, chanStream)

@@ -206,6 +206,19 @@
     }
   }
 
+  .stopped-label {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    color: #595959;
+    background: #e4e6eb;
+    margin-bottom: 8px;
+  }
+
   .thinking-content {
     position: relative;
     line-height: 22px;
@@ -456,7 +469,10 @@
                   </template>
                 </div>
               </template>
-              <div class="label-flex-block">
+              <div class="label-flex-block" v-if="item.is_stopped">
+                <div class="stopped-label">已停止</div>
+              </div>
+              <div class="label-flex-block" v-else>
                 <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && item.startLoading">
                   <div class="thinking-label">
                     <LoadingOutlined class="loading" />

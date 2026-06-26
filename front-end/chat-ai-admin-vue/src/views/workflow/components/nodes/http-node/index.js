@@ -75,6 +75,13 @@ class VueHtmlNodeModel extends BaseVueNodeModel {
         type: 'right',
         nodeId: id,
       },
+      {
+        x: x + width / 2,
+        y: y + height / 2 - 28,
+        id: nodeSortKey + '-anchor_right_exception',
+        type: 'right',
+        nodeId: id,
+      },
     ]
 
     return defaultAnchor

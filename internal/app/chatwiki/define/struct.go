@@ -3,6 +3,7 @@
 package define
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -70,6 +71,7 @@ type ChatRequestParam struct {
 	Prompt               string
 	LibraryIds           string
 	IsClose              *bool
+	StopCtx              context.Context // request context; canceled by net/http when client disconnects (SSE abort)
 	WorkFlowGlobal       map[string]any
 	QuoteLib             bool
 	LoopTestParams       []any

@@ -32,6 +32,8 @@ func UnifiedMessageType(msgType string) string {
 	case lib_define.DingTalkMsgTypeImage:
 		msgType = lib_define.MsgTypeImage
 		break
+	// FeShuMsgTypeAudio and MessengerMsgTypeAudio share the same value "audio",
+	// so this case handles both Feishu and Messenger audio messages.
 	case lib_define.FeShuMsgTypeAudio:
 		msgType = lib_define.MsgTypeVoice
 		break
@@ -542,11 +544,17 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 			}
 		}
 	}
-	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount}) {
+	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount, lib_define.AppMessenger}) {
 		for _, voice := range voices {
 			ext := strings.ToLower(filepath.Ext(voice))
-			if !tool.InArray(ext, []string{`.mp3`, `.amr`}) {
-				logs.Warning(`voice is not mp3 or amr ,%s`, voice)
+			if params.AppType == lib_define.AppMessenger {
+				if !tool.InArray(ext, []string{`.mp3`, `.amr`, `.mp4`}) {
+					logs.Warning(`voice is not mp3 or amr or mp4 ,%s`, voice)
+				}
+			} else {
+				if !tool.InArray(ext, []string{`.mp3`, `.amr`}) {
+					logs.Warning(`voice is not mp3 or amr ,%s`, voice)
+				}
 			}
 			if params.AppType == lib_define.AppWechatKefu && ext == `.mp3` {
 				voice = common.Mp3ToAmr(params.AdminUserId, voice)
@@ -753,6 +761,10 @@ func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType stri
 		return // public account image download priority logic
 	}
 	if push.AppInfo[`app_type`] == lib_define.AppWecomRobot && push.Message[`oss_url`] != nil {
+		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
+		return
+	}
+	if push.AppInfo[`app_type`] == lib_define.AppMessenger && push.Message[`oss_url`] != nil {
 		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
 		return
 	}

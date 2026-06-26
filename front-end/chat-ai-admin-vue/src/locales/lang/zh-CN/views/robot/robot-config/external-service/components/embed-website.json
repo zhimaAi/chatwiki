@@ -25,5 +25,6 @@
   "save_success": "保存成功",
   "label_show_history_and_new_session_btn": "是否显示历史对话和新增对话按钮",
   "label_show": "显示",
-  "label_hide": "不显示"
+  "label_hide": "不显示",
+  "label_show_avatar": "是否显示头像"
 }

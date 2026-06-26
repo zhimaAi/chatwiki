@@ -385,6 +385,7 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 	go func() {
 		defer close(chanStream)
 		totalResponse, _, streamErr = common.RequestChatStream(
+			context.Background(), // chat_claw has no cancelable request context
 			in.params.Lang,
 			in.params.AdminUserId,
 			in.params.Openid,

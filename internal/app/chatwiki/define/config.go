@@ -17,4 +17,5 @@ type ConfigParam struct {
 	UserDomainService map[string]string
 	Plugin            map[string]string
 	Xiaokefu          map[string]string
+	Messenger         map[string]string
 }

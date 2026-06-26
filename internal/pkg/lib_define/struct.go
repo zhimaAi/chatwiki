@@ -114,3 +114,42 @@ type OfficialAccountBatchSendRes struct {
 	MsgId     int64  `json:"msg_id"`
 	MsgDataId int64  `json:"msg_data_id"`
 }
+
+// Messenger Webhook Event
+type MessengerWebhookEvent struct {
+	Object string           `json:"object"`
+	Entry  []MessengerEntry `json:"entry"`
+}
+
+type MessengerEntry struct {
+	Time      int64                `json:"time"`
+	ID        string               `json:"id"`
+	Messaging []MessengerMessaging `json:"messaging"`
+}
+
+type MessengerMessaging struct {
+	Sender    MessengerUser    `json:"sender"`
+	Recipient MessengerUser    `json:"recipient"`
+	Timestamp int64            `json:"timestamp"`
+	Message   MessengerMessage `json:"message"`
+}
+
+type MessengerUser struct {
+	ID string `json:"id"`
+}
+
+type MessengerMessage struct {
+	MID         string                `json:"mid"`
+	Text        string                `json:"text,omitempty"`
+	Attachments []MessengerAttachment `json:"attachments,omitempty"`
+}
+
+type MessengerAttachment struct {
+	Type    string                     `json:"type"`
+	Payload MessengerAttachmentPayload `json:"payload"`
+}
+
+type MessengerAttachmentPayload struct {
+	URL       string `json:"url,omitempty"`
+	StickerID int64  `json:"sticker_id,omitempty"`
+}

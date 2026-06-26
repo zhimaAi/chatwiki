@@ -77,6 +77,12 @@ const items = ref([
     id: 'DingDingRobot',
     label: t('menu_dingtalk_robot'),
     title: t('menu_dingtalk_robot')
+  },
+  {
+    key: 'Messenget',
+    id: 'Messenget',
+    label: 'Messenger',
+    title: 'Messenger'
   }
 ])
 

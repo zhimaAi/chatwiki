@@ -254,6 +254,7 @@ func init() {
 	Route[http.MethodPost][`/manage/token/limit/switch`] = manage.TokenLimitSwitch
 
 	Route[http.MethodGet][`/manage/stats/workflowLogs`] = manage.WorkflowLogs
+	Route[http.MethodPost][`/manage/workflow/stop`] = manage.StopWorkFlow
 	/*debug API*/
 	Route[http.MethodPost][`/manage/getDialogueList`] = manage.GetDialogueList
 	Route[http.MethodPost][`/manage/libraryRecallTest`] = manage.LibraryRecallTest

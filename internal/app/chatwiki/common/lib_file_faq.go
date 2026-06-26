@@ -203,6 +203,7 @@ func ExtractLibFaqFiles(adminUserId int, splitParams define.SplitFaqParams, subm
 			}()
 		Retry:
 			chatResp, _, err := RequestChatStream(
+				context.Background(),
 				define.LangEnUs,
 				adminUserId,
 				"",
