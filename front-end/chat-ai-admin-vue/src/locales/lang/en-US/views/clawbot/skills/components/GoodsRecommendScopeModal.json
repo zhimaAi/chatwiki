@@ -1,0 +1,11 @@
+{
+  "title": "Recommendation Scope",
+  "radio_scope_all": "All Products",
+  "radio_scope_partial": "Selected Groups",
+  "label_ungrouped": "Ungrouped",
+  "msg_load_groups_failed": "Failed to load product groups",
+  "btn_cancel": "Cancel",
+  "btn_confirm": "Confirm",
+  "msg_saved": "Scope saved successfully",
+  "msg_save_failed": "Failed to save scope"
+}

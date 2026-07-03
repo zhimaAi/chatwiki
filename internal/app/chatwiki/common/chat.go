@@ -94,6 +94,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 		ReplaceChatVariables(params.Lang, sessionId, params.WorkFlowGlobal, &prompt, &promptStruct)
 		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
+	params.Prompt = ReplaceMiniCardShortMarkersForRobotPrompt(params.AdminUserId, params.Prompt)
 	// Replace chat variable placeholders in metadata filter config (if enabled)
 	ReplaceMetaSearchChatVariables(params.Lang, sessionId, &params.Robot)
 	if len(params.LibraryIds) == 0 || !CheckIds(params.LibraryIds) { //no custom is used
@@ -181,6 +182,7 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 		ReplaceChatVariables(params.Lang, sessionId, params.WorkFlowGlobal, &prompt, &promptStruct)
 		params.Prompt = BuildPromptStruct(params.Lang, cast.ToInt(params.Robot[`prompt_type`]), prompt, promptStruct)
 	}
+	params.Prompt = ReplaceMiniCardShortMarkersForRobotPrompt(params.AdminUserId, params.Prompt)
 
 	//part0:init messages
 	messages := make([]adaptor.ZhimaChatCompletionMessage, 0)
@@ -300,9 +302,143 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 				}
 			}
 		}
+		content = AppendMiniCardTagsForQADirectReply(cast.ToInt(robot[`admin_user_id`]), cast.ToInt(list[0][`id`]), content)
 		return content, true
 	}
 	return ``, false
+}
+
+type miniCardTagPayload struct {
+	Title    string `json:"title"`
+	Appid    string `json:"appid"`
+	PagePath string `json:"page_path"`
+	ThumbURL string `json:"thumb_url"`
+}
+
+// AppendMiniCardTagsForQADirectReply appends mini program card tags for QA direct reply content.
+func AppendMiniCardTagsForQADirectReply(adminUserID int, targetID int, content string) string {
+	if adminUserID <= 0 || targetID <= 0 {
+		return content
+	}
+	content, _ = appendMiniCardTagsByTargetIDs(adminUserID, AdminMiniCardTargetLibraryQA, []int{targetID}, content, false)
+	return content
+}
+
+// AppendMiniCardTagsForLibraryParagraphReply appends mini program card tags for recalled document paragraphs.
+func AppendMiniCardTagsForLibraryParagraphReply(adminUserID int, list []msql.Params, content string) (string, string) {
+	if adminUserID <= 0 || len(list) == 0 {
+		return content, ``
+	}
+	targetIDs := make([]int, 0, len(list))
+	targetIDMap := make(map[int]struct{}, len(list))
+	for _, item := range list {
+		if cast.ToInt(item[`type`]) != define.ParagraphTypeNormal {
+			continue
+		}
+		targetID := cast.ToInt(item[`id`])
+		if targetID <= 0 {
+			continue
+		}
+		if _, ok := targetIDMap[targetID]; ok {
+			continue
+		}
+		targetIDMap[targetID] = struct{}{}
+		targetIDs = append(targetIDs, targetID)
+	}
+	return appendMiniCardTagsByTargetIDs(adminUserID, AdminMiniCardTargetLibraryParagraph, targetIDs, content, true)
+}
+
+// ReplaceMiniCardShortMarkersForRobotPrompt replaces short prompt mini card markers before LLM requests.
+func ReplaceMiniCardShortMarkersForRobotPrompt(adminUserID int, content string) string {
+	if adminUserID <= 0 || len(content) == 0 || !miniCardPromptShortRegexp.MatchString(content) {
+		return content
+	}
+	miniCardIDs := ExtractMiniCardIDsFromShortPrompt(content)
+	miniCardMap, err := GetAdminMiniCardsByIDs(adminUserID, miniCardIDs)
+	if err != nil {
+		logs.Error(`GetAdminMiniCardsByIDs error:%s`, err.Error())
+		return content
+	}
+	return miniCardPromptShortRegexp.ReplaceAllStringFunc(content, func(match string) string {
+		subMatches := miniCardPromptShortRegexp.FindStringSubmatch(match)
+		if len(subMatches) < 2 {
+			return match
+		}
+		miniCard, ok := miniCardMap[cast.ToInt(subMatches[1])]
+		if !ok {
+			return match
+		}
+		return buildMiniCardTag(miniCard)
+	})
+}
+
+// ReplaceMiniCardMarkersForRobotPromptReply replaces prompt mini card markers with frontend custom tags.
+func ReplaceMiniCardMarkersForRobotPromptReply(adminUserID int, content string) (string, bool) {
+	if adminUserID <= 0 || len(content) == 0 || !adminMiniCardPromptRegexp.MatchString(content) {
+		return content, false
+	}
+	miniCardIDs := ExtractAdminMiniCardIDsFromPrompt(content)
+	miniCardMap, err := GetAdminMiniCardsByIDs(adminUserID, miniCardIDs)
+	if err != nil {
+		logs.Error(`GetAdminMiniCardsByIDs error:%s`, err.Error())
+		return content, false
+	}
+	replaced := adminMiniCardPromptRegexp.ReplaceAllStringFunc(content, func(match string) string {
+		subMatches := adminMiniCardPromptRegexp.FindStringSubmatch(match)
+		if len(subMatches) < 2 {
+			return match
+		}
+		miniCard, ok := miniCardMap[cast.ToInt(subMatches[1])]
+		if !ok {
+			return match
+		}
+		return buildMiniCardTag(miniCard)
+	})
+	return replaced, replaced != content
+}
+
+// appendMiniCardTagsByTargetIDs appends mini program card tags for the given target IDs.
+func appendMiniCardTagsByTargetIDs(adminUserID int, targetType string, targetIDs []int, content string, deduplicateMiniCard bool) (string, string) {
+	if adminUserID <= 0 || targetType == `` || len(targetIDs) == 0 {
+		return content, ``
+	}
+	miniCardMap, err := GetAdminMiniCardsByTargets(adminUserID, targetType, targetIDs)
+	if err != nil {
+		logs.Error(`GetAdminMiniCardsByTargets error:%s`, err.Error())
+		return content, ``
+	}
+	tags := make([]string, 0)
+	miniCardIDMap := make(map[int]struct{})
+	for _, targetID := range targetIDs {
+		for _, miniCard := range miniCardMap[targetID] {
+			if deduplicateMiniCard {
+				miniCardID := cast.ToInt(miniCard[`id`])
+				if miniCardID > 0 {
+					if _, ok := miniCardIDMap[miniCardID]; ok {
+						continue
+					}
+					miniCardIDMap[miniCardID] = struct{}{}
+				}
+			}
+			tags = append(tags, buildMiniCardTag(miniCard))
+		}
+	}
+	if len(tags) == 0 {
+		return content, ``
+	}
+	appendContent := "\n" + strings.Join(tags, "\n")
+	return content + appendContent, appendContent
+}
+
+// buildMiniCardTag formats a mini program card as the frontend custom tag.
+func buildMiniCardTag(miniCard map[string]any) string {
+	payload := miniCardTagPayload{
+		Title:    cast.ToString(miniCard[`title`]),
+		Appid:    cast.ToString(miniCard[`appid`]),
+		PagePath: cast.ToString(miniCard[`page_path`]),
+		ThumbURL: cast.ToString(miniCard[`thumb_url`]),
+	}
+	return fmt.Sprintf("[wx_mini_card]%s[/wx_mini_card]", tool.JsonEncodeNoError(payload))
 }
 
 // GetRandomSliceReply randomly selects specified number of items from reply content list

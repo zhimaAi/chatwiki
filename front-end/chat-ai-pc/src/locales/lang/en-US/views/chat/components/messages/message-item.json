@@ -6,6 +6,8 @@
   "process_thinking_again": "Thinking again",
   "process_tool_step": "Tool call",
   "process_tool_running": "Calling tool...",
+  "label_params": "Parameters",
+  "label_output": "Output",
   "btn_copy": "Copy",
   "btn_like": "Like",
   "btn_dislike": "Dislike",

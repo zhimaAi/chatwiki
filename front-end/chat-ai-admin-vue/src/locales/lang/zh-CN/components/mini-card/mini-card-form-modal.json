@@ -1,0 +1,22 @@
+{
+  "title_add": "添加微信小程序卡片",
+  "title_edit": "编辑微信小程序卡片",
+  "tip_channel_limit": "小程序卡片仅支持在公众号，微信客服和微信小程序中发送，其他渠道会发送失败公众号内回复必须是关联小程序，微信小程序内回复必须是当前的小程序",
+  "label_title": "小程序标题",
+  "ph_title": "请输入小程序卡片标题",
+  "label_appid": "小程序appID",
+  "ph_appid": "请输入小程序appID",
+  "label_path": "小程序路径",
+  "ph_path": "请输入小程序路径",
+  "tip_path": "请联系小程序开发者获取路径，比如/pages/index/index，注意，路径建议以/开头",
+  "label_cover": "小程序封面",
+  "btn_upload": "上传照片",
+  "msg_input_title": "请输入小程序标题",
+  "msg_input_appid": "请输入小程序appID",
+  "msg_input_path": "请输入小程序路径",
+  "msg_upload_cover": "请上传小程序封面",
+  "msg_image_format": "只支持JPG、PNG格式的图片",
+  "msg_image_size": "图片大小不能超过2M",
+  "msg_upload_failed": "上传失败",
+  "msg_save_success": "保存成功"
+}

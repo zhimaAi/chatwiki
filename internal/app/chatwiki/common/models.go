@@ -913,7 +913,7 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
 		h.Meta.EnabledThinking = true
 	}
-	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
+	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
 		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
 	}
 	client.Init(h.Meta)
@@ -1087,7 +1087,7 @@ func (h *ModelCallHandler) RequestChat(
 	if h.Meta.ChoosableThinking && len(robot) > 0 && cast.ToBool(robot[`enable_thinking`]) {
 		h.Meta.EnabledThinking = true
 	}
-	if h.CurModelMap[Llm].InputImage > 0 && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
+	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
 		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
 	}
 	client.Init(h.Meta)

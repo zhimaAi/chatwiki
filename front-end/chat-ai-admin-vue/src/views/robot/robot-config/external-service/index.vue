@@ -44,6 +44,7 @@ import WeComRobot from './components/wecom-robot.vue'
 import FeishuRobot from './components/feishu-robot.vue'
 import DingDingRobot from './components/dingding-robot.vue'
 import Messenget from './components/Messenget.vue'
+import WhatsApp from './components/whats-app.vue'
 
 const robotStore = useRobotStore()
 
@@ -59,7 +60,8 @@ const tabComponents = {
   WeComRobot,
   FeishuRobot,
   DingDingRobot,
-  Messenget
+  Messenget,
+  WhatsApp
 }
 
 const activeLocalKey = '/robot/config/external-services/activeKey'

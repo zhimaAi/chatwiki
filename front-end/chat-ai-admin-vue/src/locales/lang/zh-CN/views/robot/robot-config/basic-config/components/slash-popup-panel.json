@@ -1,0 +1,16 @@
+{
+  "tab_insert_tag": "插入标签",
+  "tab_insert_card": "插入小程序卡片",
+  "tip_tag": "用户输入的参数会填充变量作为最终的提示词",
+  "tip_card": "微信小程序、微信客服、微信公众号渠道回复时可用",
+  "btn_add_tag": "新增标签",
+  "btn_add_card": "插入小程序卡片",
+  "msg_no_cards": "暂无小程序卡片",
+  "msg_confirm_delete": "确认删除该小程序卡片？",
+  "msg_delete_desc": "删除后不可恢复，且影响所有引用此卡片的分段",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功",
+  "msg_delete_failed": "删除失败",
+  "msg_card_in_use": "该卡片已被知识库或提示词引用，请先解除引用后再删除"
+}

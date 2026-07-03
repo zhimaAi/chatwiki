@@ -29,6 +29,7 @@ const FeiShuRobot = `feishu_robot`
 const DingTalkRobot = `dingtalk_robot`
 const AppWecomRobot = `wecom_robot`
 const AppMessenger = `messenger`
+const AppWhatsapp = `whatsapp`
 
 const AppYunH5 = `yun_h5`
 const AppYunPc = `yun_pc`
@@ -43,6 +44,7 @@ var AppTypeList = []string{
 	DingTalkRobot,
 	AppWecomRobot,
 	AppMessenger,
+	AppWhatsapp,
 }
 
 const PwdSetType = 1

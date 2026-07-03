@@ -15,7 +15,8 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/Unknwon/goconfig v1.0.0
 	github.com/ZeroHawkeye/wordZero v1.3.9
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.12
+	github.com/alibabacloud-go/cams-20200606/v5 v5.1.3
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.14
 	github.com/alibabacloud-go/dingtalk v1.6.96
 	github.com/alibabacloud-go/docmind-api-20220711 v1.4.5
 	github.com/alibabacloud-go/tea v1.4.0
@@ -51,6 +52,7 @@ require (
 	github.com/larksuite/oapi-sdk-go/v3 v3.5.2
 	github.com/lib/pq v1.12.3
 	github.com/mark3labs/mcp-go v0.42.0
+	github.com/matiasinsaurralde/go-e2b v0.0.0-20260620004025-b87d7066e221
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/pkoukk/tiktoken-go v0.1.7
@@ -68,8 +70,8 @@ require (
 	github.com/xuri/excelize/v2 v2.10.1
 	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20260612072211-1b1647da5f18
-	github.com/zhimaAi/llm_adaptor v0.0.0-20260602071141-e652736427af
-	github.com/zhimaAi/pdf v0.0.0-20240423033113-08880067bc13
+	github.com/zhimaAi/llm_adaptor v0.0.0-20260629034033-52f53a02def4
+	github.com/zhimaAi/pdf v0.0.0-20260702061841-31ece7763f10
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0
 	golang.org/x/image v0.39.0
@@ -79,6 +81,7 @@ require (
 )
 
 require (
+	connectrpc.com/connect v1.20.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/ArtisanCloud/PowerSocialite/v3 v3.0.7 // indirect
 	github.com/BurntSushi/graphics-go v0.0.0-20160129215708-b43f31a4a966 // indirect
@@ -131,7 +134,6 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
@@ -206,7 +208,7 @@ require (
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	google.golang.org/protobuf v1.36.9 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect

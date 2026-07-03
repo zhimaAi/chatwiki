@@ -11,6 +11,7 @@ import (
 	"chatwiki/internal/pkg/wechat/official_account"
 	"chatwiki/internal/pkg/wechat/wechat_kefu"
 	"chatwiki/internal/pkg/wechat/wecom_robot"
+	"chatwiki/internal/pkg/wechat/whatsapp"
 	"errors"
 	"net/http"
 
@@ -85,6 +86,13 @@ func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 		return &wecom_robot.Application{AppID: appInfo[`app_id`]}, nil
 	case lib_define.AppMessenger:
 		return &messenger.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`], GraphAPIBase: MessengerGraphAPIBase}, nil
+	case lib_define.AppWhatsapp:
+		return &whatsapp.Application{
+			AppID:       appInfo[`app_id`],
+			Secret:      appInfo[`app_secret`],
+			AccessKeyId: appInfo[`cams_access_key_id`],
+			CustSpaceId: appInfo[`cams_cust_space_id`],
+		}, nil
 	}
 	return nil, errors.New(`app type not support`)
 }

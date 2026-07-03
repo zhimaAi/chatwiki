@@ -590,12 +590,12 @@ const editFragmentAlertRef = ref(null)
 let editFragmentIndex = null
 
 const handleEditFragment = (item, index) => {
-  let { title, content, question, answer, images, similar_question_list } = item
+  let { title, content, question, answer, images, mini_card, similar_question_list } = item
   editFragmentIndex = index
-  editFragmentAlertRef.value.open({ title, content, question, answer, images, similar_question_list })
+  editFragmentAlertRef.value.open({ title, content, question, answer, images, mini_card, similar_question_list })
 }
 
-const saveFragment = ({ title, content, question, answer, images,similar_question_list }) => {
+const saveFragment = ({ title, content, question, answer, images, mini_cards, similar_question_list }) => {
   if (
     documentFragmentList.value[editFragmentIndex].title != title ||
     documentFragmentList.value[editFragmentIndex].content != content ||
@@ -609,6 +609,7 @@ const saveFragment = ({ title, content, question, answer, images,similar_questio
   documentFragmentList.value[editFragmentIndex].question = question
   documentFragmentList.value[editFragmentIndex].answer = answer
   documentFragmentList.value[editFragmentIndex].images = images
+  documentFragmentList.value[editFragmentIndex].mini_card = mini_cards || []
   documentFragmentList.value[editFragmentIndex].similar_question_list = similar_question_list ? similar_question_list.split('\n') : []
 
   documentFragmentList.value[editFragmentIndex].word_total =
@@ -712,7 +713,16 @@ const handleSaveLibFileSplit = async () => {
     chunk_async: true,
     word_total: documentFragmentTotal.value,
     split_params: JSON.stringify(split_params),
-    list: JSON.stringify(documentFragmentList.value)
+    list: JSON.stringify(documentFragmentList.value.map(item => {
+      const cards = item.mini_card || item.mini_cards || []
+      const rest = { ...item }
+      delete rest.mini_card
+      delete rest.mini_cards
+      return {
+        ...rest,
+        mini_card: cards.map(card => card.id).join(',')
+      }
+    }))
   }
 
   // 非表格的也需要存储qa_index_type

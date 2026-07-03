@@ -14,6 +14,7 @@
   "expand_groups": "展开分组",
   "collapse_groups": "收起分组",
   "library_tab": "知识库",
+  "goods_library_tab": "商品库",
   "database_tab": "数据库",
   "faq_extraction_tab": "文档提取FAQ",
   "trigger_statistics_tab": "触发次数统计",

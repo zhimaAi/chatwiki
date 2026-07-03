@@ -57,6 +57,8 @@ export interface ProcessStep {
   contentText: string
   resultText: string
   eventName: string
+  paramsText?: string
+  tool_call_id?: string
 }
 
 export interface Chat {
@@ -559,6 +561,8 @@ export const useChatStore = defineStore('chat', () => {
     contentText: step.contentText || '',
     resultText: step.resultText || '',
     eventName: step.eventName || '',
+    paramsText: step.paramsText || '',
+    tool_call_id: step.tool_call_id || '',
   })
 
   const appendProcessStep = (msg: Message, step: Partial<ProcessStep> = {}) => {
@@ -758,12 +762,33 @@ export const useChatStore = defineStore('chat', () => {
       markAutoScroll(currentMessage, true)
     }
 
+    if (type == 'tool_call_full') {
+      const functionInfo = content?.function || {}
+      appendProcessStep(currentMessage, {
+        type: 'tool',
+        title: functionInfo?.name || 'tool',
+        status: 'running',
+        expanded: true,
+        roundIndex: currentMessage.current_round_index || 0,
+        paramsText: functionInfo?.arguments || '',
+        tool_call_id: content?.id || '',
+        eventName: 'tool_call_full',
+      })
+      currentMessage.show_reasoning = true
+      markAutoScroll(currentMessage, true)
+    }
+
     if (type == 'tool_result') {
       const nextData = safeParseJson(content, {})
       ensureProcessStepState(currentMessage)
-      const matchedStep = [...currentMessage.process_steps!].reverse().find((step) => {
-        return step.type === 'tool' && step.status === 'running' && (!nextData?.tool_name || step.title === nextData.tool_name)
-      })
+      const toolCallId = nextData?.tool_call_id || ''
+      const matchedStep = toolCallId
+        ? currentMessage.process_steps!.find((step) => {
+            return step.type === 'tool' && step.status === 'running' && step.tool_call_id === toolCallId
+          })
+        : [...currentMessage.process_steps!].reverse().find((step) => {
+            return step.type === 'tool' && step.status === 'running' && (!nextData?.tool_name || step.title === nextData.tool_name)
+          })
 
       if (matchedStep) {
         matchedStep.status = 'done'
@@ -776,6 +801,7 @@ export const useChatStore = defineStore('chat', () => {
           expanded: true,
           roundIndex: currentMessage.current_round_index || 0,
           resultText: nextData?.content || '',
+          tool_call_id: toolCallId,
           eventName: 'tool_result',
         })
       }
@@ -948,8 +974,13 @@ export const useChatStore = defineStore('chat', () => {
         updateAiMessage('sending', res.data, aiMsg.uid)
       }
 
-      if (res.event == 'tool_call') {
-        updateAiMessage('tool_call', res.data, aiMsg.uid)
+      // tool_call 已废弃，使用 tool_call_full 替代
+      // if (res.event == 'tool_call') {
+      //   updateAiMessage('tool_call', res.data, aiMsg.uid)
+      // }
+      if (res.event == 'tool_call_full') {
+        const data = safeParseJson(res.data, {})
+        updateAiMessage('tool_call_full', data, aiMsg.uid)
       }
 
       if (res.event == 'tool_result') {

@@ -93,6 +93,7 @@ type DocSplitItem struct {
 	WordTotal           int      `json:"word_total"`
 	Images              []string `json:"images"`
 	AiChunkErrMsg       string   `json:"ai_chunk_err_msg"`
+	MiniCard            any      `json:"mini_card"`
 	// parent-child chunk
 	FatherChunkParagraphNumber int `json:"father_chunk_paragraph_number"`
 }

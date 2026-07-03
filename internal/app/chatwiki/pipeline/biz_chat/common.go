@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 
+	"github.com/gin-contrib/sse"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/tool"
 )
@@ -49,6 +50,18 @@ func DoRequestChatUnify(in *ChatInParam, out *ChatOutParam) {
 	if out.Error != nil {
 		common.SendDefaultUnknownQuestionPrompt(in.params, out.Error.Error(), in.chanStream, &out.content)
 	} else {
+		if content, ok := common.ReplaceMiniCardMarkersForRobotPromptReply(in.params.AdminUserId, out.content); ok {
+			out.content = content
+			out.chatResp.Result = out.content
+		}
+		if cast.ToInt(in.params.Robot[`chat_type`]) != define.ChatTypeDirect && !in.needRunWorkFlow {
+			var appendContent string
+			out.content, appendContent = common.AppendMiniCardTagsForLibraryParagraphReply(in.params.AdminUserId, out.list, out.content)
+			out.chatResp.Result = out.content
+			if len(appendContent) > 0 {
+				in.Stream(sse.Event{Event: `sending`, Data: appendContent})
+			}
+		}
 		if cast.ToInt(in.params.Robot[`chat_type`]) != define.ChatTypeDirect {
 			in.saveRobotChatCache = true
 		}

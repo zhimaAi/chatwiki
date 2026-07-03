@@ -153,9 +153,195 @@ func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitPar
 			list[i].WordTotal = utf8.RuneCountInString(list[i].Content)
 		}
 	}
+	list, err = attachMiniCardsToLibFileSplit(userId, fileId, pdfPageNum, splitParams, list)
+	if err != nil {
+		return
+	}
 	_splitParams = splitParams
 
 	return
+}
+
+type libFileSplitMiniCardRelation struct {
+	targetType string
+	targetID   int
+	ids        []int
+}
+
+// attachMiniCardsToLibFileSplit fills split preview items with existing mini cards when they match safely.
+func attachMiniCardsToLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, list define.DocSplitItems) (define.DocSplitItems, error) {
+	if userId <= 0 || fileId <= 0 || len(list) == 0 {
+		return list, nil
+	}
+	query := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`file_id`, cast.ToString(fileId)).
+		Where(`category_id`, `0`).
+		Where(`delete_time`, `0`).
+		Field(`id,type,page_num,father_chunk_paragraph_number,number,content,question,answer`)
+	if pdfPageNum > 0 {
+		query.Where(`page_num`, cast.ToString(pdfPageNum))
+	}
+	data, err := query.Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return list, err
+	}
+	if len(data) == 0 {
+		return list, nil
+	}
+	existingByKey := make(map[string]msql.Params, len(data))
+	paragraphIds := make([]int, 0)
+	qaIds := make([]int, 0)
+	for _, item := range data {
+		isQA := isAdminMiniCardQAParagraphType(cast.ToInt(item[`type`]))
+		key := buildLibFileSplitMiniCardKey(
+			cast.ToInt(item[`page_num`]),
+			cast.ToInt(item[`father_chunk_paragraph_number`]),
+			cast.ToInt(item[`number`]),
+			isQA,
+			item[`content`],
+			item[`question`],
+			item[`answer`],
+		)
+		if key == `` {
+			continue
+		}
+		if _, ok := existingByKey[key]; ok {
+			continue
+		}
+		existingByKey[key] = item
+		if isQA {
+			qaIds = append(qaIds, cast.ToInt(item[`id`]))
+			continue
+		}
+		paragraphIds = append(paragraphIds, cast.ToInt(item[`id`]))
+	}
+	paragraphMiniCards, err := GetAdminMiniCardsByTargets(userId, AdminMiniCardTargetLibraryParagraph, paragraphIds)
+	if err != nil {
+		return list, err
+	}
+	qaMiniCards, err := GetAdminMiniCardsByTargets(userId, AdminMiniCardTargetLibraryQA, qaIds)
+	if err != nil {
+		return list, err
+	}
+	isQAList := splitParams.IsQaDoc == define.DocTypeQa
+	for i := range list {
+		key := buildLibFileSplitMiniCardKey(
+			list[i].PageNum,
+			list[i].FatherChunkParagraphNumber,
+			list[i].Number,
+			isQAList,
+			list[i].Content,
+			list[i].Question,
+			list[i].Answer,
+		)
+		existing, ok := existingByKey[key]
+		if !ok {
+			continue
+		}
+		targetID := cast.ToInt(existing[`id`])
+		if isAdminMiniCardQAParagraphType(cast.ToInt(existing[`type`])) {
+			list[i].MiniCard = qaMiniCards[targetID]
+			continue
+		}
+		list[i].MiniCard = paragraphMiniCards[targetID]
+	}
+	return list, nil
+}
+
+// buildLibFileSplitMiniCardKey builds a conservative matching key for split preview mini card backfill.
+func buildLibFileSplitMiniCardKey(pageNum, fatherChunkParagraphNumber, number int, isQA bool, content, question, answer string) string {
+	if isQA {
+		question = strings.TrimSpace(question)
+		answer = strings.TrimSpace(answer)
+		if question == `` || answer == `` {
+			return ``
+		}
+		return tool.JsonEncodeNoError([]any{pageNum, fatherChunkParagraphNumber, number, question, answer})
+	}
+	content = strings.TrimSpace(content)
+	if content == `` {
+		return ``
+	}
+	return tool.JsonEncodeNoError([]any{pageNum, fatherChunkParagraphNumber, number, content})
+}
+
+// parseLibFileSplitMiniCardIDs parses and deduplicates all mini card IDs from split items.
+func parseLibFileSplitMiniCardIDs(list define.DocSplitItems) (map[int][]int, []int, error) {
+	idsByIndex := make(map[int][]int)
+	allIDs := make([]int, 0)
+	allIDSet := make(map[int]struct{})
+	for i, item := range list {
+		raw, ok := item.MiniCard.(string)
+		if !ok {
+			if item.MiniCard == nil {
+				continue
+			}
+			return nil, nil, errors.New(`mini_card invalid`)
+		}
+		ids, err := ParseAdminMiniCardIDs(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(ids) == 0 {
+			continue
+		}
+		idsByIndex[i] = ids
+		for _, id := range ids {
+			if _, ok := allIDSet[id]; ok {
+				continue
+			}
+			allIDSet[id] = struct{}{}
+			allIDs = append(allIDs, id)
+		}
+	}
+	return idsByIndex, allIDs, nil
+}
+
+// clearLibFileSplitMiniCardRelations clears old mini card relations before split data is rebuilt.
+func clearLibFileSplitMiniCardRelations(userId int, rawIds []string) error {
+	targetIDs := make([]int, 0, len(rawIds))
+	for _, rawID := range rawIds {
+		id := cast.ToInt(rawID)
+		if id > 0 {
+			targetIDs = append(targetIDs, id)
+		}
+	}
+	if len(targetIDs) == 0 {
+		return nil
+	}
+	if err := ClearAdminMiniCardRelationsByTargetIds(userId, AdminMiniCardTargetLibraryParagraph, targetIDs); err != nil {
+		return err
+	}
+	return ClearAdminMiniCardRelationsByTargetIds(userId, AdminMiniCardTargetLibraryQA, targetIDs)
+}
+
+// getLibFileSplitPendingMiniCardRelation returns a relation payload for one newly inserted split item.
+func getLibFileSplitPendingMiniCardRelation(idsByIndex map[int][]int, index int, targetType string, targetID int) libFileSplitMiniCardRelation {
+	return libFileSplitMiniCardRelation{
+		targetType: targetType,
+		targetID:   targetID,
+		ids:        idsByIndex[index],
+	}
+}
+
+// saveLibFileSplitMiniCardRelations writes all collected mini card relations after split data is committed.
+func saveLibFileSplitMiniCardRelations(userId, libraryId int, relations []libFileSplitMiniCardRelation) error {
+	for _, relation := range relations {
+		if len(relation.ids) == 0 {
+			continue
+		}
+		if err := SaveAdminMiniCardRelations(userId, libraryId, relation.targetType, relation.targetID, relation.ids); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// isAdminMiniCardQAParagraphType reports whether a split data row is a QA paragraph.
+func isAdminMiniCardQAParagraphType(paragraphType int) bool {
+	return paragraphType == define.ParagraphTypeDocQA || paragraphType == define.ParagraphTypeExcelQA
 }
 
 func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list define.DocSplitItems, pdfPageNum int, lang string) ([]int64, error) {
@@ -191,6 +377,19 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		}
 	}
 	list.UnifySetNumber() // Unify numbering for number
+
+	miniCardIDsByListIndex, allMiniCardIDs, err := parseLibFileSplitMiniCardIDs(list)
+	if err != nil {
+		return []int64{}, errors.New(i18n.Show(lang, `param_invalid`, `mini_card`))
+	}
+	ok, err := ValidateAdminMiniCards(userId, allMiniCardIDs)
+	if err != nil {
+		logs.Error(err.Error())
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if !ok {
+		return []int64{}, errors.New(i18n.Show(lang, `param_invalid`, `mini_card`))
+	}
 
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if qaIndexType != define.QAIndexTypeQuestionAndAnswer && qaIndexType != define.QAIndexTypeQuestion {
@@ -240,6 +439,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		logs.Error(err.Error())
 		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	if err = clearLibFileSplitMiniCardRelations(userId, shouldDeleteIds); err != nil {
+		logs.Error(err.Error())
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+	}
 	if len(shouldDeleteIds) > 0 {
 		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
 			Where(`id`, `in`, strings.Join(shouldDeleteIds, `,`)).
@@ -274,6 +477,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		library, _    = GetLibraryData(cast.ToInt(info[`library_id`]))
 		skipUseModel  = cast.ToInt(library[`type`]) == define.OpenLibraryType && cast.ToInt(library[`use_model_switch`]) != define.SwitchOn
 	)
+	pendingMiniCardRelations := make([]libFileSplitMiniCardRelation, 0)
 	for i, item := range list {
 		if utf8.RuneCountInString(item.Content) > MaxContent || utf8.RuneCountInString(item.Question) > MaxContent || utf8.RuneCountInString(item.Answer) > MaxContent {
 			return []int64{}, errors.New(i18n.Show(lang, `length_err`, i+1))
@@ -339,6 +543,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 				}
 
+				if err = clearLibFileSplitMiniCardRelations(userId, qaQuestionExistIds); err != nil {
+					logs.Error(err.Error())
+					return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+				}
 				// Directly delete duplicate Q&A and vector indexes
 				if len(qaQuestionExistIds) > 0 {
 					_, err = msql.Model("chat_ai_library_file_data", define.Postgres).
@@ -369,6 +577,9 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 			}
 			dataIds = append(dataIds, id)
+			if relation := getLibFileSplitPendingMiniCardRelation(miniCardIDsByListIndex, i, AdminMiniCardTargetLibraryQA, int(id)); len(relation.ids) > 0 {
+				pendingMiniCardRelations = append(pendingMiniCardRelations, relation)
+			}
 			vectorID, err := SaveVector(
 				cast.ToInt64(info[`admin_user_id`]),
 				cast.ToInt64(info[`library_id`]),
@@ -445,6 +656,9 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 			}
 			dataIds = append(dataIds, id)
+			if relation := getLibFileSplitPendingMiniCardRelation(miniCardIDsByListIndex, i, AdminMiniCardTargetLibraryParagraph, int(id)); len(relation.ids) > 0 {
+				pendingMiniCardRelations = append(pendingMiniCardRelations, relation)
+			}
 			vectorID, err := SaveVector(
 				cast.ToInt64(info[`admin_user_id`]),
 				cast.ToInt64(info[`library_id`]),
@@ -533,6 +747,10 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		logs.Error(err.Error())
 		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	if err = saveLibFileSplitMiniCardRelations(userId, cast.ToInt(info[`library_id`]), pendingMiniCardRelations); err != nil {
+		logs.Error(err.Error())
+		return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
+	}
 
 	if skipUseModel {
 		return []int64{}, err
@@ -600,7 +818,7 @@ func RecursiveCharacter(items define.DocSplitItems, separators []string, chunkSi
 				continue
 			}
 			list = append(list, define.DocSplitItem{
-				PageNum: item.PageNum, Content: content, Images: images,
+				PageNum: item.PageNum, Content: content, Images: images, MiniCard: item.MiniCard,
 				FatherChunkParagraphNumber: item.FatherChunkParagraphNumber,
 			})
 		}
@@ -758,7 +976,7 @@ func MultDocSplit(adminUserId, fileId, pdfPageNum int, splitParams define.SplitP
 				if len(content) == 0 {
 					continue
 				}
-				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images})
+				list = append(list, define.DocSplitItem{PageNum: item.PageNum, Content: content, Images: images, MiniCard: item.MiniCard})
 				previewText += content
 				if splitParams.ChunkPreview && utf8.RuneCountInString(previewText) >= splitParams.ChunkPreviewSize {
 					return list, err
@@ -1101,7 +1319,9 @@ func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 		if !utf8.ValidString(content) {
 			content = tool.Convert(content, `gbk`, `utf-8`)
 		}
-		rows, err = csv.NewReader(strings.NewReader(content)).ReadAll()
+		reader := csv.NewReader(strings.NewReader(content))
+		reader.FieldsPerRecord = -1
+		rows, err = reader.ReadAll()
 		if err != nil {
 			return nil, err
 		}
@@ -1110,6 +1330,9 @@ func ParseTabFile(fileUrl, fileExt string) ([][]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		defer func() {
+			_ = f.Close()
+		}()
 		rows, err = f.GetRows(f.GetSheetName(f.GetActiveSheetIndex()))
 		if err != nil {
 			return nil, err

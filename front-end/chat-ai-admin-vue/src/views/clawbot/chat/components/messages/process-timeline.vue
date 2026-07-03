@@ -13,13 +13,29 @@
         </div>
         <div class="process-step-content">
           <div class="process-step-title">{{ getStepTitle(step, stepIndex) }}</div>
-          <div class="process-step-text chat-markdown-content" v-if="getStepText(step)">
-            <CherryMarkdown
-              class="markdown-body"
-              :content="getStepText(step)"
-              enable-image-preview
-            ></CherryMarkdown>
-          </div>
+          <template v-if="step.type === 'tool'">
+            <div class="process-step-params" v-if="step.paramsText">
+              <span class="process-step-label">{{ t('label_params') }}：</span>
+              <code class="process-step-code">{{ step.paramsText }}</code>
+            </div>
+            <div class="process-step-result chat-markdown-content" v-if="step.resultText">
+              <span class="process-step-label">{{ t('label_output') }}：</span>
+              <CherryMarkdown
+                class="markdown-body"
+                :content="step.resultText"
+                enable-image-preview
+              ></CherryMarkdown>
+            </div>
+          </template>
+          <template v-else-if="getStepText(step)">
+            <div class="process-step-text chat-markdown-content">
+              <CherryMarkdown
+                class="markdown-body"
+                :content="getStepText(step)"
+                enable-image-preview
+              ></CherryMarkdown>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -87,9 +103,6 @@ const getStepTitle = (step, stepIndex) => {
 }
 
 const getStepText = (step) => {
-  if (step?.type === 'tool') {
-    return step.resultText
-  }
   return step?.contentText || step?.resultText || (step?.status === 'running' ? t('msg_thinking') : '')
 }
 </script>
@@ -178,7 +191,66 @@ const getStepText = (step) => {
   margin-bottom: 4px;
 }
 
+.process-step-params {
+  margin-bottom: 8px;
+}
+
+.process-step-label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #8c8c8c;
+}
+
+.process-step-code {
+  display: block;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #8c8c8c;
+}
+
 .process-step-text.chat-markdown-content {
+  :deep(.cherry-markdown) {
+    color: #8c8c8c;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+
+    *{
+      line-height: 22px;
+      font-size: 14px;
+    }
+    p,
+    li,
+    blockquote {
+      color: #8c8c8c;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      padding: 0;
+      margin: 0;
+    }
+    p,
+    ul,
+    ol,
+    blockquote,
+    pre,
+    table {
+      margin-top: 0;
+      margin-bottom: 4px;
+    }
+
+    > :last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
+.process-step-result.chat-markdown-content {
   :deep(.cherry-markdown) {
     color: #8c8c8c;
     background: transparent;

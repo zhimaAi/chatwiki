@@ -450,7 +450,7 @@ func SendReply(push *lib_define.PushMessage) {
 		})
 	case lib_define.MsgTypeVideo:
 		push.Content = tool.JsonEncodeNoError(adaptor.QuestionMultiple{
-			{Type: adaptor.TypeVideo, VedioUrl: adaptor.VedioUrl{Url: params.MediaIdToOssUrl}},
+			{Type: adaptor.TypeVideo, VideoUrl: adaptor.VideoUrl{Url: params.MediaIdToOssUrl}},
 		})
 	}
 	params.Question = push.Content // replace question with multimodal input data format
@@ -521,7 +521,7 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	if len(content) == 0 {
 		return
 	}
-	text, images, voices, videos := common.GetMessageInMessage(content, true)
+	text, images, voices, videos, miniCards := common.GetMessageInMessage(content, true)
 	if len(text) > 0 {
 		errcode, err := app.SendText(push.Openid, text, push)
 		if err != nil {
@@ -530,6 +530,9 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	}
 	if len(images) > 0 {
 		for _, image := range images {
+			if params.AppType == lib_define.AppWhatsapp {
+				image = common.GetCDNLinkByFile(image)
+			}
 			errcode, err := app.SendImage(push.Openid, image, push)
 			if err != nil {
 				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
@@ -538,16 +541,22 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	}
 	if len(videos) > 0 {
 		for _, video := range videos {
+			if params.AppType == lib_define.AppWhatsapp {
+				video = common.GetCDNLinkByFile(video)
+			}
 			errcode, err := app.SendVideo(push.Openid, video, push)
 			if err != nil {
 				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
 			}
 		}
 	}
-	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount, lib_define.AppMessenger}) {
+	if len(voices) > 0 && tool.InArray(params.AppType, []string{lib_define.AppWechatKefu, lib_define.AppOfficeAccount, lib_define.AppMessenger, lib_define.AppWhatsapp}) {
 		for _, voice := range voices {
 			ext := strings.ToLower(filepath.Ext(voice))
-			if params.AppType == lib_define.AppMessenger {
+			if params.AppType == lib_define.AppWhatsapp {
+				voice = common.GetCDNLinkByFile(voice)
+			}
+			if params.AppType == lib_define.AppMessenger || params.AppType == lib_define.AppWhatsapp {
 				if !tool.InArray(ext, []string{`.mp3`, `.amr`, `.mp4`}) {
 					logs.Warning(`voice is not mp3 or amr or mp4 ,%s`, voice)
 				}
@@ -563,6 +572,11 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 			if err != nil {
 				logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errcode, err.Error())
 			}
+		}
+	}
+	if len(miniCards) > 0 {
+		for _, miniCard := range miniCards {
+			sendMiniProgramCard(push, miniCard, app)
 		}
 	}
 
@@ -591,6 +605,16 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 			}
 			switch checkType {
 			case common.ReplyTypeImageText: // image-text
+				if push.AppInfo[`app_type`] == lib_define.AppWhatsapp {
+					// WhatsApp has no image-text link type; send the thumbnail as a plain image instead.
+					logs.Warning(`whatsapp: image-text not supported, fallback to image url:%s`, keywordReply.ThumbURL)
+					imagePath := keywordReply.ThumbURL
+					errCode, err := app.SendImage(push.Openid, imagePath, push)
+					if err != nil {
+						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+					}
+					break
+				}
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
 					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
@@ -614,6 +638,13 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 				}
 				break
 			case common.ReplyTypeImg: // image
+				if push.AppInfo[`app_type`] == lib_define.AppWhatsapp {
+					errCode, err := app.SendImage(push.Openid, keywordReply.ThumbURL, push)
+					if err != nil {
+						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+					}
+					break
+				}
 				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
 				if localThumbURL == `` {
 					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
@@ -625,15 +656,17 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 				}
 				break
 			case common.ReplyTypeCard: // mini program card
-				localThumbURL := common.GetFileByLink(keywordReply.ThumbURL)
-				if localThumbURL == `` {
-					logs.Error(`image does not exist url:%s`, keywordReply.ThumbURL)
+				if push.AppInfo[`app_type`] == lib_define.AppWhatsapp {
+					// WhatsApp has no mini-program card; send the thumbnail as a plain image instead.
+					logs.Warning(`whatsapp: mini-program card not supported, fallback to image url:%s`, keywordReply.ThumbURL)
+					imagePath := keywordReply.ThumbURL
+					errCode, err := app.SendImage(push.Openid, imagePath, push)
+					if err != nil {
+						logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+					}
 					break
 				}
-				errCode, err := app.SendMiniProgramPage(push.Openid, keywordReply.Appid, keywordReply.Title, keywordReply.PagePath, localThumbURL, push)
-				if err != nil {
-					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
-				}
+				sendMiniProgramCard(push, keywordReply, app)
 				break
 			case common.ReplyTypeSmartMenu: // smart menu
 				errCode, err := app.SendSmartMenu(push.Openid, keywordReply.SmartMenu, push)
@@ -647,6 +680,19 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 				break
 			}
 		}
+	}
+}
+
+// sendMiniProgramCard sends a mini program card reply through the current application.
+func sendMiniProgramCard(push *lib_define.PushMessage, miniCard common.ReplyContent, app wechat.ApplicationInterface) {
+	localThumbURL := common.GetFileByLink(miniCard.ThumbURL)
+	if localThumbURL == `` {
+		logs.Error(`image does not exist url:%s`, miniCard.ThumbURL)
+		return
+	}
+	errCode, err := app.SendMiniProgramPage(push.Openid, miniCard.Appid, miniCard.Title, miniCard.PagePath, localThumbURL, push)
+	if err != nil {
+		logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 	}
 }
 
@@ -765,6 +811,10 @@ func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType stri
 		return
 	}
 	if push.AppInfo[`app_type`] == lib_define.AppMessenger && push.Message[`oss_url`] != nil {
+		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
+		return
+	}
+	if push.AppInfo[`app_type`] == lib_define.AppWhatsapp && push.Message[`oss_url`] != nil {
 		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
 		return
 	}

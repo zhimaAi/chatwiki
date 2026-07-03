@@ -94,6 +94,16 @@ func init() {
 	Route[http.MethodPost][`/manage/uploadClawbotLocalDoc`] = manage.UploadClawbotLocalDoc
 	Route[http.MethodGet][`/manage/getClawbotLocalDocList`] = manage.GetClawbotLocalDocList
 	Route[http.MethodPost][`/manage/deleteClawbotLocalDoc`] = manage.DeleteClawbotLocalDoc
+	Route[http.MethodGet][`/manage/getClawbotSkillList`] = manage.GetClawbotSkillList
+	Route[http.MethodGet][`/manage/getClawbotSkillInfo`] = manage.GetClawbotSkillInfo
+	Route[http.MethodPost][`/manage/uploadClawbotSkillZip`] = manage.UploadClawbotSkillZip
+	Route[http.MethodPost][`/manage/saveClawbotSkill`] = manage.SaveClawbotSkill
+	Route[http.MethodPost][`/manage/deleteClawbotSkill`] = manage.DeleteClawbotSkill
+	Route[http.MethodPost][`/manage/saveClawbotRobotSkills`] = manage.SaveClawbotRobotSkills
+
+	/* E2B Conf */
+	Route[http.MethodGet][`/manage/getE2bConf`] = manage.GetE2bConf
+	Route[http.MethodPost][`/manage/saveE2bConf`] = manage.SaveE2bConf
 
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
@@ -294,6 +304,12 @@ func init() {
 	Route[http.MethodPost][`/manage/setBackupModelConfig`] = manage.SetBackupModelConfig
 	Route[http.MethodGet][`/manage/getModelErrorLogs`] = manage.GetModelErrorLogs
 	Route[http.MethodGet][`/manage/getMiniMaxVoiceList`] = manage.GetMiniMaxVoiceList
+	/*Admin Mini Card API*/
+	Route[http.MethodGet][`/manage/AdminMiniCard/getList`] = manage.GetAdminMiniCardList
+	Route[http.MethodPost][`/manage/AdminMiniCard/addOne`] = manage.AddAdminMiniCard
+	Route[http.MethodPost][`/manage/AdminMiniCard/deleteOne`] = manage.DeleteAdminMiniCard
+	Route[http.MethodPost][`/manage/AdminMiniCard/updateOne`] = manage.UpdateAdminMiniCard
+	Route[http.MethodGet][`/manage/AdminMiniCard/getOne`] = manage.GetAdminMiniCard
 	/*WeChat API*/
 	Route[http.MethodGet][`/manage/getWechatAppList`] = manage.GetWechatAppList
 	Route[http.MethodPost][`/manage/saveWechatApp`] = manage.SaveWechatApp
@@ -408,6 +424,20 @@ func init() {
 	Route[http.MethodPost][`/manage/deleteLibraryListGroup`] = manage.DeleteLibraryListGroup
 	Route[http.MethodPost][`/manage/sortLibararyListGroup`] = manage.SortLibararyListGroup
 	Route[http.MethodPost][`/manage/relationLibraryGroup`] = manage.RelationLibraryGroup
+	/* goods_lib API */
+	Route[http.MethodGet][`/manage/getGoodsGroupList`] = manage.GetGoodsGroupList
+	Route[http.MethodPost][`/manage/saveGoodsGroup`] = manage.SaveGoodsGroup
+	Route[http.MethodPost][`/manage/deleteGoodsGroup`] = manage.DeleteGoodsGroup
+	Route[http.MethodPost][`/manage/sortGoodsGroup`] = manage.SortGoodsGroup
+	Route[http.MethodGet][`/manage/getGoodsLibraryList`] = manage.GetGoodsLibraryList
+	Route[http.MethodGet][`/manage/getGoodsLibraryInfo`] = manage.GetGoodsLibraryInfo
+	Route[http.MethodPost][`/manage/saveGoodsLibrary`] = manage.SaveGoodsLibrary
+	Route[http.MethodPost][`/manage/deleteGoodsLibrary`] = manage.DeleteGoodsLibrary
+	Route[http.MethodPost][`/manage/updateGoodsLibrarySwitch`] = manage.UpdateGoodsLibrarySwitch
+	Route[http.MethodPost][`/manage/uploadGoodsLibraryImage`] = manage.UploadGoodsLibraryImage
+	Route[http.MethodPost][`/manage/importGoodsLibrary`] = manage.ImportGoodsLibrary
+	Route[http.MethodGet][`/manage/exportGoodsLibrary`] = manage.ExportGoodsLibrary
+	Route[http.MethodGet][`/manage/downloadGoodsLibraryImportTemplate`] = manage.DownloadGoodsLibraryImportTemplate
 	/*unknown_issue API*/
 	Route[http.MethodGet][`/manage/unknownIssueStats`] = manage.UnknownIssueStats
 	Route[http.MethodGet][`/manage/getUnknownIssueSummary`] = manage.GetUnknownIssueSummary

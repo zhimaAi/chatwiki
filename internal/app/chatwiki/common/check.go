@@ -585,8 +585,31 @@ func GetVideoInMessage(message string, getLocalPath bool) (string, []string) {
 	return message, out
 }
 
-func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []string, voices []string, videos []string) {
-	msg, voices = GetVoiceInMessage(message, getLocalPath)
+// GetMiniCardInMessage extracts mini program card tags from the message.
+func GetMiniCardInMessage(message string) (string, []ReplyContent) {
+	miniCardRE := regexp.MustCompile(`(?s)\[wx_mini_card\](.*?)\[/wx_mini_card\]`)
+	miniCards := make([]ReplyContent, 0)
+	message = miniCardRE.ReplaceAllStringFunc(message, func(match string) string {
+		matches := miniCardRE.FindStringSubmatch(match)
+		if len(matches) < 2 {
+			return match
+		}
+		var miniCard ReplyContent
+		if err := json.Unmarshal([]byte(strings.TrimSpace(matches[1])), &miniCard); err != nil {
+			logs.Error(`parse mini card failed:%s,content:%s`, err.Error(), matches[1])
+			return match
+		}
+		miniCard.ReplyType = ReplyTypeCard
+		miniCards = append(miniCards, miniCard)
+		return ``
+	})
+	return message, miniCards
+}
+
+// GetMessageInMessage extracts media and mini program card tags from the message.
+func GetMessageInMessage(message string, getLocalPath bool) (msg string, imgs []string, voices []string, videos []string, miniCards []ReplyContent) {
+	msg, miniCards = GetMiniCardInMessage(message)
+	msg, voices = GetVoiceInMessage(msg, getLocalPath)
 	msg, videos = GetVideoInMessage(msg, getLocalPath)
 	msg, imgs = GetImgInMessage(msg, getLocalPath)
 	return

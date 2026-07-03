@@ -104,6 +104,33 @@ func PutObjectFromString(objectKey, content string) (string, error) {
 	return "https://" + define.Config.OssConfig[`bucket`] + "." + define.Config.OssConfig[`endpoint`] + "/" + objectKey, nil
 }
 
+// GetLinkByFile is the inverse of GetFileByLink: it restores a local file path back to a
+// publicly fetchable URL, for channels whose peer server (e.g. Aliyun ChatApp for WhatsApp)
+// pulls the media itself. A local copy is still kept as fallback; on send the local path is
+// turned into an api_domain public link. Returns input as-is if it is already a URL or unrecognized.
+func GetLinkByFile(file string) string {
+	if len(file) == 0 || IsUrl(file) {
+		return file
+	}
+	apiDomain := strings.TrimRight(define.Config.WebService[`api_domain`], `/`)
+	//download cache & export file: static/public/xxx -> api_domain + /public/xxx
+	if strings.HasPrefix(file, `static/`) {
+		return apiDomain + strings.TrimPrefix(file, `static`)
+	}
+	//upload file: define.UploadDir + key -> api_domain + LocalUploadPrefix + key
+	if strings.HasPrefix(file, define.UploadDir) {
+		return apiDomain + define.LocalUploadPrefix + file[len(define.UploadDir):]
+	}
+	return file
+}
+
+// GetCDNLinkByFile is the yun-only variant of GetLinkByFile: when OSS is enabled it returns an
+// OSS + CDN link (so the peer server can pull the media), otherwise it falls back to GetLinkByFile.
+// Kept separate so GetLinkByFile stays identical to main and merges don't conflict.
+func GetCDNLinkByFile(file string) string {
+	return GetLinkByFile(file)
+}
+
 func GetUrlPath(urlStr string) string {
 	parsedUrl, err := url.Parse(urlStr)
 	if err != nil {

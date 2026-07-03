@@ -21,6 +21,20 @@ export default {
       }
     },
     {
+      path: '/library/goods-library',
+      name: 'goodsLibrary',
+      component: () => import('../views/library/goods-library/index.vue'),
+      meta: {
+        title: 'routes.basic.goods_library',
+        activeMenu: '/library',
+        hideTitle: true,
+        pageStyle:{
+          'padding-right': 0,
+          overflow: 'hidden'
+        }
+      }
+    },
+    {
       path: '/library/add',
       name: 'addLibrary',
       component: () => import('../views/library/add-library/add-library.vue'),

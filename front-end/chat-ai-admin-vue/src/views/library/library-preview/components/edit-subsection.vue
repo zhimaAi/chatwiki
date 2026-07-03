@@ -92,7 +92,7 @@
           <!-- <div class="form-label">附件</div> -->
           <div class="form-content">
             <div class="upload-box-wrapper">
-              <a-tabs v-model:activeKey="activeKey" size="small">
+              <a-tabs size="small">
                 <a-tab-pane key="1">
                   <template #tab>
                     <span>
@@ -110,6 +110,20 @@
                 :image-max-size-mb="2"
                 :video-max-size-mb="20"
               ></UploadImg>
+            </div>
+            <div class="upload-box-wrapper" style="margin-top: 16px;">
+              <a-tabs size="small">
+                <a-tab-pane key="1">
+                  <template #tab>
+                    <span>
+                      <svg-icon name="applet" style="font-size: 14px; color: #2475fc"></svg-icon>
+                      {{ t('tab_mini_card') }}
+                      <span v-if="mini_cards.length">({{ mini_cards.length }})</span>
+                    </span>
+                  </template>
+                </a-tab-pane>
+              </a-tabs>
+              <MiniCardTabContent v-model="mini_cards" />
             </div>
           </div>
         </div>
@@ -253,6 +267,7 @@ import {
 import { StarOutlined, StarFilled, ExclamationCircleFilled, RightOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import UploadImg from '@/components/upload-img/index.vue'
+import MiniCardTabContent from '@/components/mini-card/mini-card-tab-content.vue'
 import { isArray } from 'ant-design-vue/lib/_util/util.js'
 import colorLists from '@/utils/starColors.js'
 import ModelSelect from '@/components/model-select/model-select.vue'
@@ -302,7 +317,6 @@ const props = defineProps({
 })
 const emit = defineEmits(['handleEdit', 'handleStatrList'])
 
-const activeKey = ref('1')
 const open = ref(false)
 const title = ref('')
 const content = ref('')
@@ -310,6 +324,7 @@ const answer = ref('')
 const question = ref('')
 const similar_questions = ref('')
 const images = ref([])
+const mini_cards = ref([])
 const category_id = ref(0)
 const id = ref('')
 const similarQuestionTotal = ref(0)
@@ -328,6 +343,7 @@ const showModal = (data) => {
   id.value = data.id || ''
   answer.value = data.answer || ''
   images.value = data.images || []
+  mini_cards.value = data.mini_card || []
   question.value = data.question || ''
   similar_questions.value = data.similar_questions ? data.similar_questions.join('\n') : ''
   isQaDocment.value = props.detailsInfo.is_qa_doc == '1'
@@ -426,6 +442,7 @@ const handleOk = () => {
     question: question.value,
     answer: answer.value,
     images: images.value,
+    mini_card: [...mini_cards.value],
     category_id: category_id.value
   }
   if(isQaDocment.value){
@@ -443,14 +460,18 @@ const handleOk = () => {
   } else {
     data.file_id = route.query.id
   }
+  const submitData = {
+    ...data,
+    mini_card: mini_cards.value.map(item => item.id).join(',')
+  }
   let formData = new FormData()
-  for (let key in data) {
-    if (isArray(data[key])) {
-      data[key].forEach((v) => {
+  for (let key in submitData) {
+    if (isArray(submitData[key])) {
+      submitData[key].forEach((v) => {
         formData.append(key, v)
       })
     } else {
-      formData.append(key, data[key])
+      formData.append(key, submitData[key])
     }
   }
   if(pathName == 'knowledgeDocument'){

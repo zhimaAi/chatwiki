@@ -1,5 +1,5 @@
 <template>
-  <div class="prompt-box">
+  <div class="prompt-box" ref="promptBoxRef">
     <div class="tab-header">
       <a-tabs style="width: 400px" v-model:activeKey="prompt_type">
         <a-tab-pane :key="1" :tab="t('tab_structured')"></a-tab-pane>
@@ -40,7 +40,6 @@
     <div class="prompt-list-box" v-if="prompt_type == 1">
       <div style="color: #8c8c8c;margin: 8px 0;">
         {{ t('msg_var_insert_tip') }}
-        <a @click="handleOpenModal">{{ t('new_variable') }}</a>
       </div>
       <!-- 角色 -->
       <div class="prompt-list">
@@ -259,8 +258,7 @@
     <div class="diy-prompt-box" :class="{ 'is-disabled': !isEdit }" v-else>
       <a-flex align="center" justify="space-between" v-if="isEdit" style="margin: 8px 0">
         <div style="color: #8c8c8c">
-          {{ t('msg_var_insert_tip') }}
-          <a @click="handleOpenModal">{{ t('new_variable') }}</a>
+          {{ t('msg_var_insert_tip_custom') }}
         </div>
         <div class="diy-switch-box">
           <div class="swich-item">
@@ -289,6 +287,9 @@
         type="textarea"
         :defaultValue="formState.prompt"
         :options="chatVariables"
+        :cardOptions="miniCardOptions"
+        :getPopupContainer="getAtInputPopupContainer"
+        :enableCardInsert="true"
         :disabled="true"
         :checkAnyLevel="true"
         ref="atinputRef"
@@ -300,12 +301,25 @@
             <div class="field-type">{{ payload.typ }}</div>
           </div>
         </template>
+        <template #dropdown="{ options, select, cardOptions, selectCard, close }">
+          <SlashPopupPanel
+            :options="options"
+            :cardOptions="cardOptions"
+            :select="select"
+            :selectCard="selectCard"
+            :close="close"
+            @add-tag="handleOpenModal"
+            @add-card="handleAddMiniCard"
+            @edit-card="handleEditMiniCard"
+          />
+        </template>
       </AtInput>
     </div>
     <AiCreatePrompt @handleAiSave="handleAiSave" ref="aiCreatePromptRef" />
     <ImportPrompt @ok="handleSavePrompt" ref="importPromptRef" />
     <UploadPrompt ref="uploadPromptRef" />
     <AddVariableModal ref="addVariableModalRef" @ok="handleGetChatVariables" />
+    <MiniCardFormModal ref="miniCardFormModalRef" @ok="() => miniCardStore.fetchCardList(true)" />
   </div>
 </template>
 <script setup>
@@ -323,12 +337,16 @@ import AiCreatePrompt from './ai-create-prompt.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import UploadPrompt from '@/components/import-prompt/upload-prompt.vue'
 import AtInput from './at-input/index.vue'
+import SlashPopupPanel from './slash-popup-panel.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useMiniCardStore } from '@/stores/modules/mini-card'
 import { useI18n } from '@/hooks/web/useI18n'
 import AddVariableModal from './variable-setting/add-variable-modal.vue'
+import MiniCardFormModal from '@/components/mini-card/mini-card-form-modal.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.system-prompt-words')
 const robotStore = useRobotStore()
+const miniCardStore = useMiniCardStore()
 const isEdit = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 const props = defineProps({
@@ -349,6 +367,9 @@ const imgSwitch = ref(false)
 
 const outDiySwitch = ref(false)
 const imgDiySwitch = ref(false)
+
+const promptBoxRef = ref(null)
+const getAtInputPopupContainer = () => promptBoxRef.value || document.body
 
 
 const atInputRefs = reactive({})
@@ -373,6 +394,23 @@ const chatVariables = computed(() => {
     }
   })
 })
+
+// 小程序卡片选项，映射为 AtInput 可用的 options 格式
+const miniCardOptions = computed(() => {
+  let list = miniCardStore.cardList
+  return list.map((item) => {
+    let label = '小程序卡片：' + item.title
+    let value = `【mini_card:${item.id}】`
+    return {
+      ...item,
+      label,
+      value
+    }
+  })
+})
+
+// 初始化加载小程序卡片列表
+miniCardStore.fetchCardList()
 
 watch(
   () => chatVariables,
@@ -626,6 +664,16 @@ const handleSavePrompt = (item) => {
   onSave()
 }
 
+const miniCardFormModalRef = ref(null)
+
+const handleAddMiniCard = () => {
+  miniCardFormModalRef.value.show()
+}
+
+const handleEditMiniCard = (card) => {
+  miniCardFormModalRef.value.edit(card)
+}
+
 const addVariableModalRef = ref(null)
 
 const handleOpenModal = () => {
@@ -643,6 +691,7 @@ const handleGetChatVariables = () => {
 
 <style lang="less" scoped>
 .prompt-box {
+  position: relative;
   border-radius: 6px;
   background: var(--09, #f2f4f7);
   padding: 16px;

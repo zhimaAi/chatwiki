@@ -67,6 +67,7 @@
         border: 1px solid #ffd591;
         border-radius: 999px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        z-index: 5;
       }
 
       &.active {

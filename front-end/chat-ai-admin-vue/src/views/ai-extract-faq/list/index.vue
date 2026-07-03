@@ -183,6 +183,10 @@ const pageTabs = ref([
     path: '/library/list'
   },
   {
+    title: t('tab_goods_library'),
+    path: '/library/goods-library'
+  },
+  {
     title: t('tab_database'),
     path: '/database/list'
   },

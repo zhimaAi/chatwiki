@@ -1,14 +1,22 @@
 <template>
   <div style="width: 100%; position: relative">
     <div></div>
-    <Teleport to="body">
-      <div class="dropdown-list" ref="dropdownList" v-if="showDropdown" :style="positionStyle">
-        <CascadePanel
-          :options="showOptions"
-          :checkAnyLevel="checkAnyLevel"
-          @change="onSelectOption"
-          @direction-change="handleDirectionChange"
-        />
+    <Teleport :to="popupContainer">
+      <div
+        class="dropdown-list"
+        :class="dropdownPositionClass"
+        ref="dropdownList"
+        v-if="showDropdown"
+        :style="positionStyle"
+      >
+        <slot name="dropdown" :options="showOptions" :select="onSelectOption" :cardOptions="cardOptions" :selectCard="selectCard" :close="hideDropdownMenus">
+          <CascadePanel
+            :options="showOptions"
+            :checkAnyLevel="checkAnyLevel"
+            @change="onSelectOption"
+            @direction-change="handleDirectionChange"
+          />
+        </slot>
       </div>
     </Teleport>
     <div class="mention-input-warpper mention-promt-input" :class="{'no-border': noBorder}" ref="JMentionContainer">
@@ -97,6 +105,18 @@ export default {
     noBorder: {
       type: Boolean,
       default: false
+    },
+    cardOptions: {
+      type: Array,
+      default: () => []
+    },
+    enableCardInsert: {
+      type: Boolean,
+      default: false
+    },
+    getPopupContainer: {
+      type: Function,
+      default: null
     }
   },
   setup() {
@@ -117,6 +137,17 @@ export default {
       localValue: ''
     }
   },
+  computed: {
+    popupContainer() {
+      return this.resolvePopupContainer()
+    },
+    isBodyPopupContainer() {
+      return this.popupContainer === document.body
+    },
+    dropdownPositionClass() {
+      return this.isBodyPopupContainer ? 'dropdown-list-fixed' : 'dropdown-list-absolute'
+    }
+  },
   watch: {
     defaultValue(val) {
       if (val.trim() != this.localValue.trim()) {
@@ -135,16 +166,20 @@ export default {
 
     document.addEventListener('dragstart', this.handleDragstart)
     document.addEventListener('click', this.handleClick)
-    document.addEventListener('scroll', this.onScroll)
+    document.addEventListener('scroll', this.onScroll, true)
 
     this.initData()
   },
   beforeUnmount() {
     document.removeEventListener('dragstart', this.handleDragstart)
     document.removeEventListener('click', this.handleClick)
-    document.removeEventListener('scroll', this.onScroll)
+    document.removeEventListener('scroll', this.onScroll, true)
   },
   methods: {
+    resolvePopupContainer() {
+      const container = this.getPopupContainer ? this.getPopupContainer() : null
+      return container instanceof HTMLElement ? container : document.body
+    },
     handleClick(e) {
       const target = e.target.closest('.dropdown-list')
       if (!target) {
@@ -158,6 +193,9 @@ export default {
       }
     },
     onScroll() {
+      if (!this.isBodyPopupContainer) {
+        return
+      }
       this.hideDropdownMenus()
     },
     hideDropdownMenus() {
@@ -245,7 +283,8 @@ export default {
       let html = this.defaultValue.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;')
       let defaultSelectedList = this.defaultSelectedList || []
       let treeOptions = getTreeOptions(this.options)
-      let selectedList = [...defaultSelectedList, ...treeOptions].filter(
+      let cardTreeOptions = getTreeOptions(this.cardOptions)
+      let selectedList = [...defaultSelectedList, ...treeOptions, ...cardTreeOptions].filter(
         (item) => item && item.value && item.value != '' && item.typ !== 'node'
       )
 
@@ -256,13 +295,17 @@ export default {
         // 使用正则匹配完整的value,避免部分匹配
         const regex = new RegExp(`(${opt.value})`, 'g')
         if (regex.test(this.defaultValue) && !replacedValues.has(opt.value)) {
-          // let text = opt.node_name + '.' + opt.text;
-
-          // text = text.replace(/\./g, '/')
+          // 判断是否为小程序卡片类型
+          const isCard = opt.value && opt.value.startsWith('【mini_card:')
+          const tagClass = isCard ? 'j-mention-at mini-card-tag' : 'j-mention-at'
+          // 小程序卡片复显时需包含图标
+          const iconHtml = isCard
+            ? '<span class="svg-action" style="font-size: 12px;"><svg aria-hidden="true" class="svg-icon" fill="currentColor" width="1em" height="1em"><use xlink:href="#applet" fill="currentColor"></use></svg></span>'
+            : ''
 
           html = html.replace(
             regex,
-            `<span class="j-mention-at" data-id="${opt.id}" contentEditable="false" data-value="${opt.value}">${opt.label}</span>`
+            `<span class="${tagClass}" data-id="${opt.id}" contentEditable="false" data-value="${opt.value}" data-type="${isCard ? 'card' : ''}">${iconHtml}${opt.label}</span>`
           )
 
           replacedValues.add(opt.value)
@@ -364,6 +407,19 @@ export default {
       }
       if (left < 0) {
         left = 0
+      }
+
+      if (!this.isBodyPopupContainer) {
+        const containerRect = this.popupContainer.getBoundingClientRect()
+        top = top - containerRect.top + this.popupContainer.scrollTop
+        left = left - containerRect.left + this.popupContainer.scrollLeft
+
+        if (top < 0) {
+          top = 0
+        }
+        if (left < 0) {
+          left = 0
+        }
       }
 
       return {
@@ -505,9 +561,21 @@ export default {
         // 创建 span 标签
         const span = document.createElement('span')
         span.contentEditable = 'false'
-        span.classList.add('j-mention-at')
-        span.style = this.atTextStyle
-        span.textContent = `${text}`
+        // 根据类型区分样式：小程序卡片用蓝色 Tag，普通变量用白底 Tag
+        if (dataSet.type === 'card') {
+          span.classList.add('j-mention-at', 'mini-card-tag')
+          // 插入小程序图标 + 文字
+          const iconWrap = document.createElement('span')
+          iconWrap.className = 'svg-action'
+          iconWrap.style.cssText = 'font-size: 12px;'
+          iconWrap.innerHTML = '<svg aria-hidden="true" class="svg-icon" fill="currentColor" width="1em" height="1em"><use xlink:href="#applet" fill="currentColor"></use></svg>'
+          span.appendChild(iconWrap)
+          span.appendChild(document.createTextNode(text))
+        } else {
+          span.classList.add('j-mention-at')
+          span.style = this.atTextStyle
+          span.textContent = `${text}`
+        }
 
         // const tmp = document.createElement("span");
         // tmp.contentEditable = true;
@@ -534,6 +602,11 @@ export default {
       }
     },
     onSelectOption(value, selectedValuePath, selectedPath) {
+      // 兼容 SlashPopupPanel 直接传 opt 的调用方式
+      if (!selectedPath) {
+        this.selectOption(value)
+        return
+      }
       let item = selectedPath[selectedPath.length - 1]
       delete item['children']
       this.selectOption(item)
@@ -562,6 +635,31 @@ export default {
         this.insertAtCaret(text, dataSet)
         this.initShowOptionList()
         // 在插入提及内容后，立即更新值以确保数据同步
+        this.updateValue()
+      }
+    },
+    // 选择小程序卡片，插入蓝色 Tag
+    selectCard(opt, isInit = false) {
+      if (!opt) return
+      this.showDropdown = false
+
+      let text = opt.label
+
+      const dataSet = {
+        id: opt.id,
+        label: opt.label,
+        value: opt.value,
+        text: opt.text,
+        index: this.selectedList.length,
+        type: 'card'
+      }
+
+      this.selectedList.push(opt)
+      this.selectedIdSet.add(opt.value)
+
+      if (!isInit) {
+        this.insertAtCaret(text, dataSet)
+        this.initShowOptionList()
         this.updateValue()
       }
     },
@@ -595,7 +693,7 @@ export default {
 }
 </script>
 <style lang="less">
-.mention-promt-input .j-mention-at {
+.mention-input-warpper.mention-promt-input .j-mention-at {
   border-radius: 6px;
   padding: 1px 8px;
   border: 1px solid #00000026;
@@ -605,6 +703,26 @@ export default {
   -moz-user-select: text;
   -ms-user-select: text;
   margin-right: 6px;
+}
+.mention-input-warpper.mention-promt-input .j-mention-at.mini-card-tag {
+  border: none;
+  background: #E5EFFF;
+  color: #164799;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mention-input-warpper.mention-promt-input .j-mention-at.mini-card-tag .svg-action {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+}
+.mention-input-warpper.mention-promt-input .j-mention-at.mini-card-tag .svg-icon {
+  display: inline-block;
+  fill: currentColor;
 }
 </style>
 <style lang="less" scoped>
@@ -691,7 +809,6 @@ export default {
   user-select: none;
 }
 .dropdown-list {
-  position: fixed;
   padding: 0;
   margin: 0;
   background-color: #fff;
@@ -744,5 +861,13 @@ export default {
     border-radius: 0px;
     background: rgb(191, 191, 191);
   }
+}
+
+.dropdown-list-fixed {
+  position: fixed;
+}
+
+.dropdown-list-absolute {
+  position: absolute;
 }
 </style>

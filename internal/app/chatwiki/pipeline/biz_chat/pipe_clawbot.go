@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibabacloud-go/tea/tea"
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/adk/filesystem"
 	"github.com/cloudwego/eino/adk/middlewares/skill"
@@ -25,6 +26,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/eino-contrib/jsonschema"
 	"github.com/gin-contrib/sse"
+	"github.com/matiasinsaurralde/go-e2b"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -32,30 +34,82 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-func buildFileOperationPrompt(robot msql.Params) string {
-	prompt := `When using file operation tools (ls_info, read, grep_raw, glob_info, write, edit, execute), follow these rules:
-1. Read-only tools: ls_info, read, grep_raw, glob_info.
-2. Write tools: write, edit.
-3. Command execution tool: execute.
-- Execute receives one argv-style command only. Do not use shell syntax such as cd, &&, |, ;, &, <, >, backticks, $, redirects, command substitution, or multi-line commands.
-- Execute command names must be one of: cat, find, grep, head, jq, ls, node, npm, pwd, python3, rg, tail, wc. Use the bare command name only, not a path to the command binary.
-- Execute paths must be relative paths under ` + define.PrivateWorkDir + `. Do not use absolute paths such as /workspace/..., ~/..., or Windows drive paths, and do not use parent-directory traversal.
-- For Python and Node, run files from ` + define.PrivateWorkDir + `; use python3 only and do not use python3 -c, python3 -m, node -e, node -p, --eval, or --print. For find, do not use -delete, -exec, or -execdir.
-- Valid execute examples: python3 ` + define.PrivateWorkDir + `/test_python.py; ls ` + define.PrivateWorkDir + `; rg "keyword" ` + define.PrivateWorkDir + `.
-- Invalid execute examples: cd ` + define.PrivateWorkDir + ` && python3 test_python.py; python3 /workspace/` + define.PrivateWorkDir + `/test_python.py.
-4. Accessible directories and permissions:
-- Public skills directory, read-only: ` + define.PublicSkillsDir + `
-- Private skills directory, read-only: ` + define.PrivateSkillsDir + `
-- Workspace directory, read, write, and command execution allowed: ` + define.PrivateWorkDir + `
-5. Always use relative paths as tool arguments. Refuse access when a path is absolute, escapes the allowed directories, or uses parent-directory traversal.
-6. Use the smallest sufficient operation. Do not write files or execute commands unless the task explicitly requires it.
+func buildFileOperationPrompt(robot msql.Params, e2B bool) string {
+	queryLocalDocsClose := cast.ToBool(robot[`query_local_docs_close`])
+	writeFileEnabled := cast.ToBool(robot[`open_agent_write_file_tool`])
+	executeEnabled := cast.ToBool(robot[`open_agent_execute_tool`])
+	editFileEnabled := cast.ToBool(robot[`open_agent_edit_file_tool`])
 
-Valid path examples:
-- ` + define.PublicSkillsDir + `/skill_name/reference/xxx.md
-- ` + define.PrivateSkillsDir + `/skills/skill_name/reference/xxx.md
-- ` + define.PrivateWorkDir + `/temp.log`
-	// replace robot_key
-	return strings.ReplaceAll(prompt, `<robot_key>`, robot[`robot_key`])
+	publicSkillsDir := define.PublicSkillsDir
+	privateSkillsDir := strings.ReplaceAll(define.PrivateSkillsDir, `<robot_key>`, robot[`robot_key`])
+	privateFileDir := strings.ReplaceAll(define.PrivateFileDir, `<robot_key>`, robot[`robot_key`])
+	privateWorkDir := strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robot[`robot_key`])
+
+	enabledTools := []string{`ls`, `read_file`, `grep`, `glob`}
+	if writeFileEnabled {
+		enabledTools = append(enabledTools, `write_file`)
+	}
+	if editFileEnabled {
+		enabledTools = append(enabledTools, `edit_file`)
+	}
+	if executeEnabled {
+		enabledTools = append(enabledTools, `execute`)
+	}
+
+	workDirPermissions := []string{`read`}
+	if writeFileEnabled || editFileEnabled {
+		workDirPermissions = append(workDirPermissions, `write`)
+	}
+	if executeEnabled && !e2B {
+		workDirPermissions = append(workDirPermissions, `command execution`)
+	}
+
+	var prompt strings.Builder
+	prompt.WriteString("## File and Command Operation Notes\n")
+	prompt.WriteString("- Follow these rules over any conflicting default tool description. File tools only accept relative paths under the allowed `clawbot/...` directories listed below.\n")
+	prompt.WriteString("- Available file/command tools for this session: `" + strings.Join(enabledTools, "`, `") + "`. Do not call file/command tools that are not listed here.\n")
+	prompt.WriteString("- Read-only tools: `ls`, `read_file`, `grep`, and `glob`; use them to inspect allowed directories, read files, search file content, and match file paths.\n")
+	if writeFileEnabled {
+		prompt.WriteString("- Write tool: `write_file` may only create or overwrite files under the workspace directory. Before overwriting an existing file, read the original file with `read_file` first.\n")
+	}
+	if editFileEnabled {
+		prompt.WriteString("- Edit tool: `edit_file` may only edit files under the workspace directory. Before editing, read the target file with `read_file`; `old_string` must be unique and preserve the original indentation.\n")
+	}
+	if executeEnabled && !e2B {
+		prompt.WriteString("- Command execution tool: `execute` accepts exactly one command string that parses into argv. Do not use shell features such as `cd`, `&&`, `|`, `;`, `&`, `<`, `>`, backticks, unquoted `$`, redirects, command substitution, or multi-line commands.\n")
+		prompt.WriteString("- `execute` command names must be one of: `cat`, `find`, `grep`, `head`, `jq`, `ls`, `node`, `npm`, `pwd`, `python3`, `rg`, `tail`, `wc`. Use the bare command name only; do not use a path to the command binary.\n")
+		prompt.WriteString("- `execute` path arguments must stay under the workspace directory. Do not use absolute paths such as `/workspace/...`, `~/...`, or Windows drive paths, and do not use parent-directory traversal (`..`).\n")
+		prompt.WriteString("- When running Python or Node files, the file must be under the workspace directory. Use `python3` for Python files; do not use `python3 -c`, `python3 -m`, `node -e`, `node -p`, `--eval`, or `--print`. When using `find`, do not use `-delete`, `-exec`, or `-execdir`.\n")
+		prompt.WriteString("- Prefer `read_file`, `grep`, and `glob` for normal file inspection. Use `execute` only when the task requires an allowed command result.\n")
+		_, _ = fmt.Fprintf(&prompt, "- Valid `execute` examples: `python3 %s/test_python.py`, `ls %s`, `rg \"keyword\" %s`.\n", privateWorkDir, privateWorkDir, privateWorkDir)
+		_, _ = fmt.Fprintf(&prompt, "- Invalid `execute` examples: `cd %s && python3 test_python.py`, `python3 /workspace/%s/test_python.py`.\n", privateWorkDir, privateWorkDir)
+	}
+	if executeEnabled && e2B {
+		prompt.WriteString("- Command execution tool: `execute` runs inside the configured E2B sandbox. In E2B mode, commands are not checked by the local argv parser, command whitelist, or denied-argument rules.\n")
+		prompt.WriteString("- E2B command execution always passes the full command string to `bash -lc <command>`. Bash syntax such as `cd`, `&&`, `|`, `;`, environment variables, redirects, command substitution, and multi-line commands can be used when the task requires them.\n")
+		prompt.WriteString("- File tools operate on the local Clawbot directories, while `execute` runs in a separate E2B filesystem. Do not assume files created or edited with file tools exist inside E2B; create E2B-side files within `execute` commands when needed.\n")
+		prompt.WriteString("- Prefer `read_file`, `grep`, and `glob` for local file inspection. Use `execute` only when the task requires running a shell command, script, package manager, or runtime inside the E2B sandbox.\n")
+		prompt.WriteString("- Keep E2B commands concise and deterministic; quote paths and user-provided values safely, and avoid destructive commands unless the user explicitly asks for them.\n")
+		prompt.WriteString("- Valid E2B `execute` examples: `python3 -c \"print('hello')\"`, `printf 'keyword\\n' > /tmp/input.txt && grep \"keyword\" /tmp/input.txt`, `npm --version`.\n")
+	}
+	prompt.WriteString("- Accessible directories and permissions:\n")
+	_, _ = fmt.Fprintf(&prompt, "  - Public skills directory (read-only): `%s`\n", publicSkillsDir)
+	_, _ = fmt.Fprintf(&prompt, "  - Private skills directory (read-only): `%s`\n", privateSkillsDir)
+	if !queryLocalDocsClose {
+		_, _ = fmt.Fprintf(&prompt, "  - Local document reference directory (read-only): `%s`\n", privateFileDir)
+	}
+	_, _ = fmt.Fprintf(&prompt, "  - Workspace directory (%s): `%s`\n", strings.Join(workDirPermissions, ", "), privateWorkDir)
+	if executeEnabled && e2B {
+		prompt.WriteString("- File tool path arguments must be relative paths that start with one of the allowed directory prefixes above. For `execute`, use paths that exist inside the E2B sandbox, or create/download the needed files there first.\n")
+	} else {
+		prompt.WriteString("- All file/command path arguments must be relative paths that start with one of the allowed directory prefixes above. Refuse access when a path is absolute, escapes the allowed directories, or contains parent-directory traversal (`..`).\n")
+	}
+	prompt.WriteString("- Always use the smallest sufficient operation. Do not write files, edit files, or execute commands unless the user explicitly requires it.\n")
+	prompt.WriteString("- Valid path examples:\n")
+	_, _ = fmt.Fprintf(&prompt, "  - `%s/skill_name/reference/filename.ext`\n", publicSkillsDir)
+	_, _ = fmt.Fprintf(&prompt, "  - `%s/skill_name/reference/filename.ext`\n", privateSkillsDir)
+	_, _ = fmt.Fprintf(&prompt, "  - `%s/filename.ext`", privateWorkDir)
+	return prompt.String()
 }
 
 func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath string) error {
@@ -82,7 +136,17 @@ func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath stri
 		if !cast.ToBool(robot[`query_local_docs_close`]) {
 			allowedPrefixes = append(allowedPrefixes, strings.ReplaceAll(define.PrivateFileDir, `<robot_key>`, robot[`robot_key`]))
 		}
-	case custom_eino.FileOperationWrite, custom_eino.FileOperationEdit:
+	case custom_eino.FileOperationWrite:
+		if !cast.ToBool(robot[`open_agent_write_file_tool`]) {
+			return fmt.Errorf(`write_file tool is disabled`)
+		}
+		allowedPrefixes = []string{
+			strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robot[`robot_key`]),
+		}
+	case custom_eino.FileOperationEdit:
+		if !cast.ToBool(robot[`open_agent_edit_file_tool`]) {
+			return fmt.Errorf(`edit_file tool is disabled`)
+		}
 		allowedPrefixes = []string{
 			strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robot[`robot_key`]),
 		}
@@ -97,12 +161,12 @@ func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath stri
 	return fmt.Errorf(`%s is not allowed for %s`, filePath, op)
 }
 
-func ValidateCommand(robotKey string, command string) error {
+func ValidateCommand(robot msql.Params, command string) error {
 	args, err := llm_runner.PrepareCommand(command)
 	if err != nil {
 		return err
 	}
-	workDir := strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robotKey)
+	workDir := strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robot[`robot_key`])
 	return llm_runner.ValidateClawbotPathScope(args, workDir)
 }
 
@@ -124,6 +188,19 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	if err != nil {
 		return err
 	}
+	// E2B sandbox
+	in.e2bShell, err = newE2BShellFromConf(ctx, in.params.Robot)
+	if err != nil {
+		return err
+	}
+	if in.e2bShell != nil {
+		defer func() {
+			if err = in.e2bShell.Close(); err != nil {
+				logs.Error(`close E2B sandbox failed: %v`, err)
+			}
+			in.e2bShell = nil // cleanup
+		}()
+	}
 	// Backend
 	backend, err := custom_eino.NewBackend(ctx, &custom_eino.BackendConfig{
 		ValidateFile: func(op custom_eino.FileOperation, path string) error {
@@ -132,9 +209,18 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		},
 		ValidateCommand: func(command string) error {
 			in.Stream(sse.Event{Event: `ExecuteCommand`, Data: map[string]any{`command`: command}})
-			return ValidateCommand(in.params.Robot[`robot_key`], command)
+			if !cast.ToBool(in.params.Robot[`open_agent_execute_tool`]) {
+				return fmt.Errorf(`execute tool is disabled`)
+			}
+			if in.e2bShell != nil {
+				return nil // E2B sandbox not check command
+			}
+			return ValidateCommand(in.params.Robot, command)
 		},
 		ExecuteCommand: func(command string) (*filesystem.ExecuteResponse, error) {
+			if in.e2bShell != nil {
+				return in.e2bShell.Execute(command) // E2B sandbox
+			}
 			resp := llm_runner.RpcExecuteRun(define.Config.WebService[`llm_runner_host`], command)
 			if resp.IsError {
 				if resp.ExitCode < 0 { // server execution error
@@ -153,6 +239,10 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	kbSearchTool := newKbsearchTool(in.params, in.sessionId)
 	if kbSearchTool != nil {
 		tools = append(tools, kbSearchTool)
+	}
+	goodsLibRecommendTool := newGoodsLibRecommendTool(in.params)
+	if goodsLibRecommendTool != nil {
+		tools = append(tools, goodsLibRecommendTool)
 	}
 	// related workflow
 	workFlowFuncCall, _ := work_flow.BuildFunctionTools(in.params.Lang, in.params.Robot)
@@ -177,7 +267,8 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	handlers = append(handlers, skillMiddleware)
 	// Runner
 	agent, err := deep.New(ctx, &deep.Config{
-		ChatModel: cm,
+		ChatModel:   cm,
+		Instruction: "\n", // clear the default prompt words of the eino framework
 		ToolsConfig: adk.ToolsConfig{
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools:               tools,
@@ -241,7 +332,8 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		role := event.Output.MessageOutput.Role
 		if role == schema.Assistant || role == `` {
 			for _, call := range message.ToolCalls {
-				in.Stream(sse.Event{Event: `tool_call`, Data: call.Function})
+				in.Stream(sse.Event{Event: `tool_call`, Data: call.Function}) // Deprecated: Get the full content from tool_call_full
+				in.Stream(sse.Event{Event: `tool_call_full`, Data: call})
 				out.debugLog = append(out.debugLog, map[string]string{`type`: `tool_call`, `content`: tool.JsonEncodeNoError(call.Function)})
 			}
 			sb.WriteString(message.Content)
@@ -263,7 +355,8 @@ func buildSystemPrompt(system string, in *ChatInParam, out *ChatOutParam) string
 		common.ReplaceChatVariables(in.params.Lang, in.sessionId, in.params.WorkFlowGlobal, &prompt, &promptStruct)
 		in.params.Prompt = prompt
 	}
-	result := fmt.Sprintf("%s\n%s\n%s", in.params.Prompt, system, buildFileOperationPrompt(in.params.Robot))
+	system = `` // TODO: clear the default prompt words of the eino framework
+	result := fmt.Sprintf("%s\n%s\n%s", in.params.Prompt, system, buildFileOperationPrompt(in.params.Robot, in.e2bShell != nil))
 	replacePromptPlaceholder(result, out)
 	return result
 }
@@ -305,9 +398,13 @@ func Generate(ctx context.Context, input []*schema.Message, opts custom_eino.Run
 		out.messages = append(out.messages, result)
 	}
 	// reset functionTools
+	filterTools := buildFilterTools(in.params.Robot)
 	out.functionTools = make([]adaptor.FunctionTool, 0) // clear
 	for _, info := range opts.Common.Tools {
 		if info == nil {
+			continue
+		}
+		if tool.InArray(info.Name, filterTools) {
 			continue
 		}
 		result, err := custom_eino.ConvertTools(*info)
@@ -342,6 +439,20 @@ func Generate(ctx context.Context, input []*schema.Message, opts custom_eino.Run
 	return custom_eino.ConvertChatResp(chatResp), nil
 }
 
+func buildFilterTools(robot msql.Params) []string {
+	filterTools := []string{`write_todos`}
+	if !cast.ToBool(robot[`open_agent_write_file_tool`]) {
+		filterTools = append(filterTools, `write_file`)
+	}
+	if !cast.ToBool(robot[`open_agent_execute_tool`]) {
+		filterTools = append(filterTools, `execute`)
+	}
+	if !cast.ToBool(robot[`open_agent_edit_file_tool`]) {
+		filterTools = append(filterTools, `edit_file`)
+	}
+	return filterTools
+}
+
 func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.RuntimeOptions, in *ChatInParam, out *ChatOutParam) (*schema.StreamReader[*schema.Message], error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -366,9 +477,13 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 		out.messages = append(out.messages, result)
 	}
 	// reset functionTools
+	filterTools := buildFilterTools(in.params.Robot)
 	out.functionTools = make([]adaptor.FunctionTool, 0) // clear
 	for _, info := range opts.Common.Tools {
 		if info == nil {
+			continue
+		}
+		if tool.InArray(info.Name, filterTools) {
 			continue
 		}
 		result, err := custom_eino.ConvertTools(*info)
@@ -418,19 +533,38 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 			if !ok {
 				continue
 			}
-			if len(response.FunctionToolCalls) > 0 {
-				continue
+			// Fallback for legacy providers that stream a single tool call without index.
+			// Multi-tool streaming without index cannot be merged reliably here.
+			if len(response.ToolCalls) == 1 && response.ToolCalls[0].Index == nil {
+				response.ToolCalls[0].Index = tea.Int(0)
 			}
 			_ = writer.Send(custom_eino.ConvertChatResp(response), nil)
 		}
 		if streamErr != nil {
 			_ = writer.Send(nil, streamErr)
 		}
-		if len(totalResponse.FunctionToolCalls) > 0 {
-			_ = writer.Send(custom_eino.ConvertChatResp(totalResponse), nil)
-		}
 	}()
 	return reader, nil
+}
+
+func newE2BShellFromConf(ctx context.Context, robot msql.Params) (*custom_eino.E2BShell, error) {
+	if !cast.ToBool(robot[`open_agent_execute_tool`]) {
+		return nil, nil
+	}
+	info, err := common.GetE2bConfInfo(robot[`robot_key`])
+	if err != nil {
+		return nil, err
+	}
+	conf := common.BuildE2BConfParams(info)
+	if !cast.ToBool(conf.SwitchStatus) {
+		return nil, nil
+	}
+	return custom_eino.NewE2BShell(ctx,
+		e2b.ClientConfig{APIKey: conf.ApiKey, APIBaseURL: conf.ApiBaseUrl, SandboxDomain: conf.SandboxDomain},
+		e2b.SandboxConfig{Template: conf.Template, Timeout: conf.Timeout, Secure: true},
+		e2b.WithTimeout(time.Duration(conf.CommandTimeout)*time.Second),
+		e2b.WithUser(conf.CommandUser),
+	)
 }
 
 func newSkillMiddleware(ctx context.Context, backend *custom_eino.Backend, robot msql.Params) (adk.ChatModelAgentMiddleware, error) {
@@ -489,6 +623,27 @@ func newKbsearchTool(params *define.ChatRequestParam, sessionId int) einotool.Ba
 		return libraryContent, nil
 	})
 	return kbSearchTool
+}
+
+func newGoodsLibRecommendTool(params *define.ChatRequestParam) einotool.BaseTool {
+	if !cast.ToBool(params.Robot[`goods_lib_recommend_switch`]) {
+		return nil // the recommendation of goods from the goods library has not been enabled
+	}
+	return custom_eino.BuildGoodsLibRecommendTool(func(query, searchType string, maxCount int) (string, error) {
+		filter := define.GoodsLibListFilter{
+			GroupID:      -1,
+			GroupIDs:     params.Robot[`goods_lib_recommend_group_ids`],
+			Keyword:      query,
+			SwitchStatus: define.GoodsLibSwitchOn,
+			Page:         1,
+			Size:         maxCount,
+		}
+		list, total, err := common.GetGoodsLibLibraryList(params.Lang, params.AdminUserId, filter)
+		if err != nil {
+			return ``, err
+		}
+		return common.FormatGoodsLibRecommendResult(searchType, list, total), nil
+	})
 }
 
 func ConcatStreamMessages(in *ChatInParam, mv *adk.MessageVariant) (*schema.Message, error) {

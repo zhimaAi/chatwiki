@@ -41,7 +41,7 @@
         </a-form-item>
         <a-form-item :label="t('label_attachment')">
           <div class="upload-box-wrapper">
-            <a-tabs v-model:activeKey="activeKey" size="small">
+            <a-tabs size="small">
               <a-tab-pane key="1">
                 <template #tab>
                   <span>
@@ -54,6 +54,20 @@
             </a-tabs>
             <UploadImg v-model:value="formState.images"></UploadImg>
           </div>
+          <div class="upload-box-wrapper" style="margin-top: 16px;" v-if="showMiniCard">
+            <a-tabs size="small">
+              <a-tab-pane key="1">
+                <template #tab>
+                  <span>
+                    <svg-icon name="applet" style="font-size: 14px; color: #2475fc"></svg-icon>
+                    {{ t('tab_mini_card') }}
+                    <span v-if="formState.mini_cards.length">({{ formState.mini_cards.length }})</span>
+                  </span>
+                </template>
+              </a-tab-pane>
+            </a-tabs>
+            <MiniCardTabContent v-model="formState.mini_cards" />
+          </div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -63,12 +77,19 @@
 import { ref, reactive, toRaw } from 'vue'
 import { Form } from 'ant-design-vue'
 import UploadImg from '@/components/upload-img/index.vue'
+import MiniCardTabContent from '@/components/mini-card/mini-card-tab-content.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.library.document-segmentation.components.edit-fragment-alert')
+defineProps({
+  showMiniCard: {
+    type: Boolean,
+    default: true
+  }
+})
+
 const emit = defineEmits(['ok'])
 
-const activeKey = ref('1')
 const useForm = Form.useForm
 const show = ref(false)
 
@@ -78,7 +99,8 @@ const formState = reactive({
   question: '',
   answer: '',
   similar_question_list: '',
-  images: []
+  images: [],
+  mini_cards: []
 })
 
 const formRules = reactive({
@@ -129,12 +151,13 @@ const formRules = reactive({
 const { resetFields, validate, validateInfos } = useForm(formState, formRules)
 const isExcelQa = ref(false)
 
-const open = ({ title, content, question, answer, images, similar_question_list }) => {
+const open = ({ title, content, question, answer, images, mini_card, similar_question_list }) => {
   formState.title = title
   formState.content = content
   formState.question = question
   formState.answer = answer
   formState.images = images || []
+  formState.mini_cards = mini_card || []
   formState.similar_question_list = similar_question_list? similar_question_list.join('\n') : ''
   isExcelQa.value = question != ''
 
@@ -144,7 +167,13 @@ const open = ({ title, content, question, answer, images, similar_question_list 
 const handleOk = () => {
   validate().then(() => {
     show.value = false
-    emit('ok', toRaw(formState))
+    const raw = toRaw(formState)
+    const { mini_cards, ...rest } = raw
+    emit('ok', {
+      ...rest,
+      mini_card: mini_cards.map(item => item.id).join(','),
+      mini_cards
+    })
   })
 }
 

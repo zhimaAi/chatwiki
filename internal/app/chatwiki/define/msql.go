@@ -7,17 +7,19 @@ import "chatwiki/internal/pkg/lib_define"
 const Postgres = lib_define.Postgres
 
 const (
-	TableRole              = "role"
-	TableUser              = "public.user"
-	TableUserConfig        = "user_config"
-	TableMenu              = "menu"
-	TableCompany           = "company"
-	TableFastCommand       = "fast_command"
-	TableChatAiRobotApikey = "chat_ai_robot_apikey"
-	TableRule              = "casbin_rule"
-	TableChatAiWechatApp   = "chat_ai_wechat_app"
-	TableUseGuideProcess   = "use_guide_process"
-	TableChatClawTokenLog  = "chatclaw_token_log"
+	TableRole                   = "role"
+	TableUser                   = "public.user"
+	TableUserConfig             = "user_config"
+	TableMenu                   = "menu"
+	TableCompany                = "company"
+	TableFastCommand            = "fast_command"
+	TableChatAiRobotApikey      = "chat_ai_robot_apikey"
+	TableRule                   = "casbin_rule"
+	TableChatAiWechatApp        = "chat_ai_wechat_app"
+	TableUseGuideProcess        = "use_guide_process"
+	TableChatClawTokenLog       = "chatclaw_token_log"
+	TableChatAiClawbotSkill     = "chat_ai_clawbot_skill"
+	TableChatAiClawbotUserSkill = "chat_ai_clawbot_user_skill"
 )
 
 const (
