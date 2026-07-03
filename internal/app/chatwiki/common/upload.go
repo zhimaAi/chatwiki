@@ -42,6 +42,9 @@ func SaveUploadedFile(fileHeader *multipart.FileHeader, limitSize int, identity 
 		return nil, errors.New(`file size too big`)
 	}
 	reader, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
 	defer func(reader multipart.File) {
 		_ = reader.Close()
 	}(reader)

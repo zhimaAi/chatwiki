@@ -1,0 +1,16 @@
+{
+  "tab_insert_tag": "Insert Tag",
+  "tab_insert_card": "Insert Mini Program Card",
+  "tip_tag": "User input parameters will fill variables as the final prompt",
+  "tip_card": "Available for WeChat Mini Program, WeChat Customer Service, and WeChat Official Account channels",
+  "btn_add_tag": "Add Tag",
+  "btn_add_card": "Insert Mini Program Card",
+  "msg_no_cards": "No mini program cards available",
+  "msg_confirm_delete": "Are you sure you want to delete this mini program card?",
+  "msg_delete_desc": "This action cannot be undone and will affect all segments referencing this card",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "msg_delete_success": "Deleted successfully",
+  "msg_delete_failed": "Delete failed",
+  "msg_card_in_use": "This card is referenced by knowledge base or prompts. Please remove the references before deleting."
+}

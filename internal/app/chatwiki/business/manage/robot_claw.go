@@ -32,6 +32,15 @@ func SaveClawbotConf(c *gin.Context) {
 	id := cast.ToInt64(c.PostForm(`id`))
 	searchKnowledgeClose := cast.ToInt(cast.ToBool(c.PostForm(`search_knowledge_close`)))
 	queryLocalDocsClose := cast.ToInt(cast.ToBool(c.PostForm(`query_local_docs_close`)))
+	openAgentWriteFileTool := cast.ToInt(cast.ToBool(c.PostForm(`open_agent_write_file_tool`)))
+	openAgentExecuteTool := cast.ToInt(cast.ToBool(c.PostForm(`open_agent_execute_tool`)))
+	openAgentEditFileTool := cast.ToInt(cast.ToBool(c.PostForm(`open_agent_edit_file_tool`)))
+	goodsLibRecommendSwitch := cast.ToInt(c.PostForm(`goods_lib_recommend_switch`))
+	goodsLibRecommendGroupIds := strings.TrimSpace(c.PostForm(`goods_lib_recommend_group_ids`))
+	if len(goodsLibRecommendGroupIds) > 0 && !common.CheckIds(goodsLibRecommendGroupIds) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `goods_lib_recommend_group_ids`))))
+		return
+	}
 	// check required
 	robotKey, ok := common.GetClawbotRobotKey(c, adminUserId, id)
 	if !ok {
@@ -39,13 +48,18 @@ func SaveClawbotConf(c *gin.Context) {
 	}
 	// database dispose
 	data := msql.Datas{
-		`search_knowledge_close`: searchKnowledgeClose,
-		`query_local_docs_close`: queryLocalDocsClose,
-		`update_time`:            tool.Time2Int(),
+		`search_knowledge_close`:        searchKnowledgeClose,
+		`query_local_docs_close`:        queryLocalDocsClose,
+		`open_agent_write_file_tool`:    openAgentWriteFileTool,
+		`open_agent_execute_tool`:       openAgentExecuteTool,
+		`open_agent_edit_file_tool`:     openAgentEditFileTool,
+		`goods_lib_recommend_switch`:    goodsLibRecommendSwitch,
+		`goods_lib_recommend_group_ids`: goodsLibRecommendGroupIds,
+		`update_time`:                   tool.Time2Int(),
 	}
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	if _, err := m.Where(`id`, cast.ToString(id)).Update(data); err != nil {
-		logs.Error(err.Error())
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}

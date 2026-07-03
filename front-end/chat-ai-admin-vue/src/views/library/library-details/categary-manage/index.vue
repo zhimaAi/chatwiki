@@ -152,26 +152,8 @@ onUnmounted(() => {
 const handleEditParagraph = (data) => {
   if (!data.id) {
     paginations.value.page = 1
-    getParagraphLists()
-    return
   }
-  // 更新分段内容 无刷更新
-  let lists = paragraphLists.value
-  let index = lists.findIndex((item) => item.id == data.id)
-  if (index > -1) {
-    let lastItem = lists[index]
-    lastItem.title = data.title
-    lastItem.content = data.content
-    lastItem.question = data.question
-    lastItem.answer = data.answer
-    lastItem.answer = data.answer
-    lastItem.images = data.images
-    lastItem.category_id = data.category_id
-    lastItem.word_total = data.question.length + data.answer.length + data.content.length
-    lastItem.similar_questions = JSON.parse(data.similar_questions)
-    lists.splice(index, 1, lastItem)
-    paragraphLists.value = lists
-  }
+  getParagraphLists()
 }
 
 const handleDelParagraph = (id) => {

@@ -83,6 +83,12 @@ const items = ref([
     id: 'Messenget',
     label: 'Messenger',
     title: 'Messenger'
+  },
+  {
+    key: 'WhatsApp',
+    id: 'WhatsApp',
+    label: 'WhatsApp',
+    title: 'WhatsApp'
   }
 ])
 

@@ -188,6 +188,28 @@ func GetCategoryParagraphList(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	paragraphIds := make([]int, 0)
+	qaIds := make([]int, 0)
+	for _, item := range list {
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			qaIds = append(qaIds, cast.ToInt(item[`id`]))
+		default:
+			paragraphIds = append(paragraphIds, cast.ToInt(item[`id`]))
+		}
+	}
+	paragraphMiniCards, err := common.GetAdminMiniCardsByTargets(userId, common.AdminMiniCardTargetLibraryParagraph, paragraphIds)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	qaMiniCards, err := common.GetAdminMiniCardsByTargets(userId, common.AdminMiniCardTargetLibraryQA, qaIds)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 
 	var formatedList []map[string]any
 	for _, item := range list {
@@ -202,6 +224,12 @@ func GetCategoryParagraphList(c *gin.Context) {
 			continue
 		}
 		tempItem[`images`] = images
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			tempItem[`mini_card`] = qaMiniCards[cast.ToInt(item[`id`])]
+		default:
+			tempItem[`mini_card`] = paragraphMiniCards[cast.ToInt(item[`id`])]
+		}
 		formatedList = append(formatedList, tempItem)
 	}
 
@@ -223,6 +251,8 @@ func SaveCategoryParagraph(c *gin.Context) {
 	answer := strings.TrimSpace(c.PostForm(`answer`))
 	images := c.PostFormArray(`images`)
 	categoryId := cast.ToInt(c.PostForm(`category_id`))
+	miniCard, miniCardSet := c.GetPostForm(`mini_card`)
+	miniCard = strings.TrimSpace(miniCard)
 	if id < 0 || libraryId < 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
@@ -232,6 +262,10 @@ func SaveCategoryParagraph(c *gin.Context) {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
+	}
+	miniCardTargetType := common.AdminMiniCardTargetLibraryParagraph
+	if cast.ToInt(library[`type`]) == define.QALibraryType {
+		miniCardTargetType = common.AdminMiniCardTargetLibraryQA
 	}
 
 	m := msql.Model(`chat_ai_library_file_data`, define.Postgres)
@@ -260,6 +294,24 @@ func SaveCategoryParagraph(c *gin.Context) {
 	} else {
 		if len(content) < 1 || utf8.RuneCountInString(content) > common.MaxContent {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `length_error`))))
+			return
+		}
+	}
+	miniCardIDs := make([]int, 0)
+	if miniCardSet {
+		miniCardIDs, err = common.ParseAdminMiniCardIDs(miniCard)
+		if err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `mini_card`))))
+			return
+		}
+		ok, err := common.ValidateAdminMiniCards(userId, miniCardIDs)
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if !ok {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `mini_card`))))
 			return
 		}
 	}
@@ -344,6 +396,13 @@ func SaveCategoryParagraph(c *gin.Context) {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
+	}
+	if miniCardSet {
+		if err = common.SaveAdminMiniCardRelations(userId, libraryId, miniCardTargetType, cast.ToInt(id), miniCardIDs); err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
 	}
 
 	//async task:convert vector
@@ -430,6 +489,10 @@ func SaveParagraph(c *gin.Context) {
 	if err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
+	}
+	if miniCard, ok := c.GetPostForm(`mini_card`); ok {
+		req.MiniCard = strings.TrimSpace(miniCard)
+		req.MiniCardSet = true
 	}
 	req.HeaderToken = c.GetHeader(`token`)
 	data, httpStatus, err := BridgeSaveParagraph(adminUserId, userId, common.GetLang(c), &req)

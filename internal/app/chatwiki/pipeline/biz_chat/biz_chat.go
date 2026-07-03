@@ -5,6 +5,7 @@ package biz_chat
 import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
+	"chatwiki/internal/pkg/custom_eino"
 	"chatwiki/internal/pkg/pipeline"
 	"time"
 
@@ -41,6 +42,7 @@ type ChatInParam struct {
 	robotAbilityPayment      bool
 	isPaymentManager         bool // is payment manager
 	paymentSkipAIAndWorkflow bool // payment skip ai and workflow
+	e2bShell                 *custom_eino.E2BShell
 }
 
 // Stream push stream events to frontend.

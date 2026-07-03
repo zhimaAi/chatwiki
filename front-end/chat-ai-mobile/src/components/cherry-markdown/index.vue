@@ -82,6 +82,51 @@
   p{
     font-size: 14px;
   }
+  .wx-mini-card {
+    display: inline-block;
+    width: 188px;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 8px;
+    margin-right: 4px;
+  }
+  .wx-mini-card-title {
+    font-size: 14px;
+    color: #262626;
+    line-height: 22px;
+    width: 172px;
+    max-height: 44px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .wx-mini-card-cover {
+    width: 172px;
+    height: 138px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      margin-top: 0;
+      min-height: 0;
+      max-height: none;
+    }
+  }
+  .wx-mini-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    span {
+      font-size: 12px;
+      color: #bfbfbf;
+      line-height: 20px;
+    }
+  }
 }
 </style>
 
@@ -95,6 +140,7 @@ import CherryEngine from 'cherry-markdown/dist/cherry-markdown.engine.core'
 import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import textParseProcessing from '@/utils/textParseProcessing'
 import { useChatStore } from '@/stores/modules/chat'
+import wxMiniCardHook from './wx-mini-card-hook'
 const chatStore = useChatStore()
 const externalConfigH5 = computed(()=> chatStore.externalConfigH5)
 
@@ -140,6 +186,13 @@ const md = new CherryEngine({
         src: './libs/MathJax/es5/tex-svg.js',
         // src: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js',
       },
+    },
+    customSyntax: {
+      wxMiniCard: {
+        syntaxClass: wxMiniCardHook,
+        force: false,
+        before: 'normalParagraph',
+      }
     }
   }
 })

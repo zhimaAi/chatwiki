@@ -7,6 +7,8 @@
   "process_thinking_again": "再次思考",
   "process_tool_step": "工具调用",
   "process_tool_running": "工具调用中...",
+  "label_params": "参数",
+  "label_output": "输出",
   "featured": "精选",
   "copy": "复制",
   "like": "点赞",

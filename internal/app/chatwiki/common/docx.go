@@ -194,7 +194,7 @@ func ReadPdf(pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int
 			if p.V.IsNull() {
 				continue
 			}
-			content, err := p.GetPlainText(nil)
+			content, err := p.GetPlainTextPro(nil)
 			if err != nil {
 				logs.Error(err.Error())
 				continue
@@ -209,7 +209,7 @@ func ReadPdf(pdfUrl string, pageNum int, lang string) (define.DocSplitItems, int
 		if p.V.IsNull() {
 			return nil, 0, errors.New(i18n.Show(lang, `page_not_found`))
 		}
-		content, err := p.GetPlainText(nil)
+		content, err := p.GetPlainTextPro(nil)
 		if err != nil {
 			return nil, 0, err
 		}

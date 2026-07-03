@@ -178,7 +178,7 @@
         </div>
       </div>
     </div>
-    <EditFragmentAlert ref="editFragmentAlertRef" @ok="saveFragment" />
+    <EditFragmentAlert ref="editFragmentAlertRef" @ok="saveFragment" :showMiniCard="true" />
   </div>
 </template>
 
@@ -604,12 +604,12 @@ const getAiDocumentFragment = () => {
 const editFragmentAlertRef = ref(null)
 let editFragmentIndex = null
 
-const handleEditFragment = ({ title, content, question, answer, images }, index) => {
+const handleEditFragment = ({ title, content, question, answer, images, mini_card }, index) => {
   editFragmentIndex = index
-  editFragmentAlertRef.value.open({ title, content, question, answer, images })
+  editFragmentAlertRef.value.open({ title, content, question, answer, images, mini_card })
 }
 
-const saveFragment = ({ title, content, question, answer, images }) => {
+const saveFragment = ({ title, content, question, answer, images, mini_cards }) => {
   if (
     documentFragmentList.value[editFragmentIndex].title != title ||
     documentFragmentList.value[editFragmentIndex].content != content ||
@@ -624,6 +624,7 @@ const saveFragment = ({ title, content, question, answer, images }) => {
   documentFragmentList.value[editFragmentIndex].question = question
   documentFragmentList.value[editFragmentIndex].answer = answer
   documentFragmentList.value[editFragmentIndex].images = images
+  documentFragmentList.value[editFragmentIndex].mini_card = mini_cards || []
 
   documentFragmentList.value[editFragmentIndex].word_total =
     answer.length + question.length + content.length
@@ -722,7 +723,16 @@ const handleSaveLibFileSplit = async () => {
     file_id: id,
     word_total: formatWoedTotal(documentFragmentList.value),
     split_params: JSON.stringify(split_params),
-    list: JSON.stringify(documentFragmentList.value),
+    list: JSON.stringify(documentFragmentList.value.map(item => {
+      const cards = item.mini_card || item.mini_cards || []
+      const rest = { ...item }
+      delete rest.mini_card
+      delete rest.mini_cards
+      return {
+        ...rest,
+        mini_card: cards.map(card => card.id).join(',')
+      }
+    })),
     ...props.pdfState
   }
 

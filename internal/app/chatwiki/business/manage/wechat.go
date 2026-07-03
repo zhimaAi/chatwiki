@@ -17,6 +17,10 @@ import (
 	"strings"
 	"time"
 
+	cams "github.com/alibabacloud-go/cams-20200606/v5/client"
+	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
+	"github.com/alibabacloud-go/tea/dara"
+	"github.com/aliyun/credentials-go/credentials"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -57,6 +61,15 @@ func GetWechatAppList(c *gin.Context) {
 	}
 	lang := common.GetLang(c)
 	for i, appInfo := range list {
+
+		if appInfo[`app_type`] == lib_define.AppWhatsapp {
+			// WhatsApp: expose stored values under the same field names the save form uses, so the
+			// frontend can prefill the edit form straight from the list without a detail request.
+			// Sensitive values (access_key_secret) are returned in plaintext for now (no encryption yet).
+			list[i][`access_key_id`] = appInfo[`cams_access_key_id`]
+			list[i][`cust_space_id`] = appInfo[`cams_cust_space_id`]
+			list[i][`access_key_secret`] = appInfo[`app_secret`]
+		}
 
 		accountIsVerify := lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`])
 		list[i][`account_is_verify`] = cast.ToString(accountIsVerify)
@@ -222,9 +235,13 @@ func SaveWechatApp(c *gin.Context) {
 	appSecret := strings.TrimSpace(c.DefaultPostForm(`app_secret`, `no-need`))
 	appAvatar := ``
 	appType := strings.TrimSpace(c.PostForm(`app_type`))
+	if appType == lib_define.AppWhatsapp {
+		appId = normalizeWhatsappAppID(appId)
+	}
 	//unchangeable
 	var accessKey string
 	var oldAppId string
+	var oldAccessKey string
 	if id > 0 {
 		requestAppId := appId
 		appInfo, err := common.GetWechatAppInfo(`id`, cast.ToString(id))
@@ -238,10 +255,14 @@ func SaveWechatApp(c *gin.Context) {
 			return
 		}
 		accessKey = appInfo[`access_key`]
+		oldAccessKey = appInfo[`access_key`]
 		robotId = cast.ToInt(appInfo[`robot_id`])
 		appType = appInfo[`app_type`]
 		oldAppId = appInfo[`app_id`]
 		appId = resolveWechatAppSaveAppID(appType, oldAppId, requestAppId)
+		if appType == lib_define.AppWhatsapp {
+			appId = normalizeWhatsappAppID(appId)
+		}
 	} else {
 		if appInfo, err := common.GetWechatAppInfo(`app_id`, appId); err != nil {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -253,7 +274,16 @@ func SaveWechatApp(c *gin.Context) {
 		appAvatar = define.LocalUploadPrefix + fmt.Sprintf(`default/%s_avatar.png`, appType)
 	}
 	//check required
-	if id < 0 || len(appName) == 0 || len(appId) == 0 || len(appSecret) == 0 || len(appType) == 0 {
+	// WhatsApp reuses app_id (= phone number) but supplies its credentials via
+	// access_key_secret/access_key_id/cust_space_id, validated inside the AppWhatsapp branch.
+	// app_secret is never sent for WhatsApp (it defaults to "no-need"), so skip the generic
+	// app_secret requirement here; app_id is still required and checked in the branch.
+	if appType == lib_define.AppWhatsapp {
+		if id < 0 || len(appName) == 0 || len(appType) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+			return
+		}
+	} else if id < 0 || len(appName) == 0 || len(appId) == 0 || len(appSecret) == 0 || len(appType) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -273,6 +303,114 @@ func SaveWechatApp(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `max_official_accounts_limit`))))
 			return
 		}
+	}
+
+	//WhatsApp channel: read its own fields, run connectivity check, skip generic token verification
+	if appType == lib_define.AppWhatsapp {
+		accessKeySecret := strings.TrimSpace(c.PostForm(`access_key_secret`))
+		accessKeyId := strings.TrimSpace(c.PostForm(`access_key_id`))
+		custSpaceId := strings.TrimSpace(c.PostForm(`cust_space_id`))
+		// Same edit model as other channels: the frontend prefills the form from
+		// getWechatAppList (incl. the plaintext secret) and re-submits every field, so we
+		// simply overwrite with what was posted — no blank-keep special-casing.
+		if len(appId) == 0 || len(accessKeySecret) == 0 || len(accessKeyId) == 0 || len(custSpaceId) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+			return
+		}
+		// Connectivity verification (appId is the phone number)
+		if verifyErr := verifyWhatsappConnectivity(common.GetLang(c), accessKeyId, accessKeySecret, custSpaceId, appId); verifyErr != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, verifyErr))
+			return
+		}
+		// Duplicate phone check for edit scenario (new records are checked above)
+		if id > 0 && appId != oldAppId {
+			if existing, err := common.GetWechatAppInfo(`app_id`, appId); err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			} else if len(existing) > 0 && cast.ToInt(existing[`id`]) != id {
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `app_exist`))))
+				return
+			}
+		}
+		// app_secret column reuses the WhatsApp access_key_secret (shared schema)
+		appSecret = accessKeySecret
+
+		//app_avatar upload
+		fileHeader, _ := c.FormFile(`app_avatar`)
+		uploadInfo, err := common.SaveUploadedFile(fileHeader, define.ImageLimitSize, userId, `app_avatar`, define.ImageAllowExt)
+		if err == nil && uploadInfo != nil {
+			appAvatar = uploadInfo.Link
+		}
+		// Derive a channel-level callback key from CustSpaceId. All phone numbers in
+		// the same channel share one push_url, then inbound callbacks are routed by To.
+		accessKey = deriveWhatsappAccessKey(custSpaceId)
+		//database dispose
+		data := msql.Datas{
+			`app_name`:           appName,
+			`app_secret`:         appSecret,
+			`access_key`:         accessKey,
+			`cams_access_key_id`: accessKeyId,
+			`cams_cust_space_id`: custSpaceId,
+			`update_time`:        tool.Time2Int(),
+		}
+		//WhatsApp must be bound to a robot
+		robot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(robotId)).
+			Where(`admin_user_id`, cast.ToString(userId)).Field(`id,robot_key`).Find()
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		if len(robot) == 0 {
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+			return
+		}
+		data[`robot_key`] = robot[`robot_key`]
+		if len(appAvatar) > 0 {
+			data[`app_avatar`] = appAvatar
+		}
+		m := msql.Model(`chat_ai_wechat_app`, define.Postgres)
+		if id > 0 {
+			if appId != oldAppId {
+				data[`app_id`] = appId
+			}
+			// access_key follows cust_space_id, so changing the channel updates push_url.
+			_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		} else {
+			data[`admin_user_id`] = userId
+			data[`robot_id`] = robotId
+			data[`app_id`] = appId
+			data[`app_type`] = appType
+			data[`set_type`] = lib_define.PwdSetType
+			data[`create_time`] = data[`update_time`]
+			_, err = m.Insert(data)
+		}
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		//clear cached data
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `id`, Value: cast.ToString(id)})
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: appId})
+		if len(oldAppId) > 0 && oldAppId != appId {
+			lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `app_id`, Value: oldAppId})
+		}
+		lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: accessKey})
+		if len(oldAccessKey) > 0 && oldAccessKey != accessKey {
+			lib_redis.DelCacheData(define.Redis, &common.WechatAppCacheBuildHandler{Field: `access_key`, Value: oldAccessKey})
+		}
+		//configure external service parameters
+		// Query by app_id here because access_key is shared by all phone numbers in a channel.
+		appInfo, err := common.GetWechatAppInfo(`app_id`, appId)
+		if err == nil {
+			// WhatsApp callback authenticates purely via the access_key in push_url; it does
+			// not use the WeChat-style push_token/push_aeskey, so we don't return them here.
+			appInfo[`push_url`] = fmt.Sprintf(`%s/push_pwd/%s/%s`, define.Config.WebService[`push_domain`], appInfo[`app_type`], appInfo[`access_key`])
+		}
+		c.String(http.StatusOK, lib_web.FmtJson(appInfo, err))
+		return
 	}
 
 	//get token verification
@@ -424,10 +562,79 @@ func SaveWechatApp(c *gin.Context) {
 }
 
 func resolveWechatAppSaveAppID(appType, oldAppId, requestAppId string) string {
-	if appType == lib_define.AppWecomRobot || appType == lib_define.AppMessenger {
+	if appType == lib_define.AppWecomRobot || appType == lib_define.AppMessenger || appType == lib_define.AppWhatsapp {
 		return requestAppId
 	}
 	return oldAppId
+}
+
+func normalizeWhatsappAppID(appId string) string {
+	return strings.TrimPrefix(strings.TrimSpace(appId), `+`)
+}
+
+// deriveWhatsappAccessKey deterministically maps one CustSpaceId to one callback key.
+// The prefix avoids collisions with legacy random keys from other channels.
+func deriveWhatsappAccessKey(custSpaceId string) string {
+	return `wa` + tool.MD5(`whatsapp:` + custSpaceId)[:18]
+}
+
+// verifyWhatsappConnectivity calls QueryChatappPhoneNumbers to confirm the AK is valid
+// and that phoneNumber exists in the CustSpace's registered phone list.
+func verifyWhatsappConnectivity(lang, accessKeyId, accessKeySecret, custSpaceId, phoneNumber string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New(fmt.Sprint(r))
+		}
+	}()
+	credential, credErr := credentials.NewCredential(&credentials.Config{
+		Type:            dara.String(`access_key`),
+		AccessKeyId:     dara.String(accessKeyId),
+		AccessKeySecret: dara.String(accessKeySecret),
+	})
+	if credErr != nil {
+		return credErr
+	}
+	client, clientErr := cams.NewClient(&openapiutil.Config{
+		Credential: credential,
+		Endpoint:   dara.String(`cams.ap-southeast-1.aliyuncs.com`),
+	})
+	if clientErr != nil {
+		return clientErr
+	}
+	req := &cams.QueryChatappPhoneNumbersRequest{
+		CustSpaceId: dara.String(custSpaceId),
+	}
+	resp, callErr := client.QueryChatappPhoneNumbersWithOptions(req, &dara.RuntimeOptions{})
+	if callErr != nil {
+		var sdkErr *dara.SDKError
+		if errors.As(callErr, &sdkErr) {
+			return errors.New(i18n.Show(lang, `whatsapp_verify_failed`, *sdkErr.Message))
+		}
+		return callErr
+	}
+	if resp == nil || resp.Body == nil {
+		return errors.New(i18n.Show(lang, `whatsapp_verify_empty_resp`))
+	}
+	body := resp.Body
+	code := ``
+	if body.Code != nil {
+		code = *body.Code
+	}
+	if code != `OK` {
+		msg := ``
+		if body.Message != nil {
+			msg = *body.Message
+		}
+		return errors.New(i18n.Show(lang, `whatsapp_verify_failed`, fmt.Sprintf(`%s %s`, code, msg)))
+	}
+	// Normalize phone: strip leading '+' for comparison since Aliyun stores without '+'
+	normalizedPhone := strings.TrimPrefix(phoneNumber, `+`)
+	for _, p := range body.PhoneNumbers {
+		if p != nil && p.PhoneNumber != nil && *p.PhoneNumber == normalizedPhone {
+			return nil
+		}
+	}
+	return errors.New(i18n.Show(lang, `whatsapp_phone_not_registered`))
 }
 
 func SortWechatApp(c *gin.Context) {
@@ -475,6 +682,14 @@ func GetWechatAppInfo(c *gin.Context) {
 	}
 	if len(appInfo) == 0 || cast.ToInt(appInfo[`admin_user_id`]) != userId {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if appInfo[`app_type`] == lib_define.AppWhatsapp {
+		appInfo[`access_key_id`] = appInfo[`cams_access_key_id`]
+		appInfo[`cust_space_id`] = appInfo[`cams_cust_space_id`]
+		appInfo[`access_key_secret`] = appInfo[`app_secret`]
+		appInfo[`push_url`] = fmt.Sprintf(`%s/push_pwd/%s/%s`, define.Config.WebService[`push_domain`], appInfo[`app_type`], appInfo[`access_key`])
+		c.String(http.StatusOK, lib_web.FmtJson(appInfo, nil))
 		return
 	}
 	//configure external service parameters

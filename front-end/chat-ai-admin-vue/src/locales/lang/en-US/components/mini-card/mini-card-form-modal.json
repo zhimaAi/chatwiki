@@ -1,0 +1,22 @@
+{
+  "title_add": "Add WeChat Mini Program Card",
+  "title_edit": "Edit WeChat Mini Program Card",
+  "tip_channel_limit": "Mini program cards can only be sent via Official Account, WeChat Customer Service, and WeChat Mini Program channels. Other channels will fail to send. Replies within the Official Account must be associated with the Mini Program, and replies within the WeChat Mini Program must be the current Mini Program.",
+  "label_title": "Mini Program Title",
+  "ph_title": "Please enter the mini program card title",
+  "label_appid": "Mini Program AppID",
+  "ph_appid": "Please enter the mini program AppID",
+  "label_path": "Mini Program Path",
+  "ph_path": "Please enter the mini program path",
+  "tip_path": "Please contact the mini program developer to get the path, e.g. /pages/index/index. Note: the path should start with /",
+  "label_cover": "Mini Program Cover",
+  "btn_upload": "Upload Photo",
+  "msg_input_title": "Please enter the mini program title",
+  "msg_input_appid": "Please enter the mini program AppID",
+  "msg_input_path": "Please enter the mini program path",
+  "msg_upload_cover": "Please upload the mini program cover",
+  "msg_image_format": "Only JPG and PNG formats are supported",
+  "msg_image_size": "Image size cannot exceed 2M",
+  "msg_upload_failed": "Upload failed",
+  "msg_save_success": "Saved successfully"
+}

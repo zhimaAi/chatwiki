@@ -7,6 +7,8 @@
   "process_thinking_again": "Thinking again",
   "process_tool_step": "Tool call",
   "process_tool_running": "Calling tool...",
+  "label_params": "Parameters",
+  "label_output": "Output",
   "featured": "Featured",
   "copy": "Copy",
   "like": "Like",

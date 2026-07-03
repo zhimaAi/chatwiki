@@ -40,7 +40,7 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 		return
 	}
 	// get file data
-	list, err = GetFileDataInfo(fileDataIds, fileId, pdfPageNum, lang)
+	list, err = GetFileDataInfo(userId, fileDataIds, fileId, pdfPageNum, lang)
 	// split by document type
 	if splitParams.IsQaDoc == define.DocTypeQa {
 		if cast.ToInt(info[`is_table_file`]) != define.FileIsTable {
@@ -65,8 +65,33 @@ func GetParagraphSplit(userId, fileId, pdfPageNum int, fileDataIds string, split
 	return
 }
 
-func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list define.DocSplitItems, err error) {
-	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, id).Select()
+// GetFileDataInfo loads paragraph data for the current admin user and attaches related mini cards.
+func GetFileDataInfo(adminUserId int, id string, fileId, pdfPageNum int, lang string) (list define.DocSplitItems, err error) {
+	data, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`file_id`, cast.ToString(fileId)).
+		Where(`id`, `in`, id).
+		Select()
+	if err != nil {
+		err = errors.New(i18n.Show(lang, `sys_err`))
+		return
+	}
+	paragraphIds := make([]int, 0)
+	qaIds := make([]int, 0)
+	for _, item := range data {
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			qaIds = append(qaIds, cast.ToInt(item[`id`]))
+		default:
+			paragraphIds = append(paragraphIds, cast.ToInt(item[`id`]))
+		}
+	}
+	paragraphMiniCards, err := GetAdminMiniCardsByTargets(adminUserId, AdminMiniCardTargetLibraryParagraph, paragraphIds)
+	if err != nil {
+		err = errors.New(i18n.Show(lang, `sys_err`))
+		return
+	}
+	qaMiniCards, err := GetAdminMiniCardsByTargets(adminUserId, AdminMiniCardTargetLibraryQA, qaIds)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
 		return
@@ -76,6 +101,13 @@ func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list d
 		if item[`images`] != "" {
 			tool.JsonDecode(cast.ToString(item[`images`]), &images)
 		}
+		miniCard := make([]map[string]any, 0)
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			miniCard = qaMiniCards[cast.ToInt(item[`id`])]
+		default:
+			miniCard = paragraphMiniCards[cast.ToInt(item[`id`])]
+		}
 		list = append(list, define.DocSplitItem{
 			FileDataId: cast.ToInt(item[`id`]),
 			PageNum:    cast.ToInt(item[`page_num`]),
@@ -84,6 +116,7 @@ func GetFileDataInfo(id string, FileDataId, pdfPageNum int, lang string) (list d
 			Answer:     item[`answer`],
 			Images:     images,
 			WordTotal:  cast.ToInt(item[`word_total`]),
+			MiniCard:   miniCard,
 			// Father-son chunking
 			FatherChunkParagraphNumber: cast.ToInt(item[`father_chunk_paragraph_number`]),
 		})
@@ -125,6 +158,15 @@ func SaveSplitParagraph(adminUserId, fileId int, paragraph msql.Params, list def
 			_, err = indexModel.Where(`data_id`, item[`id`]).Delete()
 			if err != nil {
 				logs.Error(`sql:%s,err:%s`, indexModel.GetLastSql(), err.Error())
+			}
+			dataId := cast.ToInt(item[`id`])
+			if err = ClearAdminMiniCardRelationsByTargetIds(adminUserId, AdminMiniCardTargetLibraryParagraph, []int{dataId}); err != nil {
+				logs.Error(err.Error())
+				return list, err
+			}
+			if err = ClearAdminMiniCardRelationsByTargetIds(adminUserId, AdminMiniCardTargetLibraryQA, []int{dataId}); err != nil {
+				logs.Error(err.Error())
+				return list, err
 			}
 			// Set numbers for new data
 			for i := range list {

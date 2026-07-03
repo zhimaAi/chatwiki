@@ -1,0 +1,11 @@
+{
+  "title": "推荐商品分组目录范围",
+  "radio_scope_all": "全部商品",
+  "radio_scope_partial": "部分分组商品",
+  "label_ungrouped": "未分组",
+  "msg_load_groups_failed": "获取商品分组失败",
+  "btn_cancel": "取消",
+  "btn_confirm": "确定",
+  "msg_saved": "推荐范围保存成功",
+  "msg_save_failed": "推荐范围保存失败"
+}

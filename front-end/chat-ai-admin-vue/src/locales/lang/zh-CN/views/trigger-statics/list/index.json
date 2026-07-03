@@ -1,5 +1,6 @@
 {
   "knowledge_base": "知识库",
+  "goods_library": "商品库",
   "database": "数据库",
   "document_extraction_faq": "文档提取FAQ",
   "trigger_count_statistics": "触发次数统计",

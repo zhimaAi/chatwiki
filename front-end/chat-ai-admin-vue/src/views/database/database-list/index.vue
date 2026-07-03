@@ -93,6 +93,10 @@ const pageTabs = computed(() => [
     path: '/library/list'
   },
   {
+    title: t('page_tabs.goods_library'),
+    path: '/library/goods-library'
+  },
+  {
     title: t('page_tabs.database'),
     path: '/database/list'
   },

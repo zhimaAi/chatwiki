@@ -18,12 +18,20 @@
     </template>
 
     <div class="skill-drawer">
-      <a-button type="dashed" block class="add-skill-btn" @click="handleOpenToolModal">
-        <template #icon>
-          <PlusOutlined />
-        </template>
-        {{ t('btn_add_skill') }}
-      </a-button>
+      <div class="add-action-row">
+        <a-button type="dashed" class="add-skill-btn" @click="handleOpenToolModal">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          {{ t('menu_add_tool') }}
+        </a-button>
+        <a-button type="dashed" class="add-skill-btn" @click="handleOpenSelectSkillModal">
+          <template #icon>
+            <PlusOutlined />
+          </template>
+          {{ t('btn_add_skill') }}
+        </a-button>
+      </div>
 
       <div class="skill-card">
         <div class="skill-card-header">
@@ -32,7 +40,9 @@
               <span class="skill-title">{{ t('title_query_knowledge_base') }}</span>
               <span class="skill-tag skill">{{ t('tag_skill') }}</span>
             </div>
-            <div class="skill-desc">{{ t('desc_query_knowledge_base') }}</div>
+            <div v-overflow-tooltip="t('desc_query_knowledge_base')" class="skill-desc">
+              {{ t('desc_query_knowledge_base') }}
+            </div>
           </div>
           <div class="skill-status-text-group" :class="{ inactive: !knowledgeEnabled }">
             <span class="skill-status-dot"></span>
@@ -101,7 +111,9 @@
               <span class="skill-title">{{ t('title_query_local_docs') }}</span>
               <span class="skill-tag skill">{{ t('tag_skill') }}</span>
             </div>
-            <div class="skill-desc">{{ t('desc_query_local_docs') }}</div>
+            <div v-overflow-tooltip="t('desc_query_local_docs')" class="skill-desc">
+              {{ t('desc_query_local_docs') }}
+            </div>
           </div>
           <div class="skill-status-text-group" :class="{ inactive: !localDocsEnabled }">
             <span class="skill-status-dot"></span>
@@ -161,6 +173,158 @@
         </div>
       </div>
 
+      <div class="skill-card">
+        <div class="skill-card-header">
+          <div class="skill-card-header-left">
+            <div class="skill-title-row">
+              <span class="skill-title">{{ t('title_agent_write_file') }}</span>
+              <span class="skill-tag tool">{{ t('tag_tool') }}</span>
+            </div>
+            <div class="skill-desc">{{ t('desc_agent_write_file') }}</div>
+          </div>
+          <div class="skill-status-text-group" :class="{ inactive: !writeFileEnabled }">
+            <span class="skill-status-dot"></span>
+            <span class="skill-status-text">{{ writeFileEnabled ? t('status_enabled') : t('status_disabled') }}</span>
+          </div>
+        </div>
+        <div class="skill-footer">
+          <div class="skill-footer-actions" />
+          <a-switch
+            class="skill-switch"
+            :checked="writeFileEnabled"
+            :loading="writeFileSwitchLoading"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
+            @change="toggleWriteFile"
+          />
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <div class="skill-card-header">
+          <div class="skill-card-header-left">
+            <div class="skill-title-row">
+              <span class="skill-title">{{ t('title_agent_edit_file') }}</span>
+              <span class="skill-tag tool">{{ t('tag_tool') }}</span>
+            </div>
+            <div class="skill-desc">{{ t('desc_agent_edit_file') }}</div>
+          </div>
+          <div class="skill-status-text-group" :class="{ inactive: !editFileEnabled }">
+            <span class="skill-status-dot"></span>
+            <span class="skill-status-text">{{ editFileEnabled ? t('status_enabled') : t('status_disabled') }}</span>
+          </div>
+        </div>
+        <div class="skill-footer">
+          <div class="skill-footer-actions" />
+          <a-switch
+            class="skill-switch"
+            :checked="editFileEnabled"
+            :loading="editFileSwitchLoading"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
+            @change="toggleEditFile"
+          />
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <div class="skill-card-header">
+          <div class="skill-card-header-left">
+            <div class="skill-title-row">
+              <span class="skill-title">{{ t('title_agent_execute') }}</span>
+              <span class="skill-tag tool">{{ t('tag_tool') }}</span>
+            </div>
+            <div class="skill-desc">{{ t('desc_agent_execute') }}</div>
+          </div>
+          <div class="skill-status-text-group" :class="{ inactive: !executeEnabled }">
+            <span class="skill-status-dot"></span>
+            <span class="skill-status-text">{{ executeEnabled ? t('status_enabled') : t('status_disabled') }}</span>
+          </div>
+        </div>
+        <div class="skill-footer">
+          <div class="skill-footer-actions" />
+          <a-switch
+            class="skill-switch"
+            :checked="executeEnabled"
+            :loading="executeSwitchLoading"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
+            @change="toggleExecute"
+          />
+        </div>
+      </div>
+
+      <!-- 从商品库推荐商品 -->
+      <div class="skill-card">
+        <div class="skill-card-header">
+          <div class="skill-card-header-left">
+            <div class="skill-title-row">
+              <span class="skill-title">{{ t('title_goods_recommend') }}</span>
+              <span class="skill-tag tool">{{ t('tag_tool') }}</span>
+            </div>
+            <div class="skill-desc">{{ t('desc_goods_recommend') }}</div>
+          </div>
+          <div class="skill-status-text-group" :class="{ inactive: !goodsRecommendEnabled }">
+            <span class="skill-status-dot"></span>
+            <span class="skill-status-text">{{ goodsRecommendEnabled ? t('status_enabled') : t('status_disabled') }}</span>
+          </div>
+        </div>
+
+        <div class="skill-content-block">
+          <div class="scope-info-text">{{ scopeInfoText }}</div>
+        </div>
+
+        <div class="skill-footer">
+          <div class="skill-footer-actions">
+            <button class="skill-action-btn skill-action-btn-primary" type="button" @click="handleOpenScopeModal">
+              {{ t('btn_recommend_scope') }}
+            </button>
+          </div>
+          <a-switch
+            class="skill-switch"
+            :checked="goodsRecommendEnabled"
+            :loading="goodsSwitchLoading"
+            :checked-children="t('switch_on')"
+            :un-checked-children="t('switch_off')"
+            @change="toggleGoodsRecommend"
+          />
+        </div>
+      </div>
+      
+      <div
+        v-for="item in skills"
+        :key="item.id"
+        class="skill-card"
+      >
+        <div class="skill-card-header">
+          <div class="skill-card-header-left">
+            <div class="skill-title-row">
+              <span class="skill-title">{{ item.name }}</span>
+              <span class="skill-tag skill">{{ t('tag_skill') }}</span>
+            </div>
+            <div v-overflow-tooltip="item.desc || ''" class="skill-desc">
+              {{ item.desc || '' }}
+            </div>
+          </div>
+          <div class="skill-status-text-group">
+            <span class="skill-status-dot"></span>
+            <span class="skill-status-text">{{ t('status_enabled') }}</span>
+          </div>
+        </div>
+
+        <div class="skill-footer single-action">
+          <div class="skill-footer-actions">
+            <button class="skill-action-btn skill-action-btn-danger" type="button" @click="handleRemoveSkill(item)">
+              {{ t('btn_remove') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="skillListLoading" class="tool-loading-card">
+        <a-spin />
+      </div>
+
       <div
         v-for="item in workFlowSkills"
         :key="item.id"
@@ -172,7 +336,9 @@
               <span class="skill-title">{{ item.name }}</span>
               <span class="skill-tag tool">{{ t('tag_tool') }}</span>
             </div>
-            <div class="skill-desc">{{ item.desc || '—' }}</div>
+            <div v-overflow-tooltip="item.desc || '—'" class="skill-desc">
+              {{ item.desc || '—' }}
+            </div>
           </div>
           <div class="skill-status-text-group">
             <span class="skill-status-dot"></span>
@@ -211,16 +377,32 @@
       :workFlowIds="robotInfo?.work_flow_ids || ''"
       @confirm="handleToolConfirm"
     />
+    <SelectSkillModal
+      v-model:visible="selectSkillModalVisible"
+      :robotId="currentAssistant?.id"
+      :refreshKey="selectSkillRefreshKey"
+      @create="handleOpenUploadSkillModal"
+      @confirm="handleSelectSkillConfirm"
+    />
+    <UploadSkillZipModal
+      v-model:visible="uploadSkillZipVisible"
+      :robotId="currentAssistant?.id"
+      :skill-id="editingSkillId"
+      @confirm="handleUploadSkillConfirm"
+    />
     <LocalDocUploadModal
       v-model:open="uploadModalOpen"
       :loading="uploading"
       @confirm="handleUploadConfirm"
     />
+
+    <!-- 推荐范围弹窗 -->
+    <GoodsRecommendScopeModal v-model:visible="scopeModalVisible" />
   </a-drawer>
 </template>
 
 <script setup>
-import { computed, createVNode, reactive, ref, toRaw, watch, watchEffect } from 'vue'
+import { computed, createVNode, nextTick, reactive, ref, toRaw, watch, watchEffect } from 'vue'
 import dayjs from 'dayjs'
 import { storeToRefs } from 'pinia'
 import {
@@ -235,14 +417,23 @@ import { useClawbotStore } from '@/stores/modules/clawbot'
 import { getRobotList, relationWorkFlow } from '@/api/robot'
 import { getLibraryList } from '@/api/library'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
-import { uploadClawbotLocalDoc, getClawbotLocalDocList, deleteClawbotLocalDoc } from '@/api/clawbot'
+import {
+  deleteClawbotSkill,
+  uploadClawbotLocalDoc,
+  getClawbotLocalDocList,
+  deleteClawbotLocalDoc,
+  getClawbotSkillList
+} from '@/api/clawbot'
 import AddToolModal from '@/views/clawbot/skills/components/AddToolModal.vue'
+import SelectSkillModal from '@/views/clawbot/skills/components/SelectSkillModal.vue'
+import UploadSkillZipModal from '@/views/clawbot/skills/components/UploadSkillZipModal.vue'
+import GoodsRecommendScopeModal from '@/views/clawbot/skills/components/GoodsRecommendScopeModal.vue'
 import LocalDocUploadModal from '@/views/clawbot/components/LocalDocUploadModal.vue'
 import LibrarySelectAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/library-select-alert.vue'
 import RecallSettingsAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/recall-settings-alert.vue'
 import NoOpenGraphModal from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/no-open-graph-modal.vue'
 
-const { t } = useI18n('views.clawbot.chat.components.skill-drawer')
+const { t } = useI18n('views.clawbot.skills.index')
 const props = defineProps({
   open: {
     type: Boolean,
@@ -257,10 +448,19 @@ const { robotInfo, currentAssistant } = storeToRefs(clawbotStore)
 const { updateClawbotConf, fetchRobotInfo } = clawbotStore
 
 const toolModalVisible = ref(false)
+const selectSkillModalVisible = ref(false)
+const selectSkillRefreshKey = ref(0)
+const uploadSkillZipVisible = ref(false)
+const editingSkillId = ref(0)
 const workFlowLoading = ref(false)
 const workFlowSkills = ref([])
+const skillListLoading = ref(false)
+const uploadedSkills = ref([])
 const knowledgeSwitchLoading = ref(false)
 const localDocsSwitchLoading = ref(false)
+const writeFileSwitchLoading = ref(false)
+const editFileSwitchLoading = ref(false)
+const executeSwitchLoading = ref(false)
 const knowledgeLoading = ref(false)
 const localDocsLoading = ref(false)
 const uploading = ref(false)
@@ -268,11 +468,48 @@ const deletingMap = ref({})
 const localDocList = ref([])
 const uploadModalOpen = ref(false)
 
+// 商品库推荐
+const goodsSwitchLoading = ref(false)
+const scopeModalVisible = ref(false)
+
 const libraryList = ref([])
 const librarySelectAlertRef = ref(null)
 const recallSettingsAlertRef = ref(null)
 const noOpenGraphModalRef = ref(null)
 const wxAppLibary = ref(null)
+
+const updateOverflowTooltip = (el, value) => {
+  nextTick(() => {
+    const text = value || ''
+    const isOverflowing = el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1
+
+    if (text && isOverflowing) {
+      el.setAttribute('title', text)
+      return
+    }
+
+    el.removeAttribute('title')
+  })
+}
+
+const vOverflowTooltip = {
+  mounted(el, binding) {
+    updateOverflowTooltip(el, binding.value)
+
+    if (window.ResizeObserver) {
+      el._overflowTooltipObserver = new ResizeObserver(() => {
+        updateOverflowTooltip(el, binding.value)
+      })
+      el._overflowTooltipObserver.observe(el)
+    }
+  },
+  updated(el, binding) {
+    updateOverflowTooltip(el, binding.value)
+  },
+  unmounted(el) {
+    el._overflowTooltipObserver?.disconnect()
+  }
+}
 
 const formState = reactive({
   library_ids: [],
@@ -307,6 +544,18 @@ const parseRrfWeight = (value) => {
 
 const knowledgeEnabled = computed(() => !Number(robotInfo.value?.search_knowledge_close || 0))
 const localDocsEnabled = computed(() => !Number(robotInfo.value?.query_local_docs_close || 0))
+const writeFileEnabled = computed(() => Number(robotInfo.value?.open_agent_write_file_tool || 0) === 1)
+const editFileEnabled = computed(() => Number(robotInfo.value?.open_agent_edit_file_tool || 0) === 1)
+const executeEnabled = computed(() => Number(robotInfo.value?.open_agent_execute_tool || 0) === 1)
+const goodsRecommendEnabled = computed(() => Number(robotInfo.value?.goods_lib_recommend_switch || 0) === 1)
+
+const scopeInfoText = computed(() => {
+  const ids = (robotInfo.value?.goods_lib_recommend_group_ids || '').split(',').filter(Boolean)
+  if (ids.length === 0) {
+    return t('empty_scope_all')
+  }
+  return t('empty_scope_partial', { count: ids.length })
+})
 
 const selectedLibraryRows = computed(() => {
   return libraryList.value.filter((item) => {
@@ -316,6 +565,8 @@ const selectedLibraryRows = computed(() => {
     return formState.library_ids.includes(item.id)
   })
 })
+
+const skills = computed(() => uploadedSkills.value)
 
 const noOpenLibraryList = computed(() => {
   return selectedLibraryRows.value.filter((item) => item.graph_switch == 0)
@@ -367,8 +618,18 @@ watch(
   }
 )
 
+watch(
+  () => currentAssistant.value?.id,
+  () => {
+    if (props.open) {
+      loadSkillList()
+    }
+  }
+)
+
 const hydrateDrawer = async () => {
   await Promise.allSettled([
+    loadSkillList(),
     loadWorkFlowSkills(),
     fetchLocalDocList(),
     getLibraryOptions(),
@@ -380,6 +641,20 @@ const handleClose = () => {
   emit('close')
 }
 
+function buildConfPayload(overrides = {}) {
+  return {
+    id: currentAssistant.value?.id,
+    search_knowledge_close: knowledgeEnabled.value ? 0 : 1,
+    query_local_docs_close: localDocsEnabled.value ? 0 : 1,
+    open_agent_write_file_tool: writeFileEnabled.value ? 1 : 0,
+    open_agent_edit_file_tool: editFileEnabled.value ? 1 : 0,
+    open_agent_execute_tool: executeEnabled.value ? 1 : 0,
+    goods_lib_recommend_switch: goodsRecommendEnabled.value ? 1 : 0,
+    goods_lib_recommend_group_ids: robotInfo.value?.goods_lib_recommend_group_ids || '',
+    ...overrides
+  }
+}
+
 const toggleKnowledge = async (checked) => {
   if (!currentAssistant.value?.id || knowledgeSwitchLoading.value) {
     return
@@ -387,11 +662,7 @@ const toggleKnowledge = async (checked) => {
 
   knowledgeSwitchLoading.value = true
   try {
-    await updateClawbotConf({
-      id: currentAssistant.value.id,
-      search_knowledge_close: checked ? 0 : 1,
-      query_local_docs_close: localDocsEnabled.value ? 0 : 1
-    })
+    await updateClawbotConf(buildConfPayload({ search_knowledge_close: checked ? 0 : 1 }))
   } finally {
     knowledgeSwitchLoading.value = false
   }
@@ -404,14 +675,57 @@ const toggleLocalDocs = async (checked) => {
 
   localDocsSwitchLoading.value = true
   try {
-    await updateClawbotConf({
-      id: currentAssistant.value.id,
-      search_knowledge_close: knowledgeEnabled.value ? 0 : 1,
-      query_local_docs_close: checked ? 0 : 1
-    })
+    await updateClawbotConf(buildConfPayload({ query_local_docs_close: checked ? 0 : 1 }))
   } finally {
     localDocsSwitchLoading.value = false
   }
+}
+
+const toggleWriteFile = async (checked) => {
+  if (!currentAssistant.value?.id || writeFileSwitchLoading.value) return
+  writeFileSwitchLoading.value = true
+  try {
+    await updateClawbotConf(buildConfPayload({ open_agent_write_file_tool: checked ? 1 : 0 }))
+  } finally {
+    writeFileSwitchLoading.value = false
+  }
+}
+
+const toggleEditFile = async (checked) => {
+  if (!currentAssistant.value?.id || editFileSwitchLoading.value) return
+  editFileSwitchLoading.value = true
+  try {
+    await updateClawbotConf(buildConfPayload({ open_agent_edit_file_tool: checked ? 1 : 0 }))
+  } finally {
+    editFileSwitchLoading.value = false
+  }
+}
+
+const toggleExecute = async (checked) => {
+  if (!currentAssistant.value?.id || executeSwitchLoading.value) return
+  executeSwitchLoading.value = true
+  try {
+    await updateClawbotConf(buildConfPayload({ open_agent_execute_tool: checked ? 1 : 0 }))
+  } finally {
+    executeSwitchLoading.value = false
+  }
+}
+
+const toggleGoodsRecommend = async (checked) => {
+  if (!currentAssistant.value?.id || goodsSwitchLoading.value) {
+    return
+  }
+
+  goodsSwitchLoading.value = true
+  try {
+    await updateClawbotConf(buildConfPayload({ goods_lib_recommend_switch: checked ? 1 : 0 }))
+  } finally {
+    goodsSwitchLoading.value = false
+  }
+}
+
+const handleOpenScopeModal = () => {
+  scopeModalVisible.value = true
 }
 
 const loadWorkFlowSkills = async () => {
@@ -446,6 +760,31 @@ const handleOpenToolModal = () => {
   toolModalVisible.value = true
 }
 
+const handleOpenSelectSkillModal = () => {
+  selectSkillModalVisible.value = true
+}
+
+const handleCloseSelectSkillModal = () => {
+  selectSkillModalVisible.value = false
+}
+
+const handleOpenUploadSkillModal = () => {
+  editingSkillId.value = 0
+  uploadSkillZipVisible.value = true
+}
+
+const handleUploadSkillConfirm = async () => {
+  await fetchRobotInfo()
+  await loadSkillList()
+  if (selectSkillModalVisible.value) {
+    selectSkillRefreshKey.value += 1
+  }
+}
+
+const handleSelectSkillConfirm = async () => {
+  await loadSkillList()
+}
+
 const handleToolConfirm = async () => {
   await fetchRobotInfo()
   await loadWorkFlowSkills()
@@ -477,6 +816,65 @@ const handleRemoveWorkFlow = (id) => {
       } catch (err) {
         console.error('移除工具失败', err)
         message.error(t('msg_remove_failed'))
+      }
+    }
+  })
+}
+
+const loadSkillList = async () => {
+  if (!currentAssistant.value?.id) {
+    uploadedSkills.value = []
+    return
+  }
+
+  skillListLoading.value = true
+  try {
+    const res = await getClawbotSkillList({
+      id: currentAssistant.value.id,
+      source: 'all'
+    })
+    if (res?.res === 0) {
+      uploadedSkills.value = (res.data || []).filter((item) => Number(item.is_selected) === 1).map((item, index) => ({
+        id: `${item.source_type || item.source || 'skill'}-${item.skill_id || 0}-${item.skill_name || index}`,
+        skillId: item.skill_id,
+        name: item.remark_name || item.skill_name || '',
+        desc: item.intro || item.description || '',
+        raw: item
+      }))
+    } else {
+      message.error(res?.msg || t('msg_fetch_skill_failed'))
+    }
+  } catch (err) {
+    console.error('鑾峰彇 Skill 鍒楄〃澶辫触', err)
+    message.error(err?.msg || t('msg_fetch_skill_failed'))
+  } finally {
+    skillListLoading.value = false
+  }
+}
+
+const handleRemoveSkill = (item) => {
+  Modal.confirm({
+    title: t('title_remove_skill'),
+    icon: createVNode(ExclamationCircleOutlined),
+    content: t('msg_confirm_remove_skill'),
+    okText: t('btn_confirm'),
+    cancelText: t('btn_cancel'),
+    okType: 'danger',
+    onOk: async () => {
+      try {
+        const res = await deleteClawbotSkill({
+          id: currentAssistant.value?.id,
+          skill_id: item.skillId
+        })
+        if (res?.res === 0) {
+          message.success(t('msg_remove_success'))
+          await loadSkillList()
+        } else {
+          message.error(res?.msg || t('msg_remove_failed'))
+        }
+      } catch (err) {
+        console.error('鍒犻櫎 Skill 澶辫触', err)
+        message.error(err?.msg || t('msg_remove_failed'))
       }
     }
   })
@@ -734,6 +1132,12 @@ const formatDate = (time) => {
   gap: 16px;
 }
 
+.add-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .add-skill-btn {
   height: 40px;
   border-radius: 8px;
@@ -776,6 +1180,10 @@ const formatDate = (time) => {
   line-height: 24px;
   font-weight: 400;
   color: #262626;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .skill-tag {
@@ -790,6 +1198,7 @@ const formatDate = (time) => {
   font-size: 12px;
   line-height: 16px;
   background: #e5efff;
+  flex-shrink: 0;
 
   &.skill {
     color: #2475fc;
@@ -802,6 +1211,11 @@ const formatDate = (time) => {
   font-size: 14px;
   line-height: 22px;
   color: #8c8c8c;
+  display: -webkit-box;
+  overflow: hidden;
+  word-break: break-word;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
 }
 
 .skill-status-text-group {

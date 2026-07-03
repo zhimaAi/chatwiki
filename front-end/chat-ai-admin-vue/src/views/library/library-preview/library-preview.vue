@@ -707,6 +707,7 @@ const handleEditParagraph = (data) => {
     lastItem.question = data.question
     lastItem.answer = data.answer
     lastItem.images = data.images
+    lastItem.mini_card = data.mini_card || []
     lastItem.category_id = data.category_id
     lastItem.word_total = data.question.length + data.answer.length + data.content.length
     lastItem.similar_questions = data.similar_questions.length ? JSON.parse(data.similar_questions) : []

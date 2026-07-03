@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ArtisanCloud/PowerLibs/v3/os"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
@@ -30,20 +29,39 @@ func InitClawbotDirs(robotKey string) {
 	privateFileDir := strings.ReplaceAll(define.PrivateFileDir, `<robot_key>`, robotKey)
 	_ = tool.MkDirAll(privateFileDir)
 	_ = tool.MkDirAll(strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robotKey))
-	// copy query-local-docs skill template
-	if !tool.IsFile(privateFileDir + `/../SKILL.md`) {
-		err := os.CopyFile(define.AppRoot+`data/template/query-local-docs.md`, privateFileDir+`/../SKILL.md`)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-	}
 	// generate query-local-docs skill index.yaml
 	if !tool.IsFile(privateFileDir + `/index.yaml`) {
-		err := tool.WriteFile(privateFileDir+`/index.yaml`, define.QueryLocalDocsIndexDesc)
+		err := tool.WriteFile(privateFileDir+`/index.yaml`, ``)
 		if err != nil {
 			logs.Error(err.Error())
 		}
 	}
+	// copy query-local-docs skill template
+	if !tool.IsFile(privateFileDir + `/../SKILL.md`) {
+		err := UpQueryLocalDocsMd(robotKey)
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+}
+
+func UpQueryLocalDocsMd(robotKey string) error {
+	privateFileDir := strings.ReplaceAll(define.PrivateFileDir, `<robot_key>`, robotKey)
+	indexYaml, err := tool.ReadFile(privateFileDir + `/index.yaml`)
+	if err != nil {
+		return err
+	}
+	template, err := tool.ReadFile(define.AppRoot + `data/template/query-local-docs.md`)
+	if err != nil {
+		return err
+	}
+	template = strings.ReplaceAll(template, `<index_yaml>`, indexYaml)
+	return tool.WriteFile(privateFileDir+`/../SKILL.md`, template)
+}
+
+func InitClawbotUserDirs(adminUserId int) {
+	_ = tool.MkDirAll(define.PublicSkillsDir)
+	_ = tool.MkDirAll(strings.ReplaceAll(define.UserSkillsDir, `<admin_user_id>`, cast.ToString(adminUserId)))
 }
 
 func GetClawbotRobotKey(c *gin.Context, adminUserId int, id int64) (_ string, _ bool) {
@@ -165,7 +183,7 @@ func updateClawbotLocalDocIndex(robotKey string, modify func([]define.ClawbotLoc
 	}
 
 	list = modify(list)
-	content := define.QueryLocalDocsIndexDesc
+	var content string
 	if len(list) > 0 {
 		bs, err := yaml.Marshal(list)
 		if err != nil {
@@ -173,7 +191,13 @@ func updateClawbotLocalDocIndex(robotKey string, modify func([]define.ClawbotLoc
 		}
 		content += string(bs)
 	}
-	return tool.WriteFile(indexPath, content)
+	if err := tool.WriteFile(indexPath, content); err != nil {
+		return err
+	}
+	if err := UpQueryLocalDocsMd(robotKey); err != nil {
+		return err
+	}
+	return nil
 }
 
 func removeClawbotLocalDocIndexItem(list []define.ClawbotLocalDocIndexItem, name string) []define.ClawbotLocalDocIndexItem {

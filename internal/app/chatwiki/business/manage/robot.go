@@ -529,6 +529,7 @@ func SaveRobot(c *gin.Context) {
 	}
 	//data check
 	var robotKey string
+	var beforeRobot msql.Params //for config change log
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	if id > 0 {
 		robotKey, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`robot_key`)
@@ -540,6 +541,11 @@ func SaveRobot(c *gin.Context) {
 		if len(robotKey) == 0 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 			return
+		}
+		//snapshot before update for config change log
+		beforeRobot, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
+		if err != nil {
+			logs.Error(err.Error())
 		}
 	} else {
 		// check max robot num
@@ -758,11 +764,30 @@ func SaveRobot(c *gin.Context) {
 	if len(unknownQuestionPrompt) > 0 {
 		data[`unknown_question_prompt`] = unknownQuestionPrompt
 	}
+	promptForMiniCard := cast.ToString(data[`prompt`])
+	if id == 0 && cast.ToInt(c.PostForm(`application_type`)) == define.ApplicationTypeClaw {
+		promptForMiniCard = i18n.Show(common.GetLang(c), `clawbot_default_prompt`)
+	}
+	promptMiniCardIDs := common.ExtractAdminMiniCardIDsFromPrompt(promptForMiniCard)
+	ok, err := common.ValidateAdminMiniCards(userId, promptMiniCardIDs)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if !ok {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `mini_card`))))
+		return
+	}
 
 	if id > 0 {
 		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
 		if err == nil && opTypeRelationLibrary > 0 && isDefault == define.NotDefault {
 			_ = common.SetStepFinish(userId, define.StepRelationLibrary)
+		}
+		if err == nil {
+			//record config change log
+			common.SaveRobotConfigChangeLog(common.GetLang(c), userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleRobotSetting, beforeRobot, data)
 		}
 	} else {
 		for i := 0; i < 5; i++ {
@@ -814,6 +839,11 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	if err = common.SaveAdminMiniCardRelations(userId, 0, common.AdminMiniCardTargetRobotPrompt, int(id), promptMiniCardIDs); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	common.ClearMCPServerCache(userId)
@@ -841,6 +871,11 @@ func SaveRobotLangConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	beforeLangConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(id))
+	if err != nil {
+		logs.Error(err.Error())
+		beforeLangConfigs = nil
+	}
 	langKey := common.NormalizeRobotLangKey(c.PostForm(`lang_key`))
 	if len(strings.TrimSpace(c.PostForm(`lang_key`))) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -867,6 +902,14 @@ func SaveRobotLangConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	//record config change log
+	langRobotInfo, err := common.GetRobotInfo(robotKey)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	lang := common.GetLang(c)
+	common.SaveRobotConfigChangeLogDetail(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleLangConfig, cast.ToInt(langRobotInfo[`application_type`]),
+		buildRobotLangConfigChangeDetails(lang, beforeLangConfigs, []common.RobotMultilingualConfig{langConfig}))
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
 }
@@ -892,6 +935,11 @@ func SaveRobotLangConfigs(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
+	beforeLangConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(id))
+	if err != nil {
+		logs.Error(err.Error())
+		beforeLangConfigs = nil
+	}
 	raw := strings.TrimSpace(c.PostForm(`multi_lang_configs`))
 	if len(raw) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -902,6 +950,7 @@ func SaveRobotLangConfigs(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `multi_lang_configs`))))
 		return
 	}
+	nextLangConfigs := make([]common.RobotMultilingualConfig, 0, len(incoming))
 	for _, one := range incoming {
 		langConfig, buildErr := buildRobotMultilingualConfigForSave(c, id, one.LangKey, one)
 		if buildErr != nil {
@@ -918,9 +967,61 @@ func SaveRobotLangConfigs(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
+		nextLangConfigs = append(nextLangConfigs, langConfig)
 	}
+	//record config change log
+	langRobotInfo, err := common.GetRobotInfo(robotKey)
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	lang := common.GetLang(c)
+	common.SaveRobotConfigChangeLogDetail(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleLangConfig, cast.ToInt(langRobotInfo[`application_type`]),
+		buildRobotLangConfigChangeDetails(lang, beforeLangConfigs, nextLangConfigs))
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+func buildRobotLangConfigChangeDetails(lang string, before []msql.Params, after []common.RobotMultilingualConfig) []common.RobotChangeDetailItem {
+	beforeMap := make(map[string]msql.Params, len(before))
+	for _, one := range before {
+		beforeMap[common.NormalizeRobotLangKey(one[`lang_key`])] = one
+	}
+	details := make([]common.RobotChangeDetailItem, 0)
+	fields := []struct {
+		Name  string
+		Value func(common.RobotMultilingualConfig) any
+	}{
+		{`welcomes`, func(c common.RobotMultilingualConfig) any { return c.Welcomes }},
+		{`unknown_question_prompt`, func(c common.RobotMultilingualConfig) any { return c.UnknownQuestionPrompt }},
+		{`tips_before_answer_switch`, func(c common.RobotMultilingualConfig) any {
+			return common.NormalizeFlexibleBool(c.TipsBeforeAnswerSwitch)
+		}},
+		{`tips_before_answer_content`, func(c common.RobotMultilingualConfig) any { return c.TipsBeforeAnswerContent }},
+		{`enable_common_question`, func(c common.RobotMultilingualConfig) any {
+			return common.NormalizeFlexibleBool(c.EnableCommonQuestion)
+		}},
+		{`common_question_list`, func(c common.RobotMultilingualConfig) any { return c.CommonQuestionList }},
+	}
+	section := common.GetConfigChangeModuleSection(lang, common.RobotChangeModuleLangConfig)
+	for _, one := range common.NormalizeRobotMultilingualConfigs(after) {
+		langKey := common.NormalizeRobotLangKey(one.LangKey)
+		beforeOne := beforeMap[langKey]
+		for _, field := range fields {
+			beforeVal := beforeOne[field.Name]
+			afterVal := field.Value(one)
+			if common.ValuesEqual(beforeVal, afterVal) {
+				continue
+			}
+			details = append(details, common.RobotChangeDetailItem{
+				Section: section,
+				Field:   langKey + `.` + field.Name,
+				Label:   langKey + ` ` + common.GetConfigChangeFieldLabel(lang, field.Name),
+				Before:  cast.ToString(beforeVal),
+				After:   cast.ToString(afterVal),
+			})
+		}
+	}
+	return details
 }
 
 func syncRobotLegacyFieldsByLangConfig(userId int, robotId int64, langConfig common.RobotMultilingualConfig) error {
@@ -1504,6 +1605,11 @@ func DeleteRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	if err = common.ClearAdminMiniCardRelationsByTargetIds(userId, common.AdminMiniCardTargetRobotPrompt, []int{id}); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
 	_, err = msql.Model(`llm_request_daily_stats`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(userId)).
 		Where(`robot_id`, cast.ToString(id)).
@@ -1804,6 +1910,8 @@ func RelationWorkFlow(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
+	//record config change log
+	common.SaveRobotConfigChangeLog(common.GetLang(c), adminUserId, getLoginUserId(c), id, robot[`robot_key`], common.RobotChangeModuleRelationFlow, robot, data)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robot[`robot_key`]})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robot[`robot_key`])))
@@ -1910,7 +2018,7 @@ func RelationLibrary(c *gin.Context) {
 	defaultLibraryId := cast.ToInt(c.DefaultPostForm(`default_library_id`, `0`))
 	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
 	robotInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`id`, cast.ToString(id)).Field(`robot_key,library_ids,default_library_id`).Find()
+		Where(`id`, cast.ToString(id)).Field(`robot_key,library_ids,default_library_id,application_type`).Find()
 	if defaultLibraryId > 0 {
 		robotLibraryIds := []string{cast.ToString(defaultLibraryId)}
 		for _, libraryId := range strings.Split(robotInfo[`library_ids`], `,`) {
@@ -1941,6 +2049,8 @@ func RelationLibrary(c *gin.Context) {
 		common.FmtError(c, `sys_err`, err.Error())
 		return
 	}
+	//record config change log
+	common.SaveRobotConfigChangeLog(common.GetLang(c), adminUserId, getLoginUserId(c), cast.ToInt64(id), robotInfo[`robot_key`], common.RobotChangeModuleRelationLibrary, robotInfo, updateData)
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotInfo[`robot_key`]})
 	common.FmtOk(c, nil)

@@ -355,8 +355,8 @@ const isVideoUrl = (url) => {
   }
 }
 .hidden-input{
-  position: absolute;
-  left: 9999;
+  position: fixed;
+  left: -9999px;
   opacity: 0;
 }
 </style>

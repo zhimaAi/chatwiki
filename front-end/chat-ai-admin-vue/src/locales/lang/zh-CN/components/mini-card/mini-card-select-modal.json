@@ -1,0 +1,12 @@
+{
+  "title_select": "选择小程序卡片",
+  "btn_add_card": "小程序卡片",
+  "msg_empty": "暂无小程序卡片",
+  "msg_confirm_delete": "确认删除该小程序卡片？",
+  "msg_delete_desc": "删除后不可恢复，且影响所有引用此卡片的分段",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "msg_delete_success": "删除成功",
+  "msg_delete_failed": "删除失败",
+  "msg_card_in_use": "该卡片已被知识库或提示词引用，请先解除引用后再删除"
+}

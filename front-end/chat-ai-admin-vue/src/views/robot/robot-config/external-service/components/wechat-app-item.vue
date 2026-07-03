@@ -121,7 +121,9 @@
       <img class="app-avatar" :src="item.app_avatar" alt="" />
       <div class="app-info">
         <div class="app-name">{{ item.app_name }}</div>
-        <div class="app-desc">{{ t('appid') }}{{ item.app_id }}</div>
+        <div class="app-desc" v-if="item.app_type == 'whatsapp'">通道ID：{{ item.cust_space_id }}</div>
+        <div class="app-desc" v-else-if="item.app_type == 'messenger'">主页ID：{{ item.app_id }}</div>
+        <div class="app-desc" v-else>{{ t('appid') }}{{ item.app_id }}</div>
       </div>
     </div>
     <template v-if="showExtTypeList.includes(props.app_type)">

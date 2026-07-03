@@ -22,7 +22,7 @@ func CheckSkipCallLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		switch in.params.ReceivedMessageType {
 		case lib_define.MsgTypeText:
 			return pipeline.PipeContinue
-		case lib_define.MsgTypeImage:
+		case lib_define.MsgTypeImage, lib_define.MsgTypeVoice, lib_define.MsgTypeVideo:
 			if cast.ToBool(in.params.Robot[`question_multiple_switch`]) {
 				return pipeline.PipeContinue
 			}

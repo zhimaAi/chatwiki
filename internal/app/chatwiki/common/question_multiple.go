@@ -4,6 +4,7 @@ package common
 
 import (
 	"chatwiki/internal/app/chatwiki/define"
+	lib_define "chatwiki/internal/pkg/lib_define"
 
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
@@ -36,7 +37,7 @@ func QuestionMultipleAppendImageDomain(questionMultiple adaptor.QuestionMultiple
 		case adaptor.TypeAudio:
 			questionMultiple[i].InputAudio.Data = AppendImageDomain(item.InputAudio.Data)
 		case adaptor.TypeVideo:
-			questionMultiple[i].VedioUrl.Url = AppendImageDomain(item.VedioUrl.Url)
+			questionMultiple[i].VideoUrl.Url = AppendImageDomain(item.VideoUrl.Url)
 		}
 	}
 	return questionMultiple
@@ -60,6 +61,16 @@ func GetQuestionByQuestionMultiple(questionMultiple adaptor.QuestionMultiple) st
 	for _, item := range questionMultiple {
 		if item.Type == adaptor.TypeText && len(item.Text) > 0 {
 			return item.Text
+		}
+	}
+	for _, item := range questionMultiple {
+		switch item.Type {
+		case adaptor.TypeImage:
+			return `[` + lib_define.MsgTypeNameMap[lib_define.MsgTypeImage] + `]`
+		case adaptor.TypeAudio:
+			return `[` + lib_define.MsgTypeNameMap[lib_define.MsgTypeVoice] + `]`
+		case adaptor.TypeVideo:
+			return `[` + lib_define.MsgTypeNameMap[lib_define.MsgTypeVideo] + `]`
 		}
 	}
 	return ``

@@ -250,6 +250,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     paramsText: step.paramsText || '',
     resultText: step.resultText || '',
     eventName: step.eventName || '',
+    tool_call_id: step.tool_call_id || '',
   })
 
   const appendProcessStep = (msg, step = {}) => {
@@ -438,10 +439,26 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       currentMessage.show_reasoning = true
     }
 
+    if (type == 'tool_call_full') {
+      const functionInfo = content?.function || {}
+      appendProcessStep(currentMessage, {
+        type: 'tool',
+        title: functionInfo?.name || 'tool',
+        status: 'running',
+        expanded: true,
+        roundIndex: currentMessage.current_round_index,
+        paramsText: functionInfo?.arguments || '',
+        tool_call_id: content?.id || '',
+        eventName: 'tool_call_full',
+      })
+      currentMessage.show_reasoning = true
+    }
+
     if (type == 'tool_result') {
       const nextData = safeParseJson(content, {})
-      const matchedStep = [...currentMessage.process_steps].reverse().find((step) => {
-        return step.type === 'tool' && step.status === 'running' && step.title === nextData?.tool_name
+      const toolCallId = nextData?.tool_call_id || ''
+      const matchedStep = currentMessage.process_steps.find((step) => {
+        return step.type === 'tool' && step.status === 'running' && step.tool_call_id === toolCallId
       })
 
       if (matchedStep) {
@@ -578,8 +595,13 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       if (res.event == 'sending') {
         updateAiMessage('sending', res.data, aiMsg.uid)
       }
-      if (res.event == 'tool_call') {
-        updateAiMessage('tool_call', res.data, aiMsg.uid)
+      // tool_call 已废弃，使用 tool_call_full 替代
+      // if (res.event == 'tool_call') {
+      //   updateAiMessage('tool_call', res.data, aiMsg.uid)
+      // }
+      if (res.event == 'tool_call_full') {
+        const data = safeParseJson(res.data, {})
+        updateAiMessage('tool_call_full', data, aiMsg.uid)
       }
       if (res.event == 'tool_result') {
         updateAiMessage('tool_result', res.data, aiMsg.uid)

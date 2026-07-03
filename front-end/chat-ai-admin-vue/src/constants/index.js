@@ -102,6 +102,11 @@ export const DERAULT_ROBOT_PROMPT = `回答要求：
 export const OPEN_BOC_BASE_URL = '/open-doc'
 
 /**
+ * E2B 配置文档地址，供爪子机器人 E2B 设置页跳转使用
+ */
+export const E2B_DOC_URL = 'https://help.chatwiki.com/zh/docs/configuring-e2b'
+
+/**
  * 关键词回复：类型标签映射与筛选项
  * - REPLY_TYPE_LABEL_MAP: 组件内展示的中文标签
  * - REPLY_TYPE_OPTIONS: 下拉筛选项（value 使用前端类型标识）

@@ -146,6 +146,26 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	paragraphIds := make([]int, 0)
+	qaIds := make([]int, 0)
+	for _, item := range list {
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			qaIds = append(qaIds, cast.ToInt(item[`id`]))
+		default:
+			paragraphIds = append(paragraphIds, cast.ToInt(item[`id`]))
+		}
+	}
+	paragraphMiniCards, err := common.GetAdminMiniCardsByTargets(adminUserId, common.AdminMiniCardTargetLibraryParagraph, paragraphIds)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
+	qaMiniCards, err := common.GetAdminMiniCardsByTargets(adminUserId, common.AdminMiniCardTargetLibraryQA, qaIds)
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
 
 	//===== meta_list (also returned for paragraphs) =====
 	//Batch prepare: group_name (QA group), library meta schema, built-in is_show switch
@@ -223,6 +243,12 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 			continue
 		}
 		tempItem[`images`] = images
+		switch cast.ToInt(item[`type`]) {
+		case define.ParagraphTypeDocQA, define.ParagraphTypeExcelQA:
+			tempItem[`mini_card`] = qaMiniCards[cast.ToInt(item[`id`])]
+		default:
+			tempItem[`mini_card`] = paragraphMiniCards[cast.ToInt(item[`id`])]
+		}
 
 		//meta_list: built-in + custom (do not mutate DB metadata; parse from a.metadata)
 		libId := cast.ToInt(item[`library_id`])
@@ -334,6 +360,8 @@ type BridgeSaveParagraphReq struct {
 	ImagesJson       string   `form:"images_json"`
 	Token            string   `url:"token"`
 	HeaderToken      string
+	MiniCard         string `form:"mini_card"`
+	MiniCardSet      bool
 }
 
 func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeSaveParagraphReq) (msql.Params, int, error) {
@@ -393,7 +421,9 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 	if len(fileInfo) == 0 {
 		return nil, -1, errors.New(i18n.Show(lang, `no_data`))
 	}
+	miniCardTargetType := common.AdminMiniCardTargetLibraryParagraph
 	if cast.ToInt(fileInfo[`is_qa_doc`]) == define.DocTypeQa {
+		miniCardTargetType = common.AdminMiniCardTargetLibraryQA
 		if len(question) < 1 || utf8.RuneCountInString(question) > common.MaxContent {
 			return nil, -1, errors.New(i18n.Show(lang, `length_error`))
 		}
@@ -425,6 +455,21 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 			}
 		}
 
+	}
+	miniCardIDs := make([]int, 0)
+	if req.MiniCardSet {
+		miniCardIDs, err = common.ParseAdminMiniCardIDs(req.MiniCard)
+		if err != nil {
+			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `mini_card`))
+		}
+		ok, err := common.ValidateAdminMiniCards(adminUserId, miniCardIDs)
+		if err != nil {
+			logs.Error(err.Error())
+			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+		}
+		if !ok {
+			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `mini_card`))
+		}
 	}
 	jsonImages, err := common.CheckLibraryImageAndVideo(images)
 	if err != nil {
@@ -576,6 +621,12 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	if req.MiniCardSet {
+		if err = common.SaveAdminMiniCardRelations(adminUserId, cast.ToInt(fileInfo[`library_id`]), miniCardTargetType, cast.ToInt(id), miniCardIDs); err != nil {
+			logs.Error(err.Error())
+			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+		}
+	}
 
 	//async task:convert vector
 	for _, id := range vectorIds {
@@ -621,6 +672,12 @@ func BridgeDeleteParagraph(adminUserId int, ids, lang string) error {
 	if len(data) == 0 {
 		return errors.New(i18n.Show(lang, `no_data`))
 	}
+	targetIds := make([]int, 0)
+	for _, id := range strings.Split(ids, `,`) {
+		if targetId := cast.ToInt(strings.TrimSpace(id)); targetId > 0 {
+			targetIds = append(targetIds, targetId)
+		}
+	}
 
 	if cast.ToInt(data[`category_id`]) > 0 {
 		_, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`id`, `in`, cast.ToString(ids)).Update(msql.Datas{"isolated": true})
@@ -650,6 +707,14 @@ func BridgeDeleteParagraph(adminUserId int, ids, lang string) error {
 				}
 			}
 		}
+	}
+	if err = common.ClearAdminMiniCardRelationsByTargetIds(adminUserId, common.AdminMiniCardTargetLibraryParagraph, targetIds); err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
+	}
+	if err = common.ClearAdminMiniCardRelationsByTargetIds(adminUserId, common.AdminMiniCardTargetLibraryQA, targetIds); err != nil {
+		logs.Error(err.Error())
+		return errors.New(i18n.Show(lang, `sys_err`))
 	}
 	return nil
 }

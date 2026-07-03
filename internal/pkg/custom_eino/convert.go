@@ -8,6 +8,7 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/adaptor"
+	"github.com/zhimaAi/llm_adaptor/basics"
 )
 
 func StructConvert[In, Out any](in In) (out Out, err error) {
@@ -41,19 +42,15 @@ func ConvertTools(info schema.ToolInfo) (result adaptor.FunctionTool, err error)
 	return
 }
 
+func ConvertToolCalls(toolCalls basics.ToolCalls) ([]schema.ToolCall, error) {
+	return StructConvert[basics.ToolCalls, []schema.ToolCall](toolCalls)
+}
+
 func ConvertChatResp(chatResp adaptor.ZhimaChatCompletionResponse) *schema.Message {
 	var content string
 	var toolCalls []schema.ToolCall
-	if len(chatResp.FunctionToolCalls) > 0 {
-		for _, call := range chatResp.FunctionToolCalls {
-			toolCalls = append(toolCalls, schema.ToolCall{
-				Type: `function`,
-				Function: schema.FunctionCall{
-					Name:      call.Name,
-					Arguments: call.Arguments,
-				},
-			})
-		}
+	if len(chatResp.ToolCalls) > 0 {
+		toolCalls, _ = ConvertToolCalls(chatResp.ToolCalls)
 	} else {
 		content = chatResp.Result
 		toolCalls = nil

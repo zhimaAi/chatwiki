@@ -10,7 +10,8 @@
           :class="{ active: activeMenuKey === item.key }"
           @click="handleMenuClick(item)"
         >
-          <component :is="item.icon" class="menu-icon" />
+          <svg-icon v-if="item.iconName" class="menu-icon" :name="item.iconName"></svg-icon>
+          <component v-else :is="item.icon" class="menu-icon" />
           <span class="menu-label">{{ item.label }}</span>
         </div>
       </div>
@@ -68,8 +69,7 @@ import {
   KeyOutlined,
   ProfileOutlined,
   QuestionCircleOutlined,
-  SettingOutlined,
-  UserOutlined
+  SettingOutlined
 } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { saveRobot, getRobotList } from '@/api/robot/index'
@@ -82,6 +82,7 @@ import DisplayAitations from '@/views/robot/robot-config/basic-config/components
 import ShowLike from '@/views/robot/robot-config/basic-config/components/show-like.vue'
 import VariableSetting from '@/views/robot/robot-config/basic-config/components/variable-setting/index.vue'
 import LanguageSetting from './components/language-setting.vue'
+import E2bSettingPage from './components/e2b-setting.vue'
 import QaFeedbackPage from '@/views/robot/robot-config/qa-feedback/index.vue'
 import SessionRecordPage from '@/views/robot/robot-config/session-record/index.vue'
 import ApiKeyManagePage from '@/views/robot/api-key-manage/index.vue'
@@ -108,7 +109,8 @@ const menuItems = computed(() => ([
   { key: 'api-key-manage', label: t('menu_api_key_manage'), title: t('menu_api_key_manage'), icon: KeyOutlined, component: markRaw(ApiKeyManagePage) },
   { key: 'unknown_issue', label: t('menu_unknown_issue'), title: t('menu_unknown_issue'), icon: QuestionCircleOutlined, component: markRaw(UnknownIssuePage) },
   { key: 'export-record', label: t('menu_export_record'), title: t('menu_export_record'), icon: DownloadOutlined, component: markRaw(ExportRecordPage) },
-  { key: 'model-management', label: t('menu_model_management'), title: t('menu_model_management'), icon: ProfileOutlined }
+  { key: 'model-management', label: t('menu_model_management'), title: t('menu_model_management'), icon: ProfileOutlined },
+  { key: 'e2b-settings', label: t('menu_e2b_settings'), title: t('menu_e2b_settings'), iconName: 'e2b-settings', component: markRaw(E2bSettingPage) }
 ]))
 
 const robotId = computed(() => String(clawbotStore.currentAssistant?.id || ''))
@@ -129,11 +131,6 @@ const activeMenu = computed(() => {
 })
 
 const activePageComponent = computed(() => activeMenu.value?.component)
-
-const activeTransferTab = computed(() => {
-  const key = String(route.query.transfer_tab || 'setting')
-  return validTransferKeys.value.includes(key) ? key : 'setting'
-})
 
 const isContextReady = computed(() => {
   return (

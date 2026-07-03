@@ -26,6 +26,7 @@
     "import_kb": "导入问答库",
     "delete": "删除",
     "tab_library": "知识库",
+    "tab_goods_library": "商品库",
     "tab_database": "数据库",
     "tab_extract_faq": "文档提取FAQ",
     "tab_trigger_stats": "触发次数统计",

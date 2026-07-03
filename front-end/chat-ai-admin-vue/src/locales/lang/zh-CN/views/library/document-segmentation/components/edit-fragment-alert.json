@@ -12,6 +12,7 @@
   "ph_content": "请输入分段内容",
   "label_attachment": "附件",
   "tab_images": "图片",
+  "tab_mini_card": "小程序卡片",
   "validation_content": "请输入分段内容",
   "validation_question": "请输入分段问题",
   "validation_answer": "请输入分段答案"

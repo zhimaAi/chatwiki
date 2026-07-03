@@ -48,18 +48,19 @@ type (
 		RobotKey string
 	}
 	ChatMessagesRes struct {
-		MessageId      string               `json:"message_id"`
-		ConversationId string               `json:"conversation_id"`
-		CreateAt       int64                `json:"create_at"`
-		RawAnswer      string               `json:"raw_answer,omitempty"`
-		Answer         string               `json:"answer"`
-		Image          []string             `json:"image,omitempty"`
-		Voice          []string             `json:"voice,omitempty"`
-		Video          []string             `json:"video,omitempty"`
-		MetaData       ChatMessagesMetaData `json:"metadata,omitempty"`
-		QuoteLib       any                  `json:"quote_lib,omitempty"`
-		QuoteFile      any                  `json:"quote_file,omitempty"`
-		IsSwitchManual *bool                `json:"is_switch_manual,omitempty"`
+		MessageId      string                `json:"message_id"`
+		ConversationId string                `json:"conversation_id"`
+		CreateAt       int64                 `json:"create_at"`
+		RawAnswer      string                `json:"raw_answer,omitempty"`
+		Answer         string                `json:"answer"`
+		Image          []string              `json:"image,omitempty"`
+		Voice          []string              `json:"voice,omitempty"`
+		Video          []string              `json:"video,omitempty"`
+		MetaData       ChatMessagesMetaData  `json:"metadata,omitempty"`
+		QuoteLib       any                   `json:"quote_lib,omitempty"`
+		QuoteFile      any                   `json:"quote_file,omitempty"`
+		IsSwitchManual *bool                 `json:"is_switch_manual,omitempty"`
+		MiniCard       []common.ReplyContent `json:"mini_card,omitempty"`
 		// function center - auto reply: (keyword reply + received message reply)
 		ReplyContentList []common.ReplyContent `json:"reply_content_list,omitempty"`
 	}
@@ -137,12 +138,18 @@ func ChatMessages(c *gin.Context) {
 				CompletionTokens: cast.ToInt(message["completion_tokens"]),
 			}},
 		}
-		msg, imgs, voices, videos := common.GetMessageInMessage(res.Answer, false)
-		if len(imgs) > 0 || len(voices)|len(videos) > 0 {
+		msg, imgs, voices, videos, miniCards := common.GetMessageInMessage(res.Answer, false)
+		if len(imgs) > 0 || len(voices) > 0 || len(videos) > 0 || len(miniCards) > 0 {
 			res.Image = imgs
 			res.Voice = voices
 			res.Answer = msg
 			res.Video = videos
+			res.MiniCard = miniCards
+			for i, item := range res.MiniCard {
+				if len(item.ThumbURL) > 0 && !common.IsUrl(item.ThumbURL) {
+					res.MiniCard[i].ThumbURL = define.Config.WebService[`image_domain`] + item.ThumbURL
+				}
+			}
 		}
 		if params.QuoteLib {
 			_ = tool.JsonDecodeUseNumber(message[`quote_lib`], &res.QuoteLib)

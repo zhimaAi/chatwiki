@@ -67,9 +67,22 @@ func CreateChatVariable(c *gin.Context) {
 		common.FmtError(c, err.Error())
 		return
 	}
+
 	var id int64
+	var beforeData msql.Params
+
 	if cast.ToInt(variable.Id) > 0 {
 		id = cast.ToInt64(variable.Id)
+		var err error
+		beforeData, err = msql.Model("chat_ai_variables", define.Postgres).
+			Where("id", variable.Id).
+			Where("admin_user_id", cast.ToString(adminUserId)).
+			Where("robot_key", robotKey).
+			Find()
+		if err != nil {
+			logs.Error(err.Error())
+		}
+
 		variable.UpdateTime = cast.ToString(time.Now().Unix())
 		upDataStr, err := tool.JsonEncode(variable)
 		if err != nil {
@@ -120,6 +133,23 @@ func CreateChatVariable(c *gin.Context) {
 			return
 		}
 	}
+
+	//record config change log
+	afterMap := map[string]any{
+		"variable_type":    variable.VariableType,
+		"variable_key":     variable.VariableKey,
+		"variable_name":    variable.VariableName,
+		"max_input_length": variable.MaxInputLength,
+		"default_value":    variable.DefaultValue,
+		"must_input":       variable.MustInput,
+		"options":          variable.Options,
+	}
+	lang := common.GetLang(c)
+	details := common.BuildChatVariableChangeDetails(lang, beforeData, afterMap)
+	if len(details) > 0 {
+		common.SaveRobotConfigChangeLogDetail(lang, adminUserId, getLoginUserId(c), cast.ToInt64(robotInfo[`id`]), robotKey, common.RobotChangeModuleChatVariable, cast.ToInt(robotInfo[`application_type`]), details)
+	}
+
 	common.FmtOk(c, map[string]any{"id": id})
 }
 
@@ -155,6 +185,16 @@ func DeleteChatVariable(c *gin.Context) {
 		common.FmtError(c, "sys_err", err.Error())
 		return
 	}
+
+	//record config change log
+	robotInfo, err := common.GetRobotInfo(existData[`robot_key`])
+	if err != nil {
+		logs.Error(err.Error())
+	}
+	lang := common.GetLang(c)
+	details := common.BuildChatVariableChangeDetails(lang, existData, nil)
+	common.SaveRobotConfigChangeLogDetail(lang, adminUserId, getLoginUserId(c), cast.ToInt64(existData[`robot_id`]), existData[`robot_key`], common.RobotChangeModuleChatVariable, cast.ToInt(robotInfo[`application_type`]), details)
+
 	common.FmtOk(c, nil)
 }
 

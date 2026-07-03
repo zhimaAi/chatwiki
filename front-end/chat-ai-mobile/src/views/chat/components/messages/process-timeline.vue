@@ -15,9 +15,21 @@
         </div>
         <div class="process-step-content">
           <div class="process-step-title">{{ getStepTitle(step, stepIndex) }}</div>
-          <div class="process-step-text" v-if="getStepText(step)">
-            <CherryMarkdown :content="getStepText(step)" />
-          </div>
+          <template v-if="step.type === 'tool'">
+            <div class="process-step-params" v-if="step.paramsText">
+              <span class="process-step-label">{{ t('label_params') }}：</span>
+              <code class="process-step-code">{{ step.paramsText }}</code>
+            </div>
+            <div class="process-step-result" v-if="step.resultText || step.status === 'running'">
+              <span class="process-step-label">{{ t('label_output') }}：</span>
+              <CherryMarkdown :content="normalizeText(step.resultText || (step.status === 'running' ? t('process_tool_running') : ''))" />
+            </div>
+          </template>
+          <template v-else-if="getStepText(step)">
+            <div class="process-step-text">
+              <CherryMarkdown :content="getStepText(step)" />
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -93,9 +105,6 @@ const normalizeText = (value: any) => {
 }
 
 const getStepText = (step: any) => {
-  if (step?.type === 'tool') {
-    return normalizeText(step.resultText || (step.status === 'running' ? t('process_tool_running') : ''))
-  }
   return step?.contentText || step?.resultText || (step?.status === 'running' ? t('deep_thinking') : '')
 }
 </script>
@@ -182,6 +191,61 @@ const getStepText = (step: any) => {
 }
 
 .process-step-text {
+  color: #666;
+
+  :deep(.cherry-markdown) {
+    color: #666;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 22px;
+
+    * {
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    p,
+    ul,
+    ol,
+    blockquote,
+    pre,
+    table {
+      margin-top: 0;
+      margin-bottom: 4px;
+    }
+
+    > :last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
+.process-step-params {
+  margin-bottom: 8px;
+}
+
+.process-step-label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #666;
+}
+
+.process-step-code {
+  display: block;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #666;
+}
+
+.process-step-result {
   color: #666;
 
   :deep(.cherry-markdown) {
