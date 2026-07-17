@@ -29,6 +29,14 @@ export default {
       component: () => import('@/views/clawbot/skills/index.vue')
     },
     {
+      path: 'skill-generate-tool',
+      name: 'clawbotSkillGenerateTool',
+      meta: {
+        title: 'skill生成工具'
+      },
+      component: () => import('@/views/clawbot/skill-generate-tool/index.vue')
+    },
+    {
       path: 'knowledge',
       name: 'clawbotKnowledge',
       meta: {

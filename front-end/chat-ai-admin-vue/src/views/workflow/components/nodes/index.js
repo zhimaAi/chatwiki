@@ -38,6 +38,7 @@ import voiceCloneNode from "./voice-clone-node/index.js";
 import webhookTriggerNode from './webhook-trigger-node/index.js'
 import importLibraryNode from './import-library-node/index.js'
 import zmWorkflowNode from "./zm-workflow-node/index.js";
+import zmAgentNode from "./zm-agent-node/index.js";
 
 
 
@@ -80,4 +81,5 @@ export default function registerCustomNodes(lf) {
   register(webhookTriggerNode, lf)
   register(importLibraryNode, lf)
   register(zmWorkflowNode, lf)
+  register(zmAgentNode, lf)
 }

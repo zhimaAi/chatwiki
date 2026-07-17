@@ -9,6 +9,7 @@ import (
 	"chatwiki/internal/pkg/wechat/messenger"
 	"chatwiki/internal/pkg/wechat/mini_program"
 	"chatwiki/internal/pkg/wechat/official_account"
+	"chatwiki/internal/pkg/wechat/telegram_robot"
 	"chatwiki/internal/pkg/wechat/wechat_kefu"
 	"chatwiki/internal/pkg/wechat/wecom_robot"
 	"chatwiki/internal/pkg/wechat/whatsapp"
@@ -29,6 +30,13 @@ var MessengerGraphAPIBase = "https://graph.facebook.com/v25.0"
 func SetMessengerGraphAPIBase(base string) {
 	if len(base) > 0 {
 		MessengerGraphAPIBase = base
+	}
+}
+
+// SetTelegramApiBase sets Telegram Bot API base URL
+func SetTelegramApiBase(base string) {
+	if len(base) > 0 {
+		telegram_robot.TelegramApiBase = base
 	}
 }
 
@@ -84,6 +92,8 @@ func GetApplication(appInfo msql.Params) (ApplicationInterface, error) {
 		return &dingtalk_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	case lib_define.AppWecomRobot:
 		return &wecom_robot.Application{AppID: appInfo[`app_id`]}, nil
+	case lib_define.TelegramRobot:
+		return &telegram_robot.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`]}, nil
 	case lib_define.AppMessenger:
 		return &messenger.Application{AppID: appInfo[`app_id`], Secret: appInfo[`app_secret`], GraphAPIBase: MessengerGraphAPIBase}, nil
 	case lib_define.AppWhatsapp:

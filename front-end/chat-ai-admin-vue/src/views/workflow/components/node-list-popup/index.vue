@@ -480,7 +480,7 @@
         <TriggerList @add="handleAddTrigger" />
       </div>
       <div v-else-if="tabActive == 5" class="node-box">
-        <WorkflowList @add="handleAddWorkflow"/>
+        <WorkflowList :excludedNodeTypes="excludedNodeTypes" @add="handleAddWorkflow"/>
       </div>
     </div>
   </div>

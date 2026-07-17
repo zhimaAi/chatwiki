@@ -18,4 +18,5 @@ type ConfigParam struct {
 	Plugin            map[string]string
 	Xiaokefu          map[string]string
 	Messenger         map[string]string
+	Telegram          map[string]string
 }

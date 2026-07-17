@@ -66,6 +66,7 @@
         />
       </div>
     </div>
+    <AgentAbnormalModal ref="agentAbnormalModalRef" />
     <AddRobotAlert ref="addRobotAlertRef" />
     <VersionModel ref="versionModelRef" @handleOpenErrorNode="handleOpenErrorNode" />
     <PublishDetail
@@ -79,7 +80,7 @@
 
 <script setup>
 import { useWorkflowStore } from '@/stores/modules/workflow'
-import { getNodeList, saveNodes, getDraftKey, workFlowNextVersion } from '@/api/robot/index'
+import { getNodeList, saveNodes, getDraftKey, workFlowNextVersion, getRobotList } from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
 import { onMounted, ref, onUnmounted, watch, computed, h, provide} from 'vue'
@@ -93,6 +94,7 @@ import AddRobotAlert from '@/views/robot/robot-list/components/add-robot-alert.v
 import { getNodeTypes } from './components/node-list'
 import VersionModel from './components/version-model.vue'
 import PublishDetail from './components/publish-detail.vue'
+import AgentAbnormalModal from './components/agent-abnormal-modal.vue'
 import { getModelConfigOption } from '@/api/model/index'
 import { getModelOptionsList } from '@/components/model-select/index.js'
 import { useModelStore } from '@/stores/modules/model'
@@ -148,6 +150,7 @@ const buildUserAgent = () => {
 }
 
 const addRobotAlertRef = ref(null)
+const agentAbnormalModalRef = ref(null)
 const workflowCanvasRef = ref(null)
 
 const workflowStore = useWorkflowStore()
@@ -511,6 +514,75 @@ function getNode (list) {
 const toAddRobot = (val) => {
   // router.push({ name: 'addRobot' })
   addRobotAlertRef.value.open(val, true)
+}
+
+const getParsedNodeInfo = (item) => {
+  if (!item?.node_info_json) return null
+  if (typeof item.node_info_json === 'string') {
+    try {
+      return JSON.parse(item.node_info_json)
+    } catch (e) {
+      return null
+    }
+  }
+
+  return item.node_info_json
+}
+
+const getAgentParams = (item, nodeInfo) => {
+  const dataRaw = nodeInfo?.dataRaw || item?.node_params
+  if (!dataRaw) return null
+  if (typeof dataRaw === 'string') {
+    try {
+      return JSON.parse(dataRaw)
+    } catch (e) {
+      return null
+    }
+  }
+
+  return dataRaw
+}
+
+const getAbnormalAgentNodes = (list) => {
+  return (Array.isArray(list) ? list : []).reduce((nodes, item) => {
+    if (item.node_type != 52) return nodes
+    const nodeInfo = getParsedNodeInfo(item)
+    const nodeParams = getAgentParams(item, nodeInfo)
+    if (nodeParams?.agent?.robot_id == 0) {
+      nodes.push({ item, nodeInfo, nodeParams })
+    }
+    return nodes
+  }, [])
+}
+
+const checkAgentAbnormalNodes = async (list) => {
+  const abnormalNodes = getAbnormalAgentNodes(list)
+  if (!abnormalNodes.length) return list
+
+  const res = await getRobotList({ application_type: 2 })
+  const agentRobotOptions = (res.data || []).filter(item => item.has_published == 1)
+
+  if (!agentRobotOptions.length) {
+    message.warning('暂无可选择的Agent机器人')
+    return list
+  }
+
+  const selectedRobot = await agentAbnormalModalRef.value?.open(agentRobotOptions)
+  if (!selectedRobot) return list
+
+  abnormalNodes.forEach(({ item, nodeInfo, nodeParams }) => {
+    nodeParams.agent.robot_id = Number(selectedRobot.id)
+    nodeParams.agent.robot_info = selectedRobot
+    item.node_params = JSON.stringify(nodeParams)
+    if (nodeInfo) {
+      nodeInfo.dataRaw = item.node_params
+      item.node_info_json = JSON.stringify(nodeInfo)
+    }
+    item.node_name = selectedRobot.robot_name || item.node_name
+    item.node_icon = selectedRobot.robot_avatar || item.node_icon
+  })
+
+  return list
 }
 
 const setWorkflowData = (data) => {
@@ -1197,8 +1269,9 @@ const init = async () => {
     data_type: 1
   })
 
-  getNode(res.data)
-  checkNodePluginStatus(res.data)
+  const nodeList = await checkAgentAbnormalNodes(res.data)
+  getNode(nodeList)
+  checkNodePluginStatus(nodeList)
 }
 
 const handleAutoSaveDraft = async (type = 'automatic') => {

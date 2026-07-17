@@ -210,7 +210,8 @@ const baseNavs = computed(() => [
     title: t('clawbot'),
     icon: 'nav-robot',
     path: '/clawbot/chat',
-    permission: ['RobotManage']
+    permission: ['RobotManage'],
+    target: '_blank'
   },
   {
     id: 2,

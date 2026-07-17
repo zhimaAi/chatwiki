@@ -88,6 +88,7 @@ import JsonNodeForm from './json-node-form/index.vue'
 import JsonReverseNodeForm from './json-reverse-node-form/index.vue'
 import QaNodeForm from './qa-node-form/index.vue'
 import ZmWorkflowNodeForm from "./zm-workflow-node-form.vue";
+import ZmAgentNodeForm from "./zm-agent-node-form.vue";
 
 // 预定义所有可能的表单组件
 const formComponents = {
@@ -126,6 +127,7 @@ const formComponents = {
   'json-reverse-node': JsonReverseNodeForm,
   'qa-node': QaNodeForm,
   'zm-workflow-node': ZmWorkflowNodeForm,
+  'zm-agent-node': ZmAgentNodeForm,
 
   // 其他表单组件可以在这里添加
   // 'problem-optimization-node': defineAsyncComponent(() => import('./problem-optimization-form.vue')),

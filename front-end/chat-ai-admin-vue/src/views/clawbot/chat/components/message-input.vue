@@ -50,13 +50,20 @@
         </button>
 
         <button
+          v-if="props.loading"
+          class="send-msg-btn stop"
+          @click="stopMessage"
+        >
+          <span class="stop-icon"></span>
+        </button>
+        <button
+          v-else
           class="send-msg-btn"
-          :class="{ loading: props.loading, disabled, 'can-send': !disabled }"
+          :class="{ disabled, 'can-send': !disabled }"
           :disabled="disabled"
           @click="sendMessage"
         >
-          <a-spin size="small" class="loading-action" style="margin-right: 4px" v-if="props.loading" />
-          <ArrowUpOutlined class="paper-airplane" v-else />
+          <ArrowUpOutlined class="paper-airplane" />
         </button>
       </div>
     </div>
@@ -75,7 +82,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.clawbot.chat.components.message-input')
 const router = useRouter()
 
-const emit = defineEmits(['send', 'update:value', 'update:fileList', 'changeModel', 'openPrompt', 'openSkill'])
+const emit = defineEmits(['send', 'stop', 'update:value', 'update:fileList', 'changeModel', 'openPrompt', 'openSkill'])
 
 const props = defineProps({
   value: {
@@ -185,6 +192,10 @@ const handleKeydown = (event) => {
 
 const sendMessage = () => {
   emit('send', props.value.trim())
+}
+
+const stopMessage = () => {
+  emit('stop')
 }
 </script>
 
@@ -316,8 +327,20 @@ const sendMessage = () => {
       font-size: 18px;
     }
 
-    &.loading {
-      background-color: #2475fc;
+    &.stop {
+      background: #2475fc;
+
+      &:hover {
+        background: #1d68e5;
+      }
+    }
+
+    .stop-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: #fff;
+      display: inline-block;
     }
 
     &.can-send {
@@ -330,16 +353,6 @@ const sendMessage = () => {
 
     &.disabled:hover {
       background: #d8dde5;
-    }
-
-    .loading-action{
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 3px;
-      ::v-deep(.ant-spin-dot-item) {
-        background-color: #fff;
-      }
     }
   }
 

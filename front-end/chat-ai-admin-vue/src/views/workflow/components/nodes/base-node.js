@@ -431,6 +431,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         obj.children = node_params.workflow.output
       }
 
+      if(node.type === 'zm-agent-node'){
+        obj.children = node_params.agent.output
+      }
+
       if(node.type === 'voice-synthesis-node'){
         obj.children = node_params.text_to_audio.output
       }

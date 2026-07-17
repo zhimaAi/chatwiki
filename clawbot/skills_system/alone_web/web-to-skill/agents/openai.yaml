@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web To Skill"
+  short_description: "Build an indexed skill from one site or a URL batch"
+  default_prompt: "Use $web-to-skill to prepare URLs, crawl rendered pages, and package a bounded retrieval skill."

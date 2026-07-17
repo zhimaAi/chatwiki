@@ -2,7 +2,7 @@
   <div class="skills-page">
     <div class="page-header">
       <div class="page-title">
-        <a-segmented :value="2" :options="titleOptios" />
+        <a-segmented :value="route.path" :options="titleOptios" @change="handleTitleChange" />
       </div>
       <a-dropdown placement="bottomRight">
         <a-button type="primary" class="add-btn">
@@ -235,6 +235,7 @@
 
 <script setup>
 import { computed, ref, watch, createVNode } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { DeleteOutlined, DownOutlined, EditOutlined, ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -249,6 +250,8 @@ import SelectSkillModal from './components/SelectSkillModal.vue'
 import UploadSkillZipModal from './components/UploadSkillZipModal.vue'
 
 const { t } = useI18n('views.clawbot.skills.index')
+const route = useRoute()
+const router = useRouter()
 const clawbotStore = useClawbotStore()
 const { robotInfo, currentAssistant } = storeToRefs(clawbotStore)
 const { updateClawbotConf, fetchRobotInfo } = clawbotStore
@@ -260,13 +263,24 @@ const titleOptios = ref([
   // },
   {
     label: '我的skill',
-    value: 2
+    value: '/clawbot/skills'
+  },
+  {
+    label: 'skill生成工具',
+    value: '/clawbot/skill-generate-tool'
   }
 ])
 
+const handleTitleChange = (path) => {
+  if (path === route.path) {
+    return
+  }
+  router.push(path)
+}
+
 const skillSourceTabs = [
   { label: t('tab_all'), value: 'all' },
-  { label: t('tab_market'), value: 'market' },
+  // { label: t('tab_market'), value: 'market' },
   { label: t('tab_mine'), value: 'mine' }
 ]
 

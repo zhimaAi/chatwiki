@@ -22,8 +22,8 @@ var LibFileAllowExt = []string{`pdf`, `docx`, `ofd`, `txt`, `md`, `xlsx`, `csv`,
 var FormFileAllowExt = []string{`json`, `xlsx`, `csv`}
 var LibDocFileAllowExt = []string{`md`}
 var QALibFileAllowExt = []string{`docx`, `xlsx`, `csv`}
-var VideoAllowExt = []string{`mp4`}
-var AudioAllowExt = []string{`mp3`}
+var VideoAllowExt = []string{`mp4`, `m4v`}
+var AudioAllowExt = []string{`mp3`, `ogg`, `oga`}
 var FAQLibFileAllowExt = []string{`md`, `docx`, `txt`}
 var AllExt = make([]string, 0)
 

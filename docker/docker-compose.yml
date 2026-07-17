@@ -21,7 +21,6 @@ services:
     environment:
       TZ: ${TIMEZONE}
       PRODUCTION: "true"
-      CONCURRENT: 2
     volumes:
       - ../:/var/www/crawler/
     working_dir: /var/www/crawler
@@ -282,18 +281,22 @@ services:
           memory: 1G
 
   chatwiki_llm_runner:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/llm_runner:20260520
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/llm_runner:20260710
     container_name: chatwiki_llm_runner
     networks:
       - chatwiki_network
     volumes:
       - ../build/llm_runner:/build/llm_runner:ro
+      - ../clawbot/skills_public:/workspace/clawbot/skills_public:ro
+      - ../clawbot/skills_robot:/workspace/clawbot/skills_robot:ro
+      - ../clawbot/skills_system:/workspace/clawbot/skills_system:ro
       - ../clawbot/working_dir:/workspace/clawbot/working_dir:rw
     working_dir: /workspace
     command: /build/llm_runner
     restart: always
     environment:
       TZ: ${TIMEZONE}
+      LLM_RUNNER_COMMAND_TIMEOUT: 1h
     ports:
       - ${LLM_RUNNER_PORT}:9000
     user: "10001:10001"
@@ -309,16 +312,16 @@ services:
       nofile:
         soft: 1024
         hard: 1024
-      nproc: 128
+      nproc: 512
       fsize: 104857600
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
+      - /tmp:rw,noexec,nosuid,size=512m
     deploy:
       resources:
         limits:
-          pids: 128
+          pids: 512
           cpus: '2'
-          memory: 1G
+          memory: 4G
 
 networks:
   chatwiki_network:

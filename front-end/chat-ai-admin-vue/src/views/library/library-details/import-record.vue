@@ -147,6 +147,12 @@
               <span v-if="record.status == 0 || record.status == 1">-</span>
               <span v-else>{{ record.paragraph_count }}</span>
             </template>
+            <template v-if="column.key === 'action'">
+              <a-flex :gap="12">
+                <a @click="handleSyncDownload(record)">{{ t('download') }}</a>
+                <a @click="handleDelete(record)">{{ t('delete') }}</a>
+              </a-flex>
+            </template>
           </template>
         </a-table>
       </div>
@@ -181,7 +187,12 @@ import {
   LoadingOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getLibraryFileList, cancelOcrPdf, createExportLibFileTask } from '@/api/library'
+import {
+  getLibraryFileList,
+  cancelOcrPdf,
+  createExportLibFileTask,
+  hardDelLibraryFile
+} from '@/api/library'
 import { formatFileSize } from '@/utils/index'
 import { useLibraryStore } from '@/stores/modules/library'
 import { useUserStore } from '@/stores/modules/user'
@@ -268,6 +279,13 @@ const columnsDefault = computed(() => [
     dataIndex: 'update_time',
     key: 'update_time',
     width: 150
+  },
+  {
+    title: t('column_action'),
+    dataIndex: 'action',
+    key: 'action',
+    fixed: 'right',
+    width: 120
   }
 ])
 
@@ -393,6 +411,22 @@ const handleSyncDownload = (record) => {
   aTag.href = targetUrl
   aTag.style.display = 'none'
   aTag.click()
+}
+
+const handleDelete = (record) => {
+  Modal.confirm({
+    title: t('modal_delete_title'),
+    content: t('modal_delete_content'),
+    okText: t('modal_ok'),
+    onOk() {
+      return hardDelLibraryFile({
+        id: record.id
+      }).then(() => {
+        message.success(t('message_delete_success'))
+        getData()
+      })
+    }
+  })
 }
 
 const toDownloadPage = ()=>{

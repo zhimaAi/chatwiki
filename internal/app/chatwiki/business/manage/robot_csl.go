@@ -276,6 +276,8 @@ func CreateRobotCsl(lang string, id, adminUserId int, form_id, library_id string
 			}
 		}
 
+		// Clear agent node clawbot references (cross-account-invalid after export)
+		nodes = work_flow.StripAgentNodesInfo(nodes)
 		robotCsl.Nodes = nodes
 		for _, node := range nodes {
 			nodeParams := work_flow.NodeParams{}

@@ -121,7 +121,12 @@ func SaveClawbotSkill(c *gin.Context) {
 	skillId := cast.ToInt64(c.PostForm(`skill_id`))
 	skillName := strings.TrimSpace(c.PostForm(`skill_name`))
 	remarkName := strings.TrimSpace(c.PostForm(`remark_name`))
-	intro := strings.TrimSpace(c.PostForm(`intro`))
+	// description is the single source of truth; accept `description` first
+	// and fall back to the legacy `intro` field so older frontends keep working
+	description := strings.TrimSpace(c.PostForm(`description`))
+	if description == `` {
+		description = strings.TrimSpace(c.PostForm(`intro`))
+	}
 	uploadKey := strings.TrimSpace(c.PostForm(`upload_key`))
 	if skillId <= 0 && uploadKey == `` {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -139,8 +144,11 @@ func SaveClawbotSkill(c *gin.Context) {
 		showSkillErr(c, `clawbot_skill_name_invalid`, nil)
 		return
 	}
-	if len([]rune(intro)) > 500 {
-		showSkillErr(c, `clawbot_skill_name_invalid`, nil)
+	// description must be non-empty: the SKILL.md frontmatter requires it and
+	// rewriteSkillMdFrontmatter skips empty values, so an empty description
+	// would desync the DB from SKILL.md
+	if description == `` {
+		showSkillErr(c, `clawbot_skill_desc_invalid`, nil)
 		return
 	}
 	lockKey := define.LockPreKey + `ClawbotUserSkill.` + cast.ToString(adminUserId)
@@ -155,7 +163,7 @@ func SaveClawbotSkill(c *gin.Context) {
 		SkillId:     skillId,
 		SkillName:   skillName,
 		RemarkName:  remarkName,
-		Intro:       intro,
+		Description: description,
 		UploadKey:   uploadKey,
 	})
 	if err != nil || errKey != `` {

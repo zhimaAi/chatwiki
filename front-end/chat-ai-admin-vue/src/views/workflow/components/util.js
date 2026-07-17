@@ -59,6 +59,7 @@ export const allParentVariableNodeWhiteList = [
   'custom-group',
   'zm-plugins-node',
   'zm-workflow-node',
+  'zm-agent-node',
   'batch-group',
   'voice-synthesis-node',
   'voice-clone-node',

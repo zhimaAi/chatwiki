@@ -75,6 +75,7 @@ func StartConsumer() {
 	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, cast.ToUint(define.Config.ConsumerNum[`AppPushMessage`]), business.AppPush)
 	common.RunTask(lib_define.AppPushEvent, lib_define.AppPushChannel, cast.ToUint(define.Config.ConsumerNum[`AppPushEvent`]), business.AppPush)
 	common.RunTask(define.ExportTaskTopic, define.ExportTaskChannel, cast.ToUint(define.Config.ConsumerNum[`ExportTask`]), business.ExportTask)
+	common.RunTask(define.WebToSkillTaskTopic, define.WebToSkillTaskChannel, cast.ToUint(define.Config.ConsumerNum[`WebToSkillTask`]), business.WebToSkillTask)
 	common.RunTask(define.ExtractFaqFilesTopic, define.ExtractFaqFilesChannel, cast.ToUint(define.Config.ConsumerNum[`ExtractFaqFiles`]), business.ExtractFaqFiles)
 	common.RunTask(define.ImportFAQFileTopic, define.ImportFAQFileChannel, cast.ToUint(define.Config.ConsumerNum[`ImportLibFileFaq`]), business.ImportLibFileFaq)
 	common.RunTask(define.OfficialAccountDraftSyncTopic, define.OfficialAccountDraftSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountDraftSync`]), business.OfficialAccountDraftSync)
@@ -82,6 +83,7 @@ func StartConsumer() {
 	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountBatchSend`]), business.OfficialAccountBatchSend)
 	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentSync`]), business.OfficialAccountCommentSync)
 	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentAiCheck`]), business.OfficialAccountCommentAiCheck)
+	common.RunTask(define.BookToSkillTopic, define.BookToSkillChannel, cast.ToUint(define.Config.ConsumerNum[`BookToSkill`]), business.RunBookToSkillTask)
 }
 
 func StartCronTasks() {

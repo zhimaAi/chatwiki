@@ -29,6 +29,7 @@ import FeishuRobot from '@/views/robot/robot-config/external-service/components/
 import DingDingRobot from '@/views/robot/robot-config/external-service/components/dingding-robot.vue'
 import Messenget from '@/views/robot/robot-config/external-service/components/Messenget.vue'
 import WhatsApp from '@/views/robot/robot-config/external-service/components/whats-app.vue'
+import TelegramRobot from '@/views/robot/robot-config/external-service/components/telegram-robot.vue'
 
 const clawbotStore = useClawbotStore()
 const robotStore = useRobotStore()
@@ -54,7 +55,8 @@ const tabComponents = {
   FeishuRobot,
   DingDingRobot,
   Messenget,
-  WhatsApp
+  WhatsApp,
+  TelegramRobot
 }
 
 const activeLocalKey = '/clawbot/services/activeKey'

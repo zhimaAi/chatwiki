@@ -210,8 +210,8 @@ func SaveCustomerMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 		showContent := lib_define.MsgTypeNameMap[in.params.ReceivedMessageType]
 		msgType, content = define.MsgTypeText, i18n.Show(in.params.Lang, `received_message_type`, showContent)
 	}
-	// Messenger / WhatsApp media is already downloaded by the inbound layer.
-	if in.params.AppType == lib_define.AppMessenger || in.params.AppType == lib_define.AppWhatsapp {
+	// Messenger / WhatsApp / Telegram media is already downloaded by the inbound layer.
+	if in.params.AppType == lib_define.AppMessenger || in.params.AppType == lib_define.AppWhatsapp || in.params.AppType == lib_define.TelegramRobot {
 		switch in.params.ReceivedMessageType {
 		case lib_define.MsgTypeVoice:
 			msgType, content = define.MsgTypeVoice, in.params.MediaIdToOssUrl

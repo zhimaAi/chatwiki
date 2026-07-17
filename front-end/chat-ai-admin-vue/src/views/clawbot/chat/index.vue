@@ -268,6 +268,7 @@
             :showUpload="robotInfo.question_multiple_switch == 1"
             :emptyMode="showEmptyState"
             @send="onSendMessage"
+            @stop="onStopMessage"
             @changeModel="onChangeChatModel"
             @openPrompt="onOpenPromptDrawer"
             @openSkill="onOpenSkillDrawer"
@@ -332,6 +333,7 @@ const isNonChineseLocale = computed(() => {
 const {
   createChat,
   sendMessage,
+  stopMessage,
   getMyChatList,
   openChat,
   onGetChatMessage,
@@ -387,6 +389,7 @@ const saveRobotModelLoading = ref(false)
 const savePromptLoading = ref(false)
 const promptDrawerOpen = ref(false)
 const skillDrawerOpen = ref(false)
+let sendRequestSeq = 0
 const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoading.value)
 const relatedLibraryIds = computed(() => {
   return String(robotInfo.value?.library_ids || '')
@@ -477,6 +480,7 @@ const onSendMessage = async () => {
   }
 
   showScrollBottomButton.value = false
+  const requestSeq = ++sendRequestSeq
   checkChatRequestPermissionLoading.value = true
 
   try {
@@ -487,6 +491,10 @@ const onSendMessage = async () => {
       form_ids: robot.value.form_ids,
       dialogue_id: dialogue_id.value,
     })
+
+    if (requestSeq !== sendRequestSeq) {
+      return
+    }
 
     checkChatRequestPermissionLoading.value = false
 
@@ -534,8 +542,16 @@ const onSendMessage = async () => {
     message.value = ''
     fileList.value = []
   } catch (err) {
-    checkChatRequestPermissionLoading.value = false
+    if (requestSeq === sendRequestSeq) {
+      checkChatRequestPermissionLoading.value = false
+    }
   }
+}
+
+const onStopMessage = () => {
+  sendRequestSeq += 1
+  checkChatRequestPermissionLoading.value = false
+  stopMessage()
 }
 
 const onChangeChatModel = async (model) => {

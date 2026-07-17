@@ -66,6 +66,7 @@ const (
 	NodeTypeImmediatelyReply = 42 // Immediate reply
 	NodeTypeQuestion         = 43 // Question
 	NodeTypeHttpTool         = 45 // HTTP tool
+	NodeTypeAgent            = 52 // Agent (clawbot as a workflow node)
 )
 
 const (
@@ -73,6 +74,10 @@ const (
 	AddToPARAMS  = `PARAMS`
 	AddToBODY    = `BODY`
 )
+
+// AgentCaller is registered by the biz_chat package (init) to synchronously
+// run a clawbot and return its full reply. nil until registered.
+var AgentCaller func(robotInfo msql.Params, question string, lang string) (string, error)
 
 var NodeTypes = [...]int{
 	NodeTypeRemark,
@@ -111,6 +116,7 @@ var NodeTypes = [...]int{
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
 	NodeTypeQuestion,
+	NodeTypeAgent,
 }
 
 type NodeAdapter interface {
@@ -208,6 +214,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &ImmediatelyReplyNode{params: nodeParams.ImmediatelyReply, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeQuestion:
 		return &QuestionNode{params: nodeParams.Question, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeAgent:
+		return &AgentNode{params: nodeParams.Agent, nextNodeKey: info[`next_node_key`]}, info, nil
 	default:
 		return nil, info, errors.New(i18n.Show(lang, `node_type_not_supported`, info[`node_type`]))
 	}
@@ -2464,5 +2472,55 @@ func (n *QuestionNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 }
 
 func (n *QuestionNode) Params() any {
+	return n.params
+}
+
+// AgentNode runs a clawbot (agent) as a workflow node.
+type AgentNode struct {
+	params      AgentNodeParams
+	nextNodeKey string
+}
+
+func (n *AgentNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	nextNodeKey = n.nextNodeKey
+	// query the clawbot (must belong to current admin user)
+	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`id`, cast.ToString(n.params.RobotId)).
+		Find()
+	if err != nil {
+		flow.Logs(err.Error())
+		return
+	}
+	if len(robotInfo) == 0 {
+		err = errors.New(i18n.Show(flow.params.Lang, `robot_not_exist`))
+		flow.Logs(err.Error())
+		return
+	}
+	// caller must be registered by biz_chat package
+	if AgentCaller == nil {
+		err = errors.New(i18n.Show(flow.params.Lang, `sys_err`))
+		flow.Logs(`AgentCaller not registered`)
+		return
+	}
+	// variable replacement on the question content
+	question := flow.VariableReplace(n.params.QuestionValue)
+	// synchronously run the clawbot, no C-side chat trace
+	reply, err := AgentCaller(robotInfo, question, flow.params.Lang)
+	if err != nil {
+		flow.Logs(err.Error())
+		return
+	}
+	// output the reply into the fixed "data" field (same contract as WorkflowNode)
+	output = common.SimpleFields{}
+	output[`data`] = common.SimpleField{
+		Key:  `data`,
+		Typ:  common.TypString,
+		Vals: []common.Val{{String: &reply}},
+	}
+	return
+}
+
+func (n *AgentNode) Params() any {
 	return n.params
 }

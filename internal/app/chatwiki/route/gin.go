@@ -105,6 +105,15 @@ func init() {
 	Route[http.MethodGet][`/manage/getE2bConf`] = manage.GetE2bConf
 	Route[http.MethodPost][`/manage/saveE2bConf`] = manage.SaveE2bConf
 
+	/* Web-to-Skill Task */
+	Route[http.MethodGet][`/manage/getWebToSkillTaskList`] = manage.GetWebToSkillTaskList
+	Route[http.MethodPost][`/manage/createWebToSkillTask`] = manage.CreateWebToSkillTask
+	Route[http.MethodPost][`/manage/stopWebToSkillTask`] = manage.StopWebToSkillTask
+	Route[http.MethodPost][`/manage/regenerateWebToSkillTask`] = manage.RegenerateWebToSkillTask
+	Route[http.MethodGet][`/manage/getWebToSkillTaskInfo`] = manage.GetWebToSkillTaskInfo
+	Route[http.MethodGet][`/manage/downloadWebToSkillFile`] = manage.DownloadWebToSkillFile
+	Route[http.MethodPost][`/manage/installWebToSkill`] = manage.InstallWebToSkill
+
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
 	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey
@@ -171,6 +180,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getLibFileList`] = manage.GetLibFileList
 	Route[http.MethodPost][`/manage/addLibraryFile`] = manage.AddLibraryFile
 	Route[http.MethodPost][`/manage/delLibraryFile`] = manage.DelLibraryFile
+	Route[http.MethodPost][`/manage/hardDelLibraryFile`] = manage.HardDelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
 	Route[http.MethodGet][`/manage/getLibRawFile`] = manage.GetLibRawFile
 	noAuthFuns(Route[http.MethodGet], `/manage/getLibRawFileOnePage`, manage.GetLibRawFileOnePage)
@@ -496,6 +506,9 @@ func init() {
 
 	/* ChatClaw */
 	RegChatClawRoute()
+
+	/* BookToSkill */
+	RegBookToSkillRoute()
 
 	/** mcp square */
 	Route[http.MethodGet][`/manage/getMcpSquareTypeList`] = manage.GetMcpSquareTypeList

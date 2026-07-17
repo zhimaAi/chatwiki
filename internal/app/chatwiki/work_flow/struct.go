@@ -549,6 +549,13 @@ type WorkflowNodeParams struct {
 	Exception string               `json:"exception"`
 }
 
+type AgentNodeParams struct {
+	RobotId       int                  `json:"robot_id"`       // selected clawbot id
+	RobotInfo     any                  `json:"robot_info"`     // temporary data used by frontend
+	QuestionValue string               `json:"question_value"` // question content, supports variables
+	Output        common.RecurveFields `json:"output"`         // output fields (default contains "data")
+}
+
 type Message struct {
 	Type    string `json:"type"`    //text image voice
 	Content string `json:"content"` //content
@@ -693,6 +700,7 @@ type NodeParams struct {
 	Workflow         WorkflowNodeParams         `json:"workflow"`
 	ImmediatelyReply ImmediatelyReplyNodeParams `json:"immediately_reply"`
 	Question         QuestionParams             `json:"question"`
+	Agent            AgentNodeParams            `json:"agent"`
 }
 
 func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {
@@ -974,6 +982,13 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		for variable := range common.SimplifyFields(node.NodeParams.Question.Outputs) {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
 			if len(last) > 0 && last[0] {
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeAgent:
+		for variable := range common.SimplifyFields(node.NodeParams.Agent.Output) {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
 				variables = append(variables, variable)
 			}
 		}
@@ -1403,6 +1418,11 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				return
 			}
 		}
+	case NodeTypeAgent:
+		if variable, ok := CheckVariablePlaceholder(node.NodeParams.Agent.QuestionValue, variables); !ok {
+			err = errors.New(i18n.Show(lang, `workflow_node_content_variable_not_exist`, node.NodeName, variable))
+			return
+		}
 	case NodeTypeLoop:
 		//verify loop arrays
 		if node.NodeParams.Loop.LoopType == common.LoopTypeArray {
@@ -1627,6 +1647,8 @@ func (node *WorkFlowNode) Verify(adminUserId int, lang string) error {
 		err = node.NodeParams.LibraryImport.Verify(adminUserId, lang)
 	case NodeTypeWorkflow:
 		err = node.NodeParams.Workflow.Verify(adminUserId, lang)
+	case NodeTypeAgent:
+		err = node.NodeParams.Agent.Verify(adminUserId, lang)
 	case NodeTypeImmediatelyReply:
 		err = node.NodeParams.ImmediatelyReply.Verify(lang)
 	case NodeTypeQuestion:
@@ -2573,6 +2595,26 @@ func (param *WorkflowNodeParams) Verify(adminUserId int, lang string) error {
 		maps[item.Key] = struct{}{}
 	}
 
+	return nil
+}
+
+func (param *AgentNodeParams) Verify(adminUserId int, lang string) error {
+	if param.RobotId <= 0 {
+		return errors.New(i18n.Show(lang, `robot_id_cannot_be_empty`))
+	}
+	if len(param.QuestionValue) == 0 {
+		return errors.New(i18n.Show(lang, `question_value_cannot_be_empty`))
+	}
+	info, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`id`, cast.ToString(param.RobotId)).
+		Find()
+	if err != nil {
+		return err
+	}
+	if len(info) == 0 || cast.ToInt(info[`application_type`]) != define.ApplicationTypeClaw {
+		return errors.New(i18n.Show(lang, `selected_agent_invalid`))
+	}
 	return nil
 }
 
