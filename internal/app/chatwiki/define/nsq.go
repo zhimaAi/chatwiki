@@ -22,6 +22,9 @@ const CrawlFeishuDocChannel = `chatwiki_crawl_feishu_doc_channel`
 const ExportTaskTopic = `chatwiki_export_task_topic`
 const ExportTaskChannel = `chatwiki_export_task_channel`
 
+const WebToSkillTaskTopic = `chatwiki_web_to_skill_task_topic`
+const WebToSkillTaskChannel = `chatwiki_web_to_skill_task_channel`
+
 const ExtractFaqFilesTopic = `chatwiki_extract_faq_files_topic`
 const ExtractFaqFilesChannel = `chatwiki_extract_faq_files_channel`
 
@@ -42,6 +45,9 @@ const OfficialAccountCommentAiCheckChannel = `chatwiki_official_account_comment_
 
 const OfficialAccountHisArticleSyncTopic = `chatwiki_official_account_his_article_sync_topic`
 const OfficialAccountHisArticleSyncChannel = `chatwiki_official_account_his_article_sync_channel`
+
+const BookToSkillTopic = `chatwiki_book_to_skill_topic`
+const BookToSkillChannel = `chatwiki_book_to_skill_channel`
 
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

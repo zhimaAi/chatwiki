@@ -410,8 +410,11 @@ func fetchURLContent(parsedURL *netURL.URL) (*PageInfo, error) {
 	if errCheck != nil {
 		return nil, fmt.Errorf("不能打开加入js: %v", err)
 	}
-	// navigate to url, with timeout 15s
-	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{WaitUntil: playwright.WaitUntilStateLoad}); err != nil {
+	// navigate to url, with timeout 60s
+	if _, err = page.Goto(parsedURL.String(), playwright.PageGotoOptions{
+		WaitUntil: playwright.WaitUntilStateLoad,
+		Timeout:   playwright.Float(60000), // align with fetchURLHtml, override playwright default 30s
+	}); err != nil {
 		return nil, fmt.Errorf("could not navigate to url: %v", err)
 	}
 

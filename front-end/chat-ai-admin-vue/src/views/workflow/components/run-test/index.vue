@@ -3,7 +3,7 @@
     <!-- <a-button @click="handleOpenTestModal" style="background-color: #00ad3a" type="primary"
       ><CaretRightOutlined />{{ t('btn_run_test') }}</a-button
     > -->
-    <a-modal v-model:open="show" :footer="null" :width="820" wrapClassName="no-padding-modal">
+    <a-modal v-model:open="show" :footer="null" :width="runTestModalWidth">
       <template #title>
         <div class="modal-title-block">
           {{ t('btn_run_test') }}{{ formState.dialogue_id }}
@@ -15,109 +15,123 @@
       </template>
       <div class="flex-content-box">
         <div class="test-model-box">
-          <div class="top-title">{{ t('title_start_node_params') }}</div>
-          <a-form
-            :model="formState"
-            ref="formRef"
-            layout="vertical"
-            :wrapper-col="{ span: 24 }"
-            autocomplete="off"
-          >
-            <div v-show="!isShowQuestionForm">
-              <a-form-item
-                :name="['globalState', item.key]"
-                v-for="item in diy_global"
-                :key="item.key"
-                :rules="[{ required: item.required, message: t('msg_input_key', { key: item.key }) }]"
-              >
-                <template #label>
-                  <a-flex :gap="4"
-                    >{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag>
-                    <a-tooltip :title="item.desc">
-                      <div class="option-desc">{{ item.desc }}</div>
-                    </a-tooltip>
-                  </a-flex>
-                </template>
-                <template v-if="item.typ == 'string'">
-                  <a-input
-                    :placeholder="getDefaultPlaceholder(item)"
-                    v-model:value="formState.globalState[item.key]"
-                  />
-                </template>
-                <template v-if="item.typ == 'number'">
-                  <a-input-number
-                    style="width: 100%"
-                    :placeholder="getDefaultPlaceholder(item)"
-                    v-model:value="formState.globalState[item.key]"
-                  />
-                </template>
-                <template v-if="item.typ.includes('array')">
+          <div class="test-model-scroll customize-scroll-style">
+            <div class="top-title">{{ t('title_start_node_params') }}</div>
+            <a-form
+              :model="formState"
+              ref="formRef"
+              layout="vertical"
+              :wrapper-col="{ span: 24 }"
+              autocomplete="off"
+            >
+              <div v-show="!isShowQuestionForm">
+                <a-form-item
+                  :name="['globalState', item.key]"
+                  v-for="item in diy_global"
+                  :key="item.key"
+                  :rules="[{ required: item.required, message: t('msg_input_key', { key: item.key }) }]"
+                >
+                  <template #label>
+                    <a-flex :gap="4"
+                      >{{ item.key }} <a-tag style="margin: 0">{{ item.typ }}</a-tag>
+                      <a-tooltip :title="item.desc">
+                        <div class="option-desc">{{ item.desc }}</div>
+                      </a-tooltip>
+                    </a-flex>
+                  </template>
+                  <template v-if="item.typ == 'string'">
+                    <a-input
+                      :placeholder="getDefaultPlaceholder(item)"
+                      v-model:value="formState.globalState[item.key]"
+                    />
+                  </template>
+                  <template v-if="item.typ == 'number'">
+                    <a-input-number
+                      style="width: 100%"
+                      :placeholder="getDefaultPlaceholder(item)"
+                      v-model:value="formState.globalState[item.key]"
+                    />
+                  </template>
+                  <template v-if="item.typ.includes('array')">
+                    <div class="input-list-box">
+                      <div
+                        class="input-list-item"
+                        v-for="(input, i) in formState.globalState[item.key]"
+                        :key="i"
+                      >
+                        <a-form-item-rest
+                          ><a-input
+                            :placeholder="getDefaultPlaceholder(item)"
+                            v-model:value="input.value"
+                        /></a-form-item-rest>
+
+                        <CloseCircleOutlined
+                          v-if="formState.globalState[item.key].length > 1"
+                          @click="handleDelItem(item.key, i)"
+                        />
+                      </div>
+                      <div class="add-btn-box">
+                        <a-button @click="handleAddItem(item.key)" block type="dashed">{{ t('btn_add') }}</a-button>
+                      </div>
+                    </div>
+                  </template>
+                </a-form-item>
+              </div>
+
+              <template v-if="isShowQuestionForm">
+                <a-form-item>
+                  <template #label>
+                    <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
+                  </template>
+                  <a-input :placeholder="t('msg_input_key', { key: 'question' })" v-model:value="formState.question" />
+                </a-form-item>
+                <a-form-item v-if="question_multiple_switch">
+                  <template #label>
+                    <a-flex :gap="4"
+                      >question_multiple <a-tag style="margin: 0">string</a-tag>
+                    </a-flex>
+                  </template>
                   <div class="input-list-box">
                     <div
                       class="input-list-item"
-                      v-for="(input, i) in formState.globalState[item.key]"
+                      v-for="(input, i) in formState.question_multiple"
                       :key="i"
                     >
                       <a-form-item-rest
-                        ><a-input
-                          :placeholder="getDefaultPlaceholder(item)"
-                          v-model:value="input.value"
+                        ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
                       /></a-form-item-rest>
 
                       <CloseCircleOutlined
-                        v-if="formState.globalState[item.key].length > 1"
-                        @click="handleDelItem(item.key, i)"
+                        v-if="formState.question_multiple.length > 1"
+                        @click="handleDelQuestionItem(i)"
                       />
                     </div>
                     <div class="add-btn-box">
-                      <a-button @click="handleAddItem(item.key)" block type="dashed">{{ t('btn_add') }}</a-button>
+                      <a-button @click="handleAddQuetionItem()" block type="dashed">{{ t('btn_add') }}</a-button>
                     </div>
                   </div>
-                </template>
-              </a-form-item>
+                </a-form-item>
+              </template>
+            </a-form>
+
+            <div class="loading-box" v-if="loading">
+              <a-spin v-if="loading" :tip="t('msg_generating_test_result')" />
             </div>
-
-            <template v-if="isShowQuestionForm">
-              <a-form-item>
-                <template #label>
-                  <a-flex :gap="4">question <a-tag style="margin: 0">string</a-tag> </a-flex>
-                </template>
-                <a-input :placeholder="t('msg_input_key', { key: 'question' })" v-model:value="formState.question" />
-              </a-form-item>
-              <a-form-item v-if="question_multiple_switch">
-                <template #label>
-                  <a-flex :gap="4"
-                    >question_multiple <a-tag style="margin: 0">string</a-tag>
-                  </a-flex>
-                </template>
-                <div class="input-list-box">
-                  <div
-                    class="input-list-item"
-                    v-for="(input, i) in formState.question_multiple"
-                    :key="i"
-                  >
-                    <a-form-item-rest
-                      ><a-input :placeholder="t('ph_input')" v-model:value="input.value"
-                    /></a-form-item-rest>
-
-                    <CloseCircleOutlined
-                      v-if="formState.question_multiple.length > 1"
-                      @click="handleDelQuestionItem(i)"
-                    />
-                  </div>
-                  <div class="add-btn-box">
-                    <a-button @click="handleAddQuetionItem()" block type="dashed">{{ t('btn_add') }}</a-button>
-                  </div>
-                </div>
-              </a-form-item>
-            </template>
-          </a-form>
-
-          <div class="result-list-box loading-box" v-if="loading">
-            <a-spin v-if="loading" :tip="t('msg_generating_test_result')" />
           </div>
 
-          <div class="result-list-box" v-if="resultList.length > 0">
+          <div class="save-btn-box">
+            <a-button
+              :loading="loading"
+              @click="handleSubmit"
+              style="background-color: #00ad3a"
+              type="primary"
+              block
+              ><CaretRightOutlined />{{ isShowQuestionForm ? t('btn_continue_test') : t('btn_run_test') }} </a-button
+            >
+          </div>
+        </div>
+        <div class="result-panel-box">
+          <div class="result-list-box customize-scroll-style" v-if="hasRunResult">
             <div
               class="list-item-block"
               :class="{ active: currentNodeKey == item.node_key }"
@@ -135,26 +149,16 @@
               </div>
               <div class="time-tag" v-if="item.is_success">{{ item.use_time }}ms</div>
               <div class="right-active-icon"><RightCircleOutlined /></div>
-              <!-- <div class="out-put-box" v-if="item.is_success">
-                <a-tooltip>
-                  <template #title>{{ item.output }}</template>
-                  <div class="out-text-box">{{ item.output }}</div>
-                </a-tooltip>
-              </div> -->
             </div>
           </div>
-
-          <div class="save-btn-box">
-            <a-button
-              :loading="loading"
-              @click="handleSubmit"
-              style="background-color: #00ad3a"
-              type="primary"
-              ><CaretRightOutlined />{{ isShowQuestionForm ? t('btn_continue_test') : t('btn_run_test') }} </a-button
-            >
+          <div class="result-state-box" v-else-if="loading">
+            <a-spin :tip="t('msg_generating_test_result')" />
+          </div>
+          <div class="result-state-box" v-else>
+            <a-empty :description="hasRunTested ? t('msg_no_test_result') : t('msg_click_run_test_tip')" />
           </div>
         </div>
-        <div class="preview-box">
+        <div class="preview-box customize-scroll-style" v-if="hasRunResult">
           <template v-if="cuttentItem">
             <div class="preview-title">
               <div class="title-text">{{ t('title_log_details') }}</div>
@@ -279,6 +283,9 @@ const query = useRoute().query
 const show = ref(false)
 const currentNodeKey = ref('')
 const resultList = ref([])
+const hasRunTested = ref(false)
+const hasRunResult = computed(() => resultList.value.length > 0)
+const runTestModalWidth = computed(() => hasRunTested.value ? 1348 : 768)
 
 const cuttentItem = computed(() => {
   if (!currentNodeKey.value) {
@@ -337,6 +344,7 @@ const handleOpenTestModal = () => {
 
   resultList.value = []
   currentNodeKey.value = ''
+  hasRunTested.value = false
   emit('getGlobal')
   nextTick(() => {
     diy_global.value.forEach((item) => {
@@ -479,6 +487,7 @@ const handleSubmit = () => {
 
     loading.value = true
     resultList.value = []
+    hasRunTested.value = true
 
     const overrides = buildStorageOverrides()
     if (Object.keys(overrides).length) {
@@ -657,55 +666,84 @@ defineExpose({
 <style lang="less" scoped>
 .flex-content-box {
   display: flex;
-  max-height: 70vh;
+  height: 70vh;
   overflow: hidden;
+  align-items: stretch;
 }
 .test-model-box {
-  flex: 1;
-  margin: 24px 0 0 0;
-  overflow-y: auto;
-  padding-right: 16px;
+  width: 360px;
+  min-width: 360px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #f0f0f0;
+  background: #fff;
+  .test-model-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 20px 12px;
+  }
   .top-title {
     font-weight: 600;
     margin-bottom: 16px;
   }
   .save-btn-box {
-    margin: 32px 0;
-    margin-top: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 14px 20px 12px;
+    border-top: 1px solid #f0f0f0;
+    background: #fff;
+    box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.06);
   }
 }
 .tooltip-content {
   white-space: pre-wrap;
 }
 .loading-box {
-  height: 100px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
+.result-panel-box {
+  width: 360px;
+  min-width: 360px;
+  border-right: 1px solid #f0f0f0;
+  background: #fff;
+  padding: 16px;
+}
+.result-state-box {
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #8c8c8c;
+  background: #fff;
+}
 .result-list-box {
-  margin: 24px 0;
+  height: 100%;
   width: 100%;
-  border: 1px solid #ebebeb;
-  border-radius: 6px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
-  padding: 8px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  background: #fff;
   .list-item-block {
     display: flex;
     align-items: center;
     overflow: hidden;
-    gap: 8px;
-    padding: 8px;
+    gap: 10px;
+    padding: 10px 12px;
     color: #333;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 4px;
     .right-active-icon {
       margin-left: auto;
       color: #2475fc;
       opacity: 0;
+      font-size: 14px;
     }
     &:hover {
       background: #f2f4f7;
@@ -721,7 +759,8 @@ defineExpose({
       }
     }
     .status-block {
-      font-size: 20px;
+      font-size: 18px;
+      flex-shrink: 0;
     }
     .icon-name-box {
       display: flex;
@@ -729,21 +768,29 @@ defineExpose({
       gap: 8px;
       font-size: 14px;
       font-weight: 600;
+      min-width: 0;
+      .node-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       img {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
       }
     }
     .time-tag {
       width: fit-content;
-      border-radius: 4px;
-      height: 22px;
+      border-radius: 6px;
+      height: 24px;
       background: #d2f1dc;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 4px;
+      padding: 0 8px;
       font-size: 12px;
+      flex-shrink: 0;
     }
     .out-put-box {
       flex: 1;
@@ -775,8 +822,8 @@ defineExpose({
 .preview-box {
   flex: 1;
   overflow-y: auto;
-  border-left: 1px solid #d9d9d9;
-  padding: 16px;
+  padding: 20px 18px 20px 20px;
+  background: #fff;
   .preview-title {
     display: flex;
     align-items: center;
@@ -830,15 +877,17 @@ defineExpose({
       }
     }
     .preview-code-box {
-      width: fit-content;
-      min-width: 100%;
-      margin-top: 16px;
-      padding: 8px;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid #d9d9d9;
+      overflow-x: auto;
+      background: #fff;
 
       &::v-deep(.vjs-tree) {
         width: fit-content;
+        min-width: 100%;
       }
 
       &::v-deep(.vjs-tree-node) {

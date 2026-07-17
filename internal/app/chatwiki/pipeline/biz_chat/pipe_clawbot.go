@@ -66,7 +66,7 @@ func buildFileOperationPrompt(robot msql.Params, e2B bool) string {
 
 	var prompt strings.Builder
 	prompt.WriteString("## File and Command Operation Notes\n")
-	prompt.WriteString("- Follow these rules over any conflicting default tool description. File tools only accept relative paths under the allowed `clawbot/...` directories listed below.\n")
+	prompt.WriteString("- Follow these rules over any conflicting default tool description. File tools only accept paths under the allowed `clawbot/...` directories listed below.\n")
 	prompt.WriteString("- Available file/command tools for this session: `" + strings.Join(enabledTools, "`, `") + "`. Do not call file/command tools that are not listed here.\n")
 	prompt.WriteString("- Read-only tools: `ls`, `read_file`, `grep`, and `glob`; use them to inspect allowed directories, read files, search file content, and match file paths.\n")
 	if writeFileEnabled {
@@ -76,16 +76,16 @@ func buildFileOperationPrompt(robot msql.Params, e2B bool) string {
 		prompt.WriteString("- Edit tool: `edit_file` may only edit files under the workspace directory. Before editing, read the target file with `read_file`; `old_string` must be unique and preserve the original indentation.\n")
 	}
 	if executeEnabled && !e2B {
-		prompt.WriteString("- Command execution tool: `execute` accepts exactly one command string that parses into argv. Do not use shell features such as `cd`, `&&`, `|`, `;`, `&`, `<`, `>`, backticks, unquoted `$`, redirects, command substitution, or multi-line commands.\n")
-		prompt.WriteString("- `execute` command names must be one of: `cat`, `find`, `grep`, `head`, `jq`, `ls`, `node`, `npm`, `pwd`, `python3`, `rg`, `tail`, `wc`. Use the bare command name only; do not use a path to the command binary.\n")
-		prompt.WriteString("- `execute` path arguments must stay under the workspace directory. Do not use absolute paths such as `/workspace/...`, `~/...`, or Windows drive paths, and do not use parent-directory traversal (`..`).\n")
-		prompt.WriteString("- When running Python or Node files, the file must be under the workspace directory. Use `python3` for Python files; do not use `python3 -c`, `python3 -m`, `node -e`, `node -p`, `--eval`, or `--print`. When using `find`, do not use `-delete`, `-exec`, or `-execdir`.\n")
-		prompt.WriteString("- Prefer `read_file`, `grep`, and `glob` for normal file inspection. Use `execute` only when the task requires an allowed command result.\n")
-		_, _ = fmt.Fprintf(&prompt, "- Valid `execute` examples: `python3 %s/test_python.py`, `ls %s`, `rg \"keyword\" %s`.\n", privateWorkDir, privateWorkDir, privateWorkDir)
-		_, _ = fmt.Fprintf(&prompt, "- Invalid `execute` examples: `cd %s && python3 test_python.py`, `python3 /workspace/%s/test_python.py`.\n", privateWorkDir, privateWorkDir)
+		prompt.WriteString("- Command execution tool: `execute` passes the full command string to `/bin/sh -c` inside the llm_runner container. Shell syntax is supported, but prefer one simple command; use chaining, pipes, redirects, variables, or command substitution only when the task requires them, and quote paths and user-provided values safely.\n")
+		prompt.WriteString("- Basic command validation rejects these arguments when used with the leading `find` command: `-delete`, `-exec`, and `-execdir`. Do not use or attempt to bypass these blocked forms. Python and Node inline or module execution arguments are allowed.\n")
+		prompt.WriteString("- Commands run from `/workspace`. Keep command file access within the accessible directories listed below: skill directories are read-only and the workspace directory is writable. Prefer relative `clawbot/...` paths so commands are portable.\n")
+		prompt.WriteString("- Keep commands concise and deterministic. Avoid destructive or unrelated operations unless the user explicitly asks for them.\n")
+		prompt.WriteString("- Prefer `read_file`, `grep`, and `glob` for normal file inspection. Use `execute` only when the task requires a command result.\n")
+		_, _ = fmt.Fprintf(&prompt, "- Valid `execute` examples: `python3 -c \"print('hello')\"`, `node --eval \"console.log('hello')\"`, `python3 %s/test_python.py`, `ls %s`, `rg \"keyword\" %s`.\n", privateWorkDir, privateWorkDir, privateWorkDir)
+		prompt.WriteString("- Blocked `execute` example: `find . -delete`.\n")
 	}
 	if executeEnabled && e2B {
-		prompt.WriteString("- Command execution tool: `execute` runs inside the configured E2B sandbox. In E2B mode, commands are not checked by the local argv parser, command whitelist, or denied-argument rules.\n")
+		prompt.WriteString("- Command execution tool: `execute` runs inside the configured E2B sandbox. In E2B mode, commands bypass the local `ValidateCommand` denied-argument checks.\n")
 		prompt.WriteString("- E2B command execution always passes the full command string to `bash -lc <command>`. Bash syntax such as `cd`, `&&`, `|`, `;`, environment variables, redirects, command substitution, and multi-line commands can be used when the task requires them.\n")
 		prompt.WriteString("- File tools operate on the local Clawbot directories, while `execute` runs in a separate E2B filesystem. Do not assume files created or edited with file tools exist inside E2B; create E2B-side files within `execute` commands when needed.\n")
 		prompt.WriteString("- Prefer `read_file`, `grep`, and `glob` for local file inspection. Use `execute` only when the task requires running a shell command, script, package manager, or runtime inside the E2B sandbox.\n")
@@ -102,7 +102,7 @@ func buildFileOperationPrompt(robot msql.Params, e2B bool) string {
 	if executeEnabled && e2B {
 		prompt.WriteString("- File tool path arguments must be relative paths that start with one of the allowed directory prefixes above. For `execute`, use paths that exist inside the E2B sandbox, or create/download the needed files there first.\n")
 	} else {
-		prompt.WriteString("- All file/command path arguments must be relative paths that start with one of the allowed directory prefixes above. Refuse access when a path is absolute, escapes the allowed directories, or contains parent-directory traversal (`..`).\n")
+		prompt.WriteString("- File tool path arguments must start with one of the allowed directory prefixes above. Absolute paths are accepted only when they resolve back under an allowed `clawbot/...` directory; paths that escape the allowed directories or contain parent-directory traversal (`..`) are rejected.\n")
 	}
 	prompt.WriteString("- Always use the smallest sufficient operation. Do not write files, edit files, or execute commands unless the user explicitly requires it.\n")
 	prompt.WriteString("- Valid path examples:\n")
@@ -117,8 +117,17 @@ func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath stri
 	if filePath == `` {
 		return fmt.Errorf(`file path is required`)
 	}
+	// Normalize absolute workspace paths (e.g. /home/ubuntu/clawbot/... discovered
+	// via ls/pwd) back to the relative clawbot/... form so the scope check below
+	// applies. The backend still opens the original (absolute) path, which resolves
+	// correctly; this normalization is for validation only. Absolute paths without
+	// a clawbot/ anchor remain rejected.
 	if strings.HasPrefix(filePath, `/`) {
-		return fmt.Errorf(`absolute path is not allowed: %s`, filePath)
+		if rel := llm_runner.StripToClawbotAnchor(filePath, "clawbot/"); rel != `` {
+			filePath = rel
+		} else {
+			return fmt.Errorf(`absolute path is not allowed: %s`, filePath)
+		}
 	}
 	for _, part := range strings.Split(filePath, `/`) {
 		if part == `..` {
@@ -161,22 +170,13 @@ func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath stri
 	return fmt.Errorf(`%s is not allowed for %s`, filePath, op)
 }
 
-func ValidateCommand(robot msql.Params, command string) error {
-	args, err := llm_runner.PrepareCommand(command)
-	if err != nil {
-		return err
-	}
-	workDir := strings.ReplaceAll(define.PrivateWorkDir, `<robot_key>`, robot[`robot_key`])
-	return llm_runner.ValidateClawbotPathScope(args, workDir)
-}
-
 func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	// set language
 	_ = adk.SetLanguage(adk.LanguageChinese)
 	// init dirs
 	common.InitClawbotDirs(in.params.Robot[`robot_key`])
 	// ChatModel
-	ctx := context.Background()
+	ctx := clawbotRunContext(in)
 	cm, err := custom_eino.NewChatModel(ctx, &custom_eino.ChatModelConfig{
 		Generate: func(ctx context.Context, input []*schema.Message, opts custom_eino.RuntimeOptions) (*schema.Message, error) {
 			return Generate(ctx, input, opts, in, out)
@@ -215,13 +215,13 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 			if in.e2bShell != nil {
 				return nil // E2B sandbox not check command
 			}
-			return ValidateCommand(in.params.Robot, command)
+			return llm_runner.ValidateCommand(common.StripCdPrefix(command))
 		},
 		ExecuteCommand: func(command string) (*filesystem.ExecuteResponse, error) {
 			if in.e2bShell != nil {
 				return in.e2bShell.Execute(command) // E2B sandbox
 			}
-			resp := llm_runner.RpcExecuteRun(define.Config.WebService[`llm_runner_host`], command)
+			resp := llm_runner.RpcExecuteRun(define.Config.WebService[`llm_runner_host`], ``, command)
 			if resp.IsError {
 				if resp.ExitCode < 0 { // server execution error
 					return &filesystem.ExecuteResponse{Output: resp.ErrorMsg, ExitCode: &resp.ExitCode}, nil
@@ -313,6 +313,9 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 			break
 		}
 		if event.Err != nil {
+			if ctx.Err() != nil {
+				break // client disconnect/stop: keep partial content, skip fallback
+			}
 			out.Error = event.Err
 			common.SendDefaultUnknownQuestionPrompt(in.params, out.Error.Error(), in.chanStream, &out.content)
 			return nil
@@ -325,6 +328,9 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		}
 		message, err := ConcatStreamMessages(in, event.Output.MessageOutput)
 		if err != nil {
+			if ctx.Err() != nil {
+				break // client disconnect/stop: keep partial content, skip fallback
+			}
 			out.Error = err
 			common.SendDefaultUnknownQuestionPrompt(in.params, out.Error.Error(), in.chanStream, &out.content)
 			return nil
@@ -440,7 +446,7 @@ func Generate(ctx context.Context, input []*schema.Message, opts custom_eino.Run
 }
 
 func buildFilterTools(robot msql.Params) []string {
-	filterTools := []string{`write_todos`}
+	filterTools := []string{`write_todos`, `todo_write`}
 	if !cast.ToBool(robot[`open_agent_write_file_tool`]) {
 		filterTools = append(filterTools, `write_file`)
 	}
@@ -500,7 +506,7 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 	go func() {
 		defer close(chanStream)
 		totalResponse, _, streamErr = common.RequestChatStream(
-			context.Background(), // chat_claw has no cancelable request context
+			ctx,
 			in.params.Lang,
 			in.params.AdminUserId,
 			in.params.Openid,

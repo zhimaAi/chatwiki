@@ -114,6 +114,16 @@ export const delLibraryFile = ({ id }) => {
   })
 }
 
+export const hardDelLibraryFile = (data) => {
+  return request.post({
+    url: '/manage/hardDelLibraryFile',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    data: data
+  })
+}
+
 export const addLibraryFile = (data) => {
   return request.post({
     url: '/manage/addLibraryFile',

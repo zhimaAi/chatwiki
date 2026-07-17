@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-shiori/go-readability"
 	"github.com/xuri/excelize/v2"
@@ -137,7 +138,9 @@ func SaveUrlPage(userId int, url, saveDir string) (*define.UploadInfo, error) {
 
 	// request crawler
 	body, _ := json.Marshal(map[string]interface{}{"url": url})
-	req := curl.Post(define.Config.WebService[`crawler`] + "/content").Body(body)
+	req := curl.Post(define.Config.WebService[`crawler`]+"/content").
+		SetTimeout(time.Minute, 90*time.Second).
+		Body(body)
 	resp, err := req.Response()
 	if err != nil {
 		return nil, err

@@ -17,6 +17,10 @@
         border-radius: 6px;
         cursor: pointer;
       }
+      .info{
+        display: flex;
+        align-items: center;
+      }
 
       .avatar {
         width: 20px;
@@ -51,6 +55,15 @@
     }
   }
 
+  .anget-icon-box{
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    gap: 4px;
+    .clawbot-agent-text{
+      margin-top: 4px;
+    }
+  }
   .empty-box {
     text-align: center;
   }
@@ -74,6 +87,10 @@
             <img class="avatar" :src="item.robot_avatar"/>
             <div class="info">
               <span class="name">{{ item.robot_name }}</span>
+              <div class="anget-icon-box" v-if="item.application_type == 2">
+                <svg-icon class="clawbot-agent-icon" name="agent" width="14" height="14"></svg-icon>
+                <svg-icon class="clawbot-agent-text" name="agent-text" width="40" height="14"></svg-icon>
+              </div>
             </div>
           </div>
         </div>
@@ -91,7 +108,7 @@
 
 <script setup>
 import {ref, computed, onMounted} from 'vue'
-import {createWorkflowNode} from '../node-list'
+import {createAgentNode, createWorkflowNode} from '../node-list'
 import {RightOutlined, DownOutlined} from '@ant-design/icons-vue'
 import {getRobotList} from "@/api/robot/index.js";
 import {useI18n} from '@/hooks/web/useI18n'
@@ -99,6 +116,12 @@ import {useI18n} from '@/hooks/web/useI18n'
 const { t } = useI18n('views.workflow.components.node-list-popup.workflow-list')
 
 const emit = defineEmits(['add'])
+const props = defineProps({
+  excludedNodeTypes: {
+    type: Array,
+    default: () => []
+  },
+})
 const list = ref([])
 const keyword = ref('')
 
@@ -109,19 +132,28 @@ onMounted(() => {
 function loadData() {
   getRobotList({application_type: 1}).then(res => {
     let _list = res.data || []
-    list.value = _list.filter(i => i.has_published == 1)
+    _list = _list.filter(i => i.has_published == 1)
+    getRobotList({application_type: 2}).then(res=>{
+      list.value = _list.concat(res.data)
+    })
+    
   })
 }
 
 const showList = computed(() => {
-  if (keyword.value) {
-    return list.value.filter((item) => item.robot_name.includes(keyword.value))
+  let data = list.value
+  if (props.excludedNodeTypes.includes('zm-agent-node')) {
+    data = data.filter((item) => item.application_type != 2)
   }
-  return list.value
+
+  if (keyword.value) {
+    return data.filter((item) => item.robot_name.includes(keyword.value))
+  }
+  return data
 })
 
 const handleAddNode = (item) => {
-  let node = createWorkflowNode(item)
+  let node = item.application_type == 2 ? createAgentNode(item) : createWorkflowNode(item)
   emit('add', node)
 }
 </script>

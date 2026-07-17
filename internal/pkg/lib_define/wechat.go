@@ -28,6 +28,7 @@ const AppWechatKefu = `wechat_kefu`
 const FeiShuRobot = `feishu_robot`
 const DingTalkRobot = `dingtalk_robot`
 const AppWecomRobot = `wecom_robot`
+const TelegramRobot = `telegram_robot`
 const AppMessenger = `messenger`
 const AppWhatsapp = `whatsapp`
 
@@ -43,6 +44,7 @@ var AppTypeList = []string{
 	FeiShuRobot,
 	DingTalkRobot,
 	AppWecomRobot,
+	TelegramRobot,
 	AppMessenger,
 	AppWhatsapp,
 }

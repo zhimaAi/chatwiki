@@ -82,7 +82,12 @@ const timelineExpanded = computed(() => {
   }
   return displaySteps.value.some((step) => step?.expanded === true)
 })
-const timelineTitle = computed(() => hasRunningStep.value ? t('label_thinking') : t('label_thinking_completed'))
+const timelineTitle = computed(() => {
+  if (props.item?.is_stopped) {
+    return t('label_stopped')
+  }
+  return hasRunningStep.value ? t('label_thinking') : t('label_thinking_completed')
+})
 
 const setTimelineExpanded = (expanded) => {
   visibleSteps.value.forEach((step) => {

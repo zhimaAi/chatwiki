@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -78,6 +79,80 @@ func GetLibFileCount(wheres [][]string) (data map[string]int, err error) {
 		}
 	}
 	return data, err
+}
+
+const maxCrawlConcurrencyPerUser = 2
+
+var userCrawlSems sync.Map // admin_user_id -> chan struct{}, cap=maxCrawlConcurrencyPerUser
+
+func getUserCrawlSem(userId int) chan struct{} {
+	v, _ := userCrawlSems.LoadOrStore(userId, make(chan struct{}, maxCrawlConcurrencyPerUser))
+	return v.(chan struct{})
+}
+
+type crawlArticleTask struct {
+	fileId      int64
+	adminUserId int
+}
+
+// runCrawlArticleTasks dispatches crawl tasks with per-user sliding-window concurrency:
+// at most maxCrawlConcurrencyPerUser tasks per user are in flight at once, and a slot
+// frees up the moment one file finishes (no batch barrier). Each task takes its own
+// user's semaphore, so one user's bulk import can't block another's.
+func runCrawlArticleTasks(tasks []crawlArticleTask) {
+	var wg sync.WaitGroup
+	for _, task := range tasks {
+		sem := getUserCrawlSem(task.adminUserId)
+		wg.Add(1)
+		sem <- struct{}{} // occupy a slot; blocks when this user is at capacity
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }() // release slot when this file's crawl settles
+			pushCrawlArticleTask(task)
+			waitCrawlArticleSingleDone(task.fileId)
+		}()
+	}
+	wg.Wait()
+}
+
+func pushCrawlArticleTask(task crawlArticleTask) {
+	message, err := tool.JsonEncode(map[string]any{`file_id`: task.fileId, `admin_user_id`: task.adminUserId})
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if err = common.AddJobs(define.CrawlArticleTopic, message); err != nil {
+		logs.Error(err.Error())
+	}
+}
+
+// waitCrawlArticleSingleDone blocks until the file leaves WaitCrawl/Crawling (success,
+// exception, cancel, or temporary-retry's WaitCrawl round). Single-file timeout avoids
+// one stuck file blocking the rest of the user's queue.
+func waitCrawlArticleSingleDone(fileId int64) {
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	timeout := time.NewTimer(15 * time.Minute)
+	defer timeout.Stop()
+	for {
+		pending, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`id`, cast.ToString(fileId)).
+			Where(`status`, `in`, fmt.Sprintf(`%d,%d`, define.FileStatusWaitCrawl, define.FileStatusCrawling)).
+			Count(`1`)
+		if err != nil {
+			logs.Error(err.Error())
+			return
+		}
+		if pending <= 0 {
+			return
+		}
+		select {
+		case <-ticker.C:
+		case <-timeout.C:
+			logs.Error(`crawl article wait timeout, file_id:%d`, fileId)
+			return
+		}
+	}
 }
 
 func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, libraryType int, chunkParam *define.ChunkParam, addFileParam *BridgeAddLibraryFileReq) ([]int64, error) {
@@ -163,8 +238,9 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 			}
 		}
 
-		// save document and push to nsq
+		// save document and dispatch crawl tasks with per-user sliding-window concurrency
 		var fileIds []int64
+		crawlTasks := make([]crawlArticleTask, 0, len(urlItems))
 		for _, urlItem := range urlItems {
 			insData := msql.Datas{
 				`admin_user_id`:            userId,
@@ -187,11 +263,10 @@ func addLibFile(multipartForm *multipart.Form, lang string, userId, libraryId, l
 				continue
 			}
 			fileIds = append(fileIds, fileId)
-			if message, err := tool.JsonEncode(map[string]any{`file_id`: fileId, `admin_user_id`: userId}); err != nil {
-				logs.Error(err.Error())
-			} else if err := common.AddJobs(define.CrawlArticleTopic, message); err != nil {
-				logs.Error(err.Error())
-			}
+			crawlTasks = append(crawlTasks, crawlArticleTask{fileId: fileId, adminUserId: userId})
+		}
+		if len(crawlTasks) > 0 {
+			go runCrawlArticleTasks(crawlTasks)
 		}
 		return fileIds, nil
 	case define.DocTypeLocal: // document uploaded
@@ -648,6 +723,19 @@ func DelLibraryFile(c *gin.Context) {
 	ids := cast.ToString(c.PostForm(`id`))
 
 	err := BridgeDelLibraryFile(userId, ids, common.GetLang(c))
+	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+	return
+}
+
+// HardDelLibraryFile physically deletes library files without recycle bin
+func HardDelLibraryFile(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	ids := cast.ToString(c.PostForm(`id`))
+
+	err := BridgeHardDelLibraryFile(userId, ids, common.GetLang(c))
 	c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 	return
 }

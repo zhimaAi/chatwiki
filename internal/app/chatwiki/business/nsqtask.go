@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/rand"
 	netURL "net/url"
 	"path/filepath"
 	"strings"
@@ -32,6 +33,45 @@ import (
 
 var CheckFileLearnedMutex sync.Map
 var CheckFileGraphLearnedMutex sync.Map
+
+const temporaryTaskRetryLimit = 1
+const temporaryTaskRetryDelay = 10 * time.Second
+
+func retryTemporaryTask(topic string, data map[string]any, retryKey string, delay time.Duration) bool {
+	retryCount := cast.ToInt(data[retryKey])
+	if retryCount >= temporaryTaskRetryLimit {
+		return false
+	}
+	data[retryKey] = retryCount + 1
+	// jitter 0~delay, spread out simultaneous retries across users so retries don't pile up and overload downstream again
+	delay += time.Duration(rand.Int63n(int64(delay)))
+	message, err := tool.JsonEncode(data)
+	if err != nil {
+		logs.Error(err.Error())
+		return false
+	}
+	if err = common.AddJobs(topic, message, delay); err != nil {
+		logs.Error(err.Error())
+		return false
+	}
+	return true
+}
+
+func isTemporaryTaskError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, `too many requests`) ||
+		strings.Contains(errMsg, `context deadline exceeded`) ||
+		strings.Contains(errMsg, `client.timeout exceeded`) ||
+		strings.Contains(errMsg, `service unavailable`) ||
+		strings.Contains(errMsg, `server misbehaving`) ||
+		strings.Contains(errMsg, `connection refused`) ||
+		strings.Contains(errMsg, `connection reset`) ||
+		strings.Contains(errMsg, `: eof`) ||
+		strings.Contains(errMsg, `timeout`)
+}
 
 func ConvertHtml(msg string, _ ...string) error {
 	logs.Debug(`nsq:%s`, msg)
@@ -62,9 +102,8 @@ func ConvertHtml(msg string, _ ...string) error {
 
 	//convert html
 	htmlUrl, err := common.ConvertHtml(fileId, link, cast.ToInt(info[`admin_user_id`]), cast.ToInt(info[`pdf_parse_type`]))
-	if err != nil && err.Error() == `Service Unavailable` {
-		logs.Error(`service unavailable. try again in one minute:%s`, msg)
-		_ = common.AddJobs(define.ConvertHtmlTopic, msg, time.Minute)
+	if err != nil && isTemporaryTaskError(err) && retryTemporaryTask(define.ConvertHtmlTopic, data, `convert_retry_count`, temporaryTaskRetryDelay) {
+		logs.Error(`temporary convert html error, try again later:%s/%s`, msg, err.Error())
 		return nil
 	}
 	if err != nil && strings.Contains(err.Error(), `pdf parse cancelled`) {
@@ -483,6 +522,18 @@ func CrawlArticle(msg string, _ ...string) error {
 	uploadInfo, err := common.SaveUrlPage(cast.ToInt(file[`admin_user_id`]), file[`doc_url`], "library_file")
 	if err != nil {
 		logs.Error(err.Error())
+		if isTemporaryTaskError(err) && retryTemporaryTask(define.CrawlArticleTopic, data, `crawl_retry_count`, temporaryTaskRetryDelay) {
+			_, err = m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
+				`status`:      define.FileStatusWaitCrawl,
+				`errmsg`:      err.Error(),
+				`update_time`: tool.Time2Int(),
+			})
+			if err != nil {
+				logs.Error(err.Error())
+			}
+			lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: fileId})
+			return nil
+		}
 		_, err := m.Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
 			`status`: define.FileStatusCrawlException,
 			`errmsg`: err.Error(),
@@ -649,6 +700,14 @@ func ExportTask(id string, _ ...string) error {
 	} else { // export succeeded
 		status = define.ExportStatusSucceed
 		errMsg = `SUCCEED`
+	}
+	return nil
+}
+
+func WebToSkillTask(msg string, _ ...string) error {
+	logs.Debug(`nsq:%s`, msg)
+	if err := common.RunWebToSkillTask(cast.ToInt64(msg)); err != nil {
+		logs.Error(err.Error())
 	}
 	return nil
 }
@@ -1530,5 +1589,43 @@ func ImportLibFileFaq(msg string, _ ...string) error {
 	ids := cast.ToString(data[`ids`])
 	token := cast.ToString(data[`token`])
 	common.ImportFAQFile(define.LangEnUs, adminUserId, libraryId, fileId, ids, token, false)
+	return nil
+}
+
+func RunBookToSkillTask(msg string, _ ...string) error {
+	data := make(map[string]any)
+	if err := tool.JsonDecode(msg, &data); err != nil {
+		logs.Error(`BookToSkill parsing failure:%s/%s`, msg, err.Error())
+		return nil
+	}
+	taskId := cast.ToInt(data[`task_id`])
+	if taskId <= 0 {
+		logs.Error(`BookToSkill data exception:%s`, msg)
+		return nil
+	}
+
+	// Load task from DB
+	task, err := common.GetBookToSkillTaskById(taskId)
+	if err != nil {
+		logs.Error(`BookToSkill task not found:%d err:%s`, taskId, err.Error())
+		return nil
+	}
+
+	// Only allow Pending tasks to execute. NSQ may re-deliver messages after
+	// service restart, causing tasks in Running/Success/Failed status to be
+	// picked up again and potentially loop indefinitely.
+	if task.Status != define.BookToSkillStatusPending {
+		logs.Debug("BookToSkill task %d status is %d (not Pending), skip", taskId, task.Status)
+		return nil
+	}
+
+	// Execute synchronously (NSQ consumer is already async)
+	defer func() {
+		if r := recover(); r != nil {
+			logs.Error(`BookToSkill task panic:%d err:%v`, taskId, r)
+			common.UpdateBookToSkillTaskFailed(taskId, fmt.Sprintf("panic: %v", r))
+		}
+	}()
+	common.RunBookToSkillTaskSync(task)
 	return nil
 }

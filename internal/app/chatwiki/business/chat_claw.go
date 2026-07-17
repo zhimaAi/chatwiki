@@ -142,6 +142,7 @@ func ChatClawChat(c *gin.Context) {
 		OpenApiContent:      tool.JsonEncodeNoError(req.Messages),
 		ChatPromptVariables: chatPromptVariables,
 	}
+	params.StopCtx = c.Request.Context()
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")

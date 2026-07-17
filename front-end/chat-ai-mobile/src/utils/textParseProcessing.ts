@@ -39,12 +39,11 @@ function buildVideoTag(url: string, poster = ''): string {
 }
 
 // Support:
-// 1) ![video](https://xx/video.mp4)
-// 2) ![video](https://xx/video.mp4 "poster-url")
+// 1) ![desc](https://xx/video.mp4)
+// 2) ![desc](https://xx/video.mp4 "poster-url")
 function replaceVideoSyntax(str: string): string {
   return str.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (match, alt, url, poster = '') => {
-    const isVideoToken = String(alt || '').trim().toLowerCase() === 'video'
-    return isVideoToken && isVideoUrl(url) ? buildVideoTag(url, poster) : match
+    return isVideoUrl(url) ? buildVideoTag(url, poster) : match
   })
 }
 

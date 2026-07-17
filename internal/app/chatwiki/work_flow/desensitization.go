@@ -122,3 +122,43 @@ func PluginNodeDesensitize(adminUserId int, plugin PluginNodeParams, nodeInfoStr
 	plugin.NoAuthFilter = false
 	return plugin, AmendNodeinfojson(nodeInfoStr, replace)
 }
+
+// StripAgentNodeInfo clears the clawbot reference (robot_id / robot_info) from an
+// Agent node so exported/imported workflows do not carry a cross-account-invalid id.
+// The node itself and its question/output config are preserved.
+func StripAgentNodeInfo(node msql.Params) msql.Params {
+	if cast.ToInt(node[`node_type`]) != NodeTypeAgent {
+		return node
+	}
+	// node_params: clear clawbot binding
+	nodeParams := DisposeNodeParams(NodeTypeAgent, node[`node_params`], ``)
+	nodeParams.Agent.RobotId = 0
+	nodeParams.Agent.RobotInfo = nil
+	node[`node_params`] = tool.JsonEncodeNoError(nodeParams)
+	// node_info_json.dataRaw: clear clawbot binding (frontend reads dataRaw first).
+	// dataRaw has the same NodeParams shape, so the binding is nested under agent.
+	nodeInfoJson := map[string]any{}
+	if err := tool.JsonDecodeUseNumber(node[`node_info_json`], &nodeInfoJson); err == nil {
+		if dataRaw, ok := nodeInfoJson[`dataRaw`]; ok {
+			dataRawMap := map[string]any{}
+			if err := tool.JsonDecodeUseNumber(cast.ToString(dataRaw), &dataRawMap); err == nil {
+				if agent, ok := dataRawMap[`agent`].(map[string]any); ok {
+					agent[`robot_id`] = 0
+					agent[`robot_info`] = nil
+					dataRawMap[`agent`] = agent
+					nodeInfoJson[`dataRaw`] = tool.JsonEncodeNoError(dataRawMap)
+				}
+			}
+		}
+		node[`node_info_json`] = tool.JsonEncodeNoError(nodeInfoJson)
+	}
+	return node
+}
+
+// StripAgentNodesInfo clears clawbot references from all Agent nodes in the list.
+func StripAgentNodesInfo(nodes []msql.Params) []msql.Params {
+	for i := range nodes {
+		nodes[i] = StripAgentNodeInfo(nodes[i])
+	}
+	return nodes
+}

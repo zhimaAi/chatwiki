@@ -329,6 +329,7 @@ const handleCopy = (text) => {
 const open = (data) => {
   if (!data) {
     data = JSON.parse(JSON.stringify(formStateStruct))
+    formState.id = void 0;
   } else {
     data.app_avatar_url = data.app_avatar
     data.app_avatar = ''

@@ -126,5 +126,11 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config messenger error`)
 	}
+	define.Config.Telegram, err = config.GetSection("telegram")
+	if err != nil {
+		logs.Error(err.Error())
+		panic(`read config telegram error`)
+	}
 	wechat.SetMessengerGraphAPIBase(define.Config.Messenger[`graph_api_base`])
+	wechat.SetTelegramApiBase(define.Config.Telegram[`api_base`])
 }

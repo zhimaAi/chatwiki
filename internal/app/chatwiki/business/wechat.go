@@ -433,7 +433,7 @@ func SendReply(push *lib_define.PushMessage) {
 	if common.IsContainChinese(push.Content) {
 		params.Lang = define.LangZhCn
 	}
-	// download image
+	// download image/voice/video to OSS
 	ImageMediaIdToOssUrl(push, receivedMessageType, app, params)
 	// download thumbnail
 	ThumbMediaIdToOssUrl(push, app, params)
@@ -815,6 +815,10 @@ func ImageMediaIdToOssUrl(push *lib_define.PushMessage, receivedMessageType stri
 		return
 	}
 	if push.AppInfo[`app_type`] == lib_define.AppWhatsapp && push.Message[`oss_url`] != nil {
+		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
+		return
+	}
+	if push.AppInfo[`app_type`] == lib_define.TelegramRobot && push.Message[`oss_url`] != nil {
 		params.MediaIdToOssUrl = cast.ToString(push.Message[`oss_url`])
 		return
 	}

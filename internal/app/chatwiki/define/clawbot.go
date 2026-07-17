@@ -8,11 +8,24 @@ import (
 )
 
 const (
+	SystemSkillsDir  = `clawbot/skills_system/<biz_type>`
 	PublicSkillsDir  = `clawbot/skills_public`
 	UserSkillsDir    = `clawbot/skills_user/<admin_user_id>`
 	PrivateSkillsDir = `clawbot/skills_robot/<robot_key>`
 	PrivateFileDir   = `clawbot/skills_robot/<robot_key>/query-local-docs/references`
 	PrivateWorkDir   = `clawbot/working_dir/<robot_key>`
+
+	// BookToSkillTaskDir book-to-skill task working directories (require <robot_key> + <task_id> replacement)
+	BookToSkillTaskDir = `clawbot/working_dir/<robot_key>/book_to_skill_<task_id>` //book to skill dir
+	WorkInputDir       = BookToSkillTaskDir + `/input`
+	WorkOutputDir      = BookToSkillTaskDir + `/skill`
+	WorkScriptsDir     = BookToSkillTaskDir + `/scripts`
+	WorkChunksDir      = BookToSkillTaskDir + `/chunks`
+	WorkTemplatesDir   = BookToSkillTaskDir + `/templates`
+	WorkSummariesDir   = BookToSkillTaskDir + `/summaries`
+
+	// WebToSkillWorkDir web-to-skill task working directories
+	WebToSkillWorkDir = `clawbot/working_dir/web-to-skill/<task_batch>`
 )
 
 // skill management constants

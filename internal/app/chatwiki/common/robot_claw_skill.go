@@ -87,7 +87,11 @@ func parseSkillFrontmatter(content string) (name, description, body string, err 
 	return strings.TrimSpace(fm.Name), strings.TrimSpace(fm.Description), body, nil
 }
 
-func rewriteSkillMdName(skillMdPath, newName string) error {
+// rewriteSkillMdFrontmatter updates the name and/or description fields in a
+// SKILL.md frontmatter. An empty argument leaves that field untouched, so
+// callers can rewrite only what changed (e.g. rename keeps the description,
+// editing the intro only rewrites the description).
+func rewriteSkillMdFrontmatter(skillMdPath, newName, newDescription string) error {
 	content, err := tool.ReadFile(skillMdPath)
 	if err != nil {
 		return err
@@ -105,7 +109,12 @@ func rewriteSkillMdName(skillMdPath, newName string) error {
 	if err = yaml.Unmarshal([]byte(fmText), &node); err != nil {
 		return err
 	}
-	setYamlMapValue(&node, `name`, newName)
+	if newName != `` {
+		setYamlMapValue(&node, `name`, newName)
+	}
+	if newDescription != `` {
+		setYamlMapValue(&node, `description`, newDescription)
+	}
 	newFm, err := yaml.Marshal(&node)
 	if err != nil {
 		return err
@@ -220,6 +229,7 @@ func UploadAndStageUserClawbotSkillZip(adminUserId int, originFileName, srcZipPa
 		UploadKey:      uploadKey,
 		SkillName:      skillName,
 		RemarkName:     skillName,
+		Intro:          description,
 		Description:    description,
 		FileSize:       fileSize,
 		OriginFileName: originFileName,
@@ -232,7 +242,7 @@ type SaveUserClawbotSkillParam struct {
 	SkillId     int64
 	SkillName   string
 	RemarkName  string
-	Intro       string
+	Description string
 	UploadKey   string
 }
 
@@ -254,15 +264,19 @@ func SaveUserClawbotSkill(p SaveUserClawbotSkillParam) (_ *ClawbotUserSkillItem,
 	tmpRoot := userSkillTmpRoot(p.AdminUserId)
 
 	now := tool.Time2Int()
+	// description is the single source of truth for the skill description:
+	// it is stored in the DB and rewritten into SKILL.md frontmatter on
+	// publish, so the value the agent reads always matches what the user
+	// edited. The legacy `intro` column is no longer written; the json
+	// `intro` field is still returned for backward compatibility.
 	data := msql.Datas{
 		`admin_user_id`: p.AdminUserId,
 		`skill_name`:    p.SkillName,
 		`remark_name`:   p.RemarkName,
-		`intro`:         p.Intro,
+		`description`:   p.Description,
 		`update_time`:   now,
 	}
 	if meta != nil {
-		data[`description`] = meta.Description
 		data[`file_size`] = meta.FileSize
 		data[`origin_file_name`] = meta.OriginFileName
 	}
@@ -294,14 +308,21 @@ func SaveUserClawbotSkill(p SaveUserClawbotSkillParam) (_ *ClawbotUserSkillItem,
 		oldName := old[`skill_name`]
 		oldDir := filepath.Join(baseDir, oldName)
 		if meta != nil {
-			cleanup, rollback, err = replaceSkillDirWithBackup(tmpRoot, oldDir, destDir, filepath.Join(tmpDir, `skill`), p.SkillName)
+			cleanup, rollback, err = replaceSkillDirWithBackup(tmpRoot, oldDir, destDir, filepath.Join(tmpDir, `skill`), p.SkillName, p.Description)
 			if err != nil {
 				return nil, ``, err
 			}
 		} else if oldName != p.SkillName {
-			cleanup, rollback, err = renameUserSkillDirWithBackup(tmpRoot, oldDir, destDir, p.SkillName)
+			cleanup, rollback, err = renameUserSkillDirWithBackup(tmpRoot, oldDir, destDir, p.SkillName, p.Description)
 			if err != nil {
 				return nil, ``, err
+			}
+		} else if old[`description`] != p.Description {
+			// only the description changed: rewrite SKILL.md in place
+			if mdPath := findSkillMdInDir(oldDir); mdPath != `` {
+				if err = rewriteSkillMdFrontmatter(mdPath, p.SkillName, p.Description); err != nil {
+					return nil, ``, err
+				}
 			}
 		}
 		_, err = msql.Model(define.TableChatAiClawbotUserSkill, define.Postgres).
@@ -312,7 +333,7 @@ func SaveUserClawbotSkill(p SaveUserClawbotSkillParam) (_ *ClawbotUserSkillItem,
 		if meta == nil {
 			return nil, `clawbot_skill_upload_key_invalid`, nil
 		}
-		cleanup, rollback, err = replaceSkillDirWithBackup(tmpRoot, ``, destDir, filepath.Join(tmpDir, `skill`), p.SkillName)
+		cleanup, rollback, err = replaceSkillDirWithBackup(tmpRoot, ``, destDir, filepath.Join(tmpDir, `skill`), p.SkillName, p.Description)
 		if err != nil {
 			return nil, ``, err
 		}
@@ -337,7 +358,123 @@ func SaveUserClawbotSkill(p SaveUserClawbotSkillParam) (_ *ClawbotUserSkillItem,
 		return nil, `no_data`, nil
 	}
 	out := BuildClawbotUserSkillItem(item)
+	// propagate the updated user skill to every robot that has it mounted;
+	// agent conversations only scan skills_robot/ and would otherwise keep
+	// showing the stale name until the robot skill config is re-saved
+	robotRows, rerr := msql.Model(define.TableChatAiClawbotSkill, define.Postgres).
+		Where(`user_skill_id`, item[`id`]).
+		Where(`source_type`, cast.ToString(define.SkillSourceTypeUpload)).
+		Select()
+	if rerr != nil {
+		logs.Error(fmt.Sprintf(`sync user skill to robots failed (query), admin_user_id=%d skill_id=%s: %v`, p.AdminUserId, item[`id`], rerr))
+	}
+	for _, robotRow := range robotRows {
+		if sErrKey, sErr := syncOneRobotSkill(p.AdminUserId, robotRow[`robot_key`], item, robotRow); sErrKey != `` || sErr != nil {
+			logs.Error(fmt.Sprintf(`sync user skill to robot failed, admin_user_id=%d skill_id=%s robot_key=%s: errKey=%s err=%v`, p.AdminUserId, item[`id`], robotRow[`robot_key`], sErrKey, sErr))
+		}
+	}
 	return &out, ``, nil
+}
+
+func ReadClawbotSkillZipMeta(srcZipPath string) (skillName, description string, err error) {
+	reader, err := zip.OpenReader(srcZipPath)
+	if err != nil {
+		return ``, ``, errors.New(`invalid skill zip file`)
+	}
+	defer func() { _ = reader.Close() }()
+
+	tmpDir, err := os.MkdirTemp(``, `clawbot_skill_meta_`)
+	if err != nil {
+		return ``, ``, err
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+	if errKey, unzipErr := unzipSkillTo(reader, tmpDir); unzipErr != nil {
+		return ``, ``, unzipErr
+	} else if errKey != `` {
+		return ``, ``, errors.New(errKey)
+	}
+	skillRoot, err := resolveSkillRoot(tmpDir)
+	if err != nil {
+		return ``, ``, errors.New(`SKILL.md is missing from generated skill zip`)
+	}
+	skillMdPath, errKey := normalizeSkillMdFile(skillRoot)
+	if errKey != `` {
+		return ``, ``, errors.New(errKey)
+	}
+	content, err := tool.ReadFile(skillMdPath)
+	if err != nil {
+		return ``, ``, err
+	}
+	skillName, description, _, err = parseSkillFrontmatter(content)
+	if err != nil || skillName == `` || description == `` {
+		return ``, ``, errors.New(`skill name or description is missing from SKILL.md frontmatter`)
+	}
+	if len([]rune(skillName)) > 500 {
+		return ``, ``, errors.New(`skill name exceeds 500 characters`)
+	}
+	return skillName, description, nil
+}
+
+func InstallUserClawbotSkillZip(adminUserId int, originFileName, srcZipPath, expectedSkillName, expectedDescription string, overwrite bool) (_ *ClawbotUserSkillItem, errKey string, err error) {
+	if strings.ToLower(filepath.Ext(srcZipPath)) != `.zip` {
+		return nil, `clawbot_skill_zip_only`, nil
+	}
+	fileInfo, err := os.Stat(srcZipPath)
+	if err != nil {
+		return nil, ``, err
+	}
+	if fileInfo.IsDir() || fileInfo.Size() <= 0 {
+		return nil, `clawbot_skill_zip_invalid`, nil
+	}
+	if !define.SkillNameRegexp.MatchString(expectedSkillName) || expectedSkillName == define.SkillReservedName {
+		return nil, `clawbot_skill_name_invalid`, nil
+	}
+
+	m := msql.Model(define.TableChatAiClawbotUserSkill, define.Postgres)
+	dup, err := m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Where(`skill_name`, expectedSkillName).
+		Find()
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return nil, ``, err
+	}
+	if len(dup) > 0 && !overwrite {
+		return nil, `clawbot_skill_name_exists`, nil
+	}
+	if len(dup) == 0 && tool.IsDir(filepath.Join(userSkillsDir(adminUserId), expectedSkillName)) {
+		return nil, `clawbot_skill_system_dir_exists`, nil
+	}
+
+	result, errKey, err := UploadAndStageUserClawbotSkillZip(adminUserId, originFileName, srcZipPath, fileInfo.Size())
+	if err != nil || errKey != `` {
+		return nil, errKey, err
+	}
+	cleanupUpload := func() { _ = os.RemoveAll(filepath.Join(userSkillTmpRoot(adminUserId), result.UploadKey)) }
+	if result.SkillName != expectedSkillName || result.Description != expectedDescription {
+		cleanupUpload()
+		return nil, ``, errors.New(`generated skill metadata does not match task record`)
+	}
+	skillId := int64(0)
+	remarkName := result.RemarkName
+	if len(dup) > 0 {
+		skillId = cast.ToInt64(dup[`id`])
+		if dup[`remark_name`] != `` {
+			remarkName = dup[`remark_name`]
+		}
+	}
+	item, errKey, err := SaveUserClawbotSkill(SaveUserClawbotSkillParam{
+		AdminUserId: adminUserId,
+		SkillId:     skillId,
+		SkillName:   result.SkillName,
+		RemarkName:  remarkName,
+		Description: result.Description,
+		UploadKey:   result.UploadKey,
+	})
+	if err != nil || errKey != `` {
+		cleanupUpload()
+		return nil, errKey, err
+	}
+	return item, ``, nil
 }
 
 func getUserClawbotSkillTarget(adminUserId int, skillId int64, skillName string) (msql.Params, error) {
@@ -635,7 +772,7 @@ func BuildClawbotUserSkillItem(row msql.Params) ClawbotUserSkillItem {
 		SkillId:        cast.ToInt64(row[`id`]),
 		SkillName:      row[`skill_name`],
 		RemarkName:     row[`remark_name`],
-		Intro:          row[`intro`],
+		Intro:          row[`description`],
 		Description:    row[`description`],
 		FileSize:       cast.ToInt(row[`file_size`]),
 		OriginFileName: row[`origin_file_name`],
@@ -645,7 +782,7 @@ func BuildClawbotUserSkillItem(row msql.Params) ClawbotUserSkillItem {
 	}
 }
 
-func publishSkillDirWithTmpRoot(stageRoot, srcSkillDir, destDir, skillName string) error {
+func publishSkillDirWithTmpRoot(stageRoot, srcSkillDir, destDir, skillName, description string) error {
 	if !tool.IsDir(srcSkillDir) {
 		return errors.New(`staged skill dir not found`)
 	}
@@ -658,9 +795,9 @@ func publishSkillDirWithTmpRoot(stageRoot, srcSkillDir, destDir, skillName strin
 		return err
 	}
 	if mdPath := findSkillMdInDir(staging); mdPath != `` {
-		curName, _, _, perr := readSkillMdName(mdPath)
-		if perr == nil && curName != skillName {
-			if err := rewriteSkillMdName(mdPath, skillName); err != nil {
+		curName, curDesc, _, perr := readSkillMdName(mdPath)
+		if perr == nil && (curName != skillName || curDesc != description) {
+			if err := rewriteSkillMdFrontmatter(mdPath, skillName, description); err != nil {
 				_ = os.RemoveAll(staging)
 				return err
 			}
@@ -775,7 +912,7 @@ func syncOneRobotSkill(adminUserId int, robotKey string, userRow msql.Params, ol
 		oldDir = filepath.Join(baseDir, oldName)
 	}
 	destDir := filepath.Join(baseDir, skillName)
-	cleanup, rollback, err := replaceSkillDirWithBackup(skillTmpRoot(robotKey), oldDir, destDir, srcDir, skillName)
+	cleanup, rollback, err := replaceSkillDirWithBackup(skillTmpRoot(robotKey), oldDir, destDir, srcDir, skillName, userRow[`description`])
 	if err != nil {
 		return ``, err
 	}
@@ -787,7 +924,6 @@ func syncOneRobotSkill(adminUserId int, robotKey string, userRow msql.Params, ol
 		`user_skill_id`: userSkillId,
 		`skill_name`:    skillName,
 		`remark_name`:   userRow[`remark_name`],
-		`intro`:         userRow[`intro`],
 		`description`:   userRow[`description`],
 		`file_size`:     cast.ToInt64(userRow[`file_size`]),
 		`update_time`:   now,
@@ -848,7 +984,7 @@ func deleteRobotSkillRowAndDir(robotKey string, row msql.Params) (errKey string,
 	return ``, nil
 }
 
-func replaceSkillDirWithBackup(tmpRoot, oldDir, destDir, srcDir, skillName string) (cleanup func(), rollback func(), err error) {
+func replaceSkillDirWithBackup(tmpRoot, oldDir, destDir, srcDir, skillName, description string) (cleanup func(), rollback func(), err error) {
 	backupDirs := make([]string, 0, 2)
 	restorePairs := make([][2]string, 0, 2)
 	moveForReplace := func(dir string) error {
@@ -899,14 +1035,14 @@ func replaceSkillDirWithBackup(tmpRoot, oldDir, destDir, srcDir, skillName strin
 			}
 		}
 	}
-	if err = publishSkillDirWithTmpRoot(tmpRoot, srcDir, destDir, skillName); err != nil {
+	if err = publishSkillDirWithTmpRoot(tmpRoot, srcDir, destDir, skillName, description); err != nil {
 		rollback()
 		return nil, nil, err
 	}
 	return cleanup, rollback, nil
 }
 
-func renameUserSkillDirWithBackup(tmpRoot, oldDir, destDir, skillName string) (cleanup func(), rollback func(), err error) {
+func renameUserSkillDirWithBackup(tmpRoot, oldDir, destDir, skillName, description string) (cleanup func(), rollback func(), err error) {
 	if !tool.IsDir(oldDir) {
 		return nil, nil, errors.New(`staged skill dir not found`)
 	}
@@ -928,7 +1064,7 @@ func renameUserSkillDirWithBackup(tmpRoot, oldDir, destDir, skillName string) (c
 			}
 		}
 	}
-	if err = publishSkillDirWithTmpRoot(tmpRoot, backupDir, destDir, skillName); err != nil {
+	if err = publishSkillDirWithTmpRoot(tmpRoot, backupDir, destDir, skillName, description); err != nil {
 		rollback()
 		return nil, nil, err
 	}

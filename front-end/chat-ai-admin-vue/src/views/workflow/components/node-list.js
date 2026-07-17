@@ -1118,6 +1118,39 @@ export const nodeList = [
       })
     }
   },
+  {
+    id: '',
+    groupKey: 'workflows',
+    type: 'zm-agent-node',
+    width: 420,
+    height: 154,
+    properties: {
+      ...getRowData(),
+      width: 320,
+      height: 154,
+      node_type: 52,
+      node_name: '',
+      node_icon: getNodeIconUrl('zm-workflow-node'),
+      node_icon_name: 'zm-workflow-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFF8 2%, rgba(229, 239, 255, 0) 100%)',
+      plugin_name: '',
+      node_params: JSON.stringify({
+        agent: {
+          robot_id: 0,
+          robot_info: {},
+          question_value: '',
+          question_tags: [],
+          output: [
+            {
+              key: 'data',
+              desc: 'Agent 回复',
+              typ: 'string'
+            }
+          ]
+        }
+      })
+    }
+  },
 ]
 
 // 获取分组和节点
@@ -1444,6 +1477,49 @@ export const createWorkflowNode = (item) => {
               "key": "data",
               "desc": "工作流回复内容",
               "typ": "string"
+            }
+          ]
+        }
+      })
+    }
+  }
+
+  return JSON.parse(JSON.stringify(node))
+}
+
+export const createAgentNode = (item) => {
+  const nodesMap = getNodesMap()
+  const nodeCongfig = nodesMap['zm-agent-node']
+  const icon = item.robot_avatar ? item.robot_avatar : nodeCongfig.properties.node_icon
+  const node_header_bg_color = item.node_header_bg_color ? item.node_header_bg_color : nodeCongfig.properties.node_header_bg_color
+
+  const node = {
+    type: 'zm-agent-node',
+    x: 0,
+    y: 0,
+    id: '',
+    width: nodeCongfig.width,
+    height: nodeCongfig.height,
+    properties: {
+      ...nodeCongfig.properties,
+      node_icon: icon,
+      width: nodeCongfig.width,
+      height: nodeCongfig.height,
+      node_key: '',
+      nodeSortKey: '',
+      node_name: item.robot_name || 'agent',
+      node_header_bg_color: node_header_bg_color,
+      node_params: JSON.stringify({
+        agent: {
+          robot_info: item,
+          robot_id: Number(item.id),
+          question_value: '',
+          question_tags: [],
+          output: [
+            {
+              key: 'data',
+              desc: 'Agent 回复',
+              typ: 'string'
             }
           ]
         }

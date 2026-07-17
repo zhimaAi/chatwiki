@@ -976,8 +976,9 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 			return totalResponse, requestTime, streamed, ModelErrStreamRead, err
 		}
 
-		// clawbot push stream raw
-		if len(robot) > 0 && cast.ToInt(robot[`application_type`]) == define.ApplicationTypeClaw {
+		// push stream raw events for clawbot and BTS (ChatClawClient) so callers
+		// can collect and merge via schema.ConcatMessages
+		if len(robot) > 0 && chanStream != nil && (cast.ToInt(robot[`application_type`]) == define.ApplicationTypeClaw || appType == lib_define.ChatClawClient) {
 			sendOrAbort(ctx, chanStream, sse.Event{Event: `stream_raw`, Data: response})
 			streamed = true
 		}

@@ -11,11 +11,13 @@ import (
 	"chatwiki/internal/pkg/lib_web"
 	"chatwiki/internal/pkg/wechat"
 	"chatwiki/internal/pkg/wechat/messenger"
+	"chatwiki/internal/pkg/wechat/telegram_robot"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	cams "github.com/alibabacloud-go/cams-20200606/v5/client"
 	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
@@ -23,6 +25,7 @@ import (
 	"github.com/aliyun/credentials-go/credentials"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/curl"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
@@ -291,6 +294,16 @@ func SaveWechatApp(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `app_type`))))
 		return
 	}
+	//check app_name length
+	if utf8.RuneCountInString(appName) > 100 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `app_name_too_long`))))
+		return
+	}
+
+	// For Telegram, auto-generate app_secret as a 32-character alphanumeric string on creation only
+	if id == 0 && appType == lib_define.TelegramRobot && (appSecret == `no-need` || len(appSecret) == 0) {
+		appSecret = tool.Random(32)
+	}
 	//official account access quantity limit
 	if appType == lib_define.AppOfficeAccount && id == 0 {
 		count, err := msql.Model(`chat_ai_wechat_app`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).Where(`app_type`, appType).Count()
@@ -557,6 +570,14 @@ func SaveWechatApp(c *gin.Context) {
 		}
 		appInfo[`push_aeskey`] = lib_define.AesKey
 		appInfo[`account_is_verify`] = cast.ToString(lib_define.WechatAccountIsVerify(appInfo[`account_customer_type`]))
+		// For Telegram, call setWebhook to bind the push URL
+		if appInfo[`app_type`] == lib_define.TelegramRobot {
+			if webhookErr := callTelegramSetWebhook(appInfo); webhookErr != nil {
+				logs.Error(`telegram setWebhook error: %s`, webhookErr.Error())
+				appInfo[`webhook_error`] = webhookErr.Error()
+				err = webhookErr
+			}
+		}
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(appInfo, err))
 }
@@ -849,4 +870,35 @@ func SetWechatConfigSwitch(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+}
+
+// callTelegramSetWebhook calls the Telegram Bot API setWebhook method to bind the webhook URL.
+func callTelegramSetWebhook(appInfo msql.Params) error {
+	botToken := appInfo[`app_id`]
+	secretToken := appInfo[`app_secret`]
+	webhookUrl := fmt.Sprintf(`%s/push_pwd/%s/%s`, define.Config.WebService[`push_domain`], appInfo[`app_type`], appInfo[`access_key`])
+
+	body := map[string]any{
+		`url`:                  webhookUrl,
+		`secret_token`:         secretToken,
+		`drop_pending_updates`: true,
+		`allowed_updates`:      []string{`message`, `callback_query`},
+	}
+	telegramApiBase := define.Config.Telegram[`api_base`]
+	if len(telegramApiBase) == 0 {
+		telegramApiBase = telegram_robot.TelegramApiBase
+	}
+	url := telegramApiBase + `/bot` + botToken + `/setWebhook`
+	request, err := curl.Post(url).JSONBody(body)
+	if err != nil {
+		return fmt.Errorf(`telegram setWebhook request error: %w`, err)
+	}
+	resp := telegram_robot.TelegramResponse{}
+	if err = request.ToJSON(&resp); err != nil {
+		return fmt.Errorf(`telegram setWebhook parse error: %w`, err)
+	}
+	if !resp.Ok {
+		return fmt.Errorf(`telegram setWebhook failed: code=%d, desc=%s`, resp.ErrorCode, resp.Description)
+	}
+	return nil
 }

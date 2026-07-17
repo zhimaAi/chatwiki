@@ -1016,6 +1016,7 @@ func RequestConvertService(file, fromFormat string, pdfParseType int) (content s
 		extractImage = true
 	}
 	request := curl.Post(define.Config.WebService[`converter`]+`/convert`).
+		SetTimeout(time.Minute, 5*time.Minute).
 		PostFile(`file`, file).
 		Param(`from_format`, fromFormat).
 		Param(`to_format`, `html`).

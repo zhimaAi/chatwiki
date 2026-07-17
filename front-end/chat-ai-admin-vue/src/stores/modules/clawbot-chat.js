@@ -503,6 +503,40 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     messageList.value[msgIndex].loading = false
   }
 
+  // 查找当前正在生成中的 AI 消息索引
+  const getRunningAiMessageIndex = () => {
+    for (let i = messageList.value.length - 1; i >= 0; i--) {
+      const item = messageList.value[i]
+      if (
+        item.is_customer != 1 &&
+        !item.is_stopped &&
+        (item.loading || item.startLoading || item.quote_loading || item.reasoning_status)
+      ) {
+        return i
+      }
+    }
+    return -1
+  }
+
+  // 手动终止当前会话
+  const stopMessage = () => {
+    const msgIndex = getRunningAiMessageIndex()
+    if (msgIndex > -1) {
+      const msg = messageList.value[msgIndex]
+      msg.is_stopped = true
+      msg.loading = false
+      msg.startLoading = false
+      msg.quote_loading = false
+      msg.reasoning_status = false
+      // 复用 finalize_process_steps 完成 process_steps 收尾 + emit
+      updateAiMessage('finalize_process_steps', null, msg.uid)
+    }
+
+    abortCurrentSSE()
+    sendLock.value = false
+    closeAiMessageLoading()
+  }
+
   // 发送消息
   const sendMessage = (data) => {
     if (sendLock.value) {
@@ -531,6 +565,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       active_thinking_step_id: '',
       quote_loading: false,
       show_quote_file: true,
+      is_stopped: false,
       voice_content: [],
     }
     let params = {
@@ -890,6 +925,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     lastPushedUserMessageUid,
     createChat,
     sendMessage,
+    stopMessage,
     getMyChatList,
     myChatList,
     openChat,

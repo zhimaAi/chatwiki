@@ -23,7 +23,7 @@
         <div
           class="thinking-label-wrapper"
           :class="{ reasoning_open: item.show_quote_file }"
-          v-if="item.msg_type == 1 && isShowQuoteFileProgress && (!item.startLoading || !tipsBeforeAnswerSwitch)"
+          v-if="item.msg_type == 1 && isShowQuoteFileProgress && (!item.startLoading || !tipsBeforeAnswerSwitch) && (!item.is_stopped || item.quote_loading || getQuoteFileCount(item) > 0)"
         >
           <div class="thinking-label" @click="toggleQuoteFiel(item)">
             <template v-if="item.quote_loading">
@@ -33,13 +33,13 @@
             <template v-if="!item.quote_loading">
               <svg-icon class="think-icon" name="quote-file"></svg-icon>
               <span class="label-text">
-                {{ t('label_retrieved_knowledge_base_docs', { count: item.quote_file.length }) }}
+                {{ t('label_retrieved_knowledge_base_docs', { count: getQuoteFileCount(item) }) }}
               </span>
             </template>
             <svg-icon
               name="arrow-down"
               class="arrow-down"
-              v-if="item.quote_file.length"
+              v-if="getQuoteFileCount(item) > 0"
             ></svg-icon>
           </div>
         </div>
@@ -50,21 +50,25 @@
           v-if="hasReasoningContent(item) && !hasProcessSteps(item)"
         >
           <div class="thinking-label" @click="toggleReasonProcess(item)">
-            <LoadingOutlined class="loading" v-if="item.reasoning_status" />
+            <LoadingOutlined class="loading" v-if="item.reasoning_status && !item.is_stopped" />
             <svg-icon class="think-icon" name="think" v-else></svg-icon>
             <span class="label-text">
-              {{ item.reasoning_status ? t('label_thinking') : t('label_thinking_completed') }}
+              {{ getReasoningLabel(item) }}
             </span>
             <svg-icon
               name="arrow-down"
               class="arrow-down"
-              v-if="!item.reasoning_status"
+              v-if="!item.reasoning_status || item.is_stopped"
             ></svg-icon>
           </div>
           <a-tooltip>
             <template #title>{{ t('msg_disable_reasoning_tooltip') }}</template>
             <InfoCircleOutlined class="tip" />
           </a-tooltip>
+        </div>
+
+        <div class="stopped-label" v-if="showStoppedLabel">
+          {{ t('label_stopped') }}
         </div>
       </div>
 
@@ -221,6 +225,14 @@ const showMessageLoading = computed(() => {
   return !!props.item?.loading && !hasFinalAnswerContent(props.item)
 })
 
+const showStoppedLabel = computed(() => {
+  return !!props.item?.is_stopped &&
+    !hasReplyList.value &&
+    !hasReasoningContent(props.item) &&
+    !hasProcessSteps(props.item) &&
+    !hasFinalAnswerContent(props.item)
+})
+
 const isReasoningExpanded = (item) => {
   if (!item) {
     return false
@@ -237,6 +249,17 @@ const toggleReasonProcess = (item) => {
 
 const toggleQuoteFiel = (item) => {
   item.show_quote_file = !item.show_quote_file
+}
+
+const getQuoteFileCount = (item) => {
+  return Array.isArray(item?.quote_file) ? item.quote_file.length : 0
+}
+
+const getReasoningLabel = (item) => {
+  if (item?.is_stopped) {
+    return t('label_stopped')
+  }
+  return item?.reasoning_status ? t('label_thinking') : t('label_thinking_completed')
 }
 
 const isShowBody = computed(() => {
@@ -283,6 +306,19 @@ const onClickMeun = (item) => {
   color: #262626;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.stopped-label {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #595959;
+  background: #e4e6eb;
+  margin-bottom: 8px;
 }
 
 .message-loading {

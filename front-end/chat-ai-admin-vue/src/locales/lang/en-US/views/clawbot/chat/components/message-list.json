@@ -3,6 +3,7 @@
   "label_retrieved_knowledge_base_docs": "Retrieved {count} knowledge base documents",
   "label_thinking": "Thinking deeply...",
   "label_thinking_completed": "Deep thinking completed",
+  "label_stopped": "Stopped",
   "msg_disable_reasoning_tooltip": "Disable the reasoning process switch in application settings to stop displaying the reasoning process",
   "library_featured": "Featured"
 }

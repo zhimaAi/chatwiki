@@ -317,6 +317,41 @@ func BridgeAddLibraryFile(adminUserId, loginUserId int, lang string, req *Bridge
 	return map[string]any{`file_ids`: fileIds}, 0, nil
 }
 
+func BridgeHardDelLibraryFile(adminUserId int, ids, lang string) error {
+	for _, id := range strings.Split(ids, `,`) {
+		id := cast.ToInt(id)
+		if id <= 0 {
+			return errors.New(i18n.Show(lang, `param_lack`))
+		}
+		info, err := common.GetLibFileInfo(id, adminUserId)
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+		if len(info) == 0 {
+			return errors.New(i18n.Show(lang, `no_data`))
+		}
+		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`id`, cast.ToString(id)).Delete()
+		if err != nil {
+			logs.Error(err.Error())
+			return errors.New(i18n.Show(lang, `sys_err`))
+		}
+		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: id})
+		_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).
+			Where(`file_id`, cast.ToString(id)).
+			Update(msql.Datas{
+				`file_id`:     0,
+				`update_time`: tool.Time2Int(),
+			})
+		if err != nil {
+			logs.Error(err.Error())
+		}
+	}
+	return nil
+}
+
 func BridgeDelLibraryFile(adminUserId int, ids, lang string) error {
 	for _, id := range strings.Split(ids, `,`) {
 		id := cast.ToInt(id)

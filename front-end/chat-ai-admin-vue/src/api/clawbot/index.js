@@ -55,6 +55,98 @@ export const getClawbotSkillList = (params = {}) => {
   })
 }
 
+export const getBookToSkillTaskList = (params = {}) => {
+  return request.get({
+    url: '/manage/bookToSkill/taskList',
+    params
+  })
+}
+
+export const createBookToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'multipart/form-data' },
+    url: '/manage/bookToSkill/createTask',
+    data
+  })
+}
+
+export const stopBookToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    url: '/manage/bookToSkill/stopTask',
+    data
+  })
+}
+
+export const installBookToSkill = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    url: '/manage/bookToSkill/installSkill',
+    data
+  })
+}
+
+export const getBookToSkillTaskLog = (params = {}) => {
+  return request.get({
+    url: '/manage/bookToSkill/taskLog',
+    params
+  })
+}
+
+export const retryBookToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    url: '/manage/bookToSkill/retryTask',
+    data
+  })
+}
+
+export const getWebToSkillTaskList = (params = {}) => {
+  return request.get({
+    url: '/manage/getWebToSkillTaskList',
+    params
+  })
+}
+
+export const createWebToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/json' },
+    url: '/manage/createWebToSkillTask',
+    data
+  })
+}
+
+export const stopWebToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/json' },
+    url: '/manage/stopWebToSkillTask',
+    data
+  })
+}
+
+export const regenerateWebToSkillTask = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/json' },
+    url: '/manage/regenerateWebToSkillTask',
+    data
+  })
+}
+
+export const getWebToSkillTaskInfo = (params = {}) => {
+  return request.get({
+    url: '/manage/getWebToSkillTaskInfo',
+    params
+  })
+}
+
+export const installWebToSkill = (data = {}) => {
+  return request.post({
+    headers: { 'Content-Type': 'application/json' },
+    url: '/manage/installWebToSkill',
+    data
+  })
+}
+
 export const saveClawbotRobotSkills = (data = {}) => {
   return request.post({
     headers: { 'Content-Type': 'multipart/form-data' },

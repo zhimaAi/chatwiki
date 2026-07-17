@@ -98,7 +98,7 @@ const addNode = inject('addNode')
 const setData = inject('setData')
 const resetSize = inject('resetSize')
 const autoLayoutGroup = inject('autoLayoutGroup')
-const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node', 'terminate-node', 'qa-node'])
+const excludedNodeTypes = ref(['custom-group', 'batch-group', 'end-node', 'terminate-node', 'qa-node', 'zm-agent-node'])
 
 const isShowMenu = ref(false)
 
