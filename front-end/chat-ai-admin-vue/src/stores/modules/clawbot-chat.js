@@ -50,6 +50,24 @@ const safeParseJson = (value, fallback) => {
 const PROCESS_EVENT_KEYS = ['FileOperation', 'ExecuteCommand']
 
 /**
+ * @typedef {'finish' | 'stop' | 'close'} ProcessFinalizeReason
+ * @typedef {Object} NormalizedChatEvent
+ * @property {'thinking_delta' | 'answer_delta' | 'round_begin' | 'round_finish' | 'tool_start' | 'tool_finish' | 'operation' | 'process_finalize' | 'final_snapshot'} type
+ * @property {string} [content]
+ * @property {string} [source]
+ * @property {'tool' | 'skill'} [stepType]
+ * @property {string} [title]
+ * @property {string} [paramsText]
+ * @property {string} [toolCallId]
+ * @property {string} [toolName]
+ * @property {string} [result]
+ * @property {string} [eventName]
+ * @property {string} [rawData]
+ * @property {ProcessFinalizeReason} [reason]
+ * @property {Object} [message]
+ */
+
+/**
  * Clawbot 聊天 Store（页面级）
  *
  * 职责：管理当前对话的消息列表、SSE 连接、对话记录等
@@ -239,7 +257,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
   }
 
   const createProcessStep = (step = {}) => ({
-    id: getUuid(32),
+    id: step.id || getUuid(32),
     type: step.type || 'thinking',
     title: step.title || '',
     status: step.status || '',
@@ -265,7 +283,20 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     return msg.process_steps.find((item) => item.id === stepId)
   }
 
-  const setRunningProcessStepsDone = (msg) => {
+  const finishActiveThinkingStep = (msg) => {
+    const activeStep = getProcessStepById(msg, msg.active_thinking_step_id)
+    if (activeStep) {
+      if (!activeStep.contentText) {
+        msg.process_steps = msg.process_steps.filter((item) => item.id !== activeStep.id)
+      } else {
+        activeStep.status = 'done'
+        activeStep.resultText = ''
+      }
+    }
+    msg.active_thinking_step_id = ''
+  }
+
+  const finalizeRunningProcessSteps = (msg, _reason) => {
     ensureProcessStepState(msg)
     msg.process_steps = msg.process_steps
       .filter((step) => !(step.type === 'thinking' && step.status === 'running' && !step.contentText))
@@ -280,16 +311,278 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
         }
       })
     msg.active_thinking_step_id = ''
-    msg.reasoning_status = false
+    msg.loading = false
+    msg.startLoading = false
+    msg.quote_loading = false
   }
 
-  const collapseCompletedProcessBlocks = (msg) => {
-    ensureProcessStepState(msg)
-    msg.process_steps = msg.process_steps.map((step) => ({
-      ...step,
+  /**
+   * 将后端原始 SSE 事件转换为页面无关的过程事件。
+   *
+   * 后端根据 application_type 选择旧链路或新链路，正常情况下两套正文事件互斥：
+   * - reasoning_content -> thinking_delta
+   * - stream_message.reasoning_content -> thinking_delta
+   * - sending -> answer_delta
+   * - stream_message.content -> answer_delta
+   * - llm_rounds:begin / finish -> round_begin / round_finish
+   * - tool_call_full / tool_result -> tool_start / tool_finish
+   * - FileOperation、ExecuteCommand -> operation
+   * - finish、用户停止、SSE 关闭 -> process_finalize
+   * - ai_message -> final_snapshot
+   *
+   * stream_message 可能同时包含思考和正文，因此返回事件数组并保证先思考、后正文。
+   * 首段非空正文表示当前思考阶段结束；空正文、空思考和元数据帧不改变过程状态。
+   * ai_message 转为 final_snapshot，继续作为服务端持久化后的最终权威快照。
+   * error、debug、耗时、引用和会话变量属于管理端附属状态，不进入过程状态机。
+   *
+   * @param {string} type 原始事件名
+   * @param {*} content 原始事件数据
+   * @returns {NormalizedChatEvent[]}
+   */
+  const normalizeSseEvent = (type, content) => {
+    if (type === 'reasoning_content') {
+      return [{ type: 'thinking_delta', content: String(content || ''), source: 'reasoning_content' }]
+    }
+
+    if (type === 'sending') {
+      return [{ type: 'answer_delta', content: String(content || ''), source: 'sending' }]
+    }
+
+    if (type === 'stream_message') {
+      const data = safeParseJson(content, {})
+      const events = []
+      if (data?.reasoning_content) {
+        events.push({
+          type: 'thinking_delta',
+          content: String(data.reasoning_content),
+          source: 'stream_message',
+        })
+      }
+      if (data?.content) {
+        events.push({
+          type: 'answer_delta',
+          content: String(data.content),
+          source: 'stream_message',
+        })
+      }
+      return events
+    }
+
+    if (type === 'llm_rounds') {
+      if (content === 'begin') {
+        return [{ type: 'round_begin' }]
+      }
+      if (content === 'finish') {
+        return [{ type: 'round_finish' }]
+      }
+      return []
+    }
+
+    if (type === 'tool_call_full') {
+      const functionInfo = content?.function || {}
+      const functionArgs = safeParseJson(functionInfo.arguments, {})
+      const isSkill = functionInfo.name === 'skill'
+      return [{
+        type: 'tool_start',
+        stepType: isSkill ? 'skill' : 'tool',
+        title: isSkill ? functionArgs?.skill || 'skill' : functionInfo.name || 'tool',
+        paramsText: isSkill ? '' : functionInfo.arguments || '',
+        toolCallId: content?.id || '',
+      }]
+    }
+
+    if (type === 'tool_result') {
+      const data = safeParseJson(content, {})
+      return [{
+        type: 'tool_finish',
+        toolCallId: data?.tool_call_id || '',
+        toolName: data?.tool_name || '',
+        result: data?.content || '',
+      }]
+    }
+
+    if (type === 'process_event') {
+      return [{
+        type: 'operation',
+        eventName: content?.eventName || '',
+        rawData: content?.rawData || '',
+      }]
+    }
+
+    if (type === 'finalize_process_steps') {
+      return [{ type: 'process_finalize', reason: content?.reason || 'finish' }]
+    }
+
+    if (type === 'ai_message') {
+      return [{ type: 'final_snapshot', message: content }]
+    }
+
+    return []
+  }
+
+  /**
+   * @param {Object} msg 当前机器人消息
+   * @param {NormalizedChatEvent} event 统一过程事件
+   */
+  const applyNormalizedChatEvent = (msg, event) => {
+    if (event.type === 'thinking_delta') {
+      if (!event.content) {
+        return
+      }
+      ensureProcessStepState(msg)
+      let activeStep = getProcessStepById(msg, msg.active_thinking_step_id)
+      if (!activeStep) {
+        // 旧链路没有 llm_rounds:begin，首个思考增量至少归入第 1 轮。
+        msg.current_round_index = Math.max(1, msg.current_round_index || 0)
+        activeStep = appendProcessStep(msg, {
+          type: 'thinking',
+          status: 'running',
+          expanded: false,
+          roundIndex: msg.current_round_index,
+          eventName: event.source,
+        })
+        msg.active_thinking_step_id = activeStep.id
+      }
+      activeStep.contentText = `${activeStep.contentText || ''}${event.content}`
+      activeStep.resultText = ''
+      // 原字段只用于接口和历史兼容，页面统一从 process_steps 渲染。
+      msg.reasoning_content = `${msg.reasoning_content || ''}${event.content}`
+      return
+    }
+
+    if (event.type === 'answer_delta') {
+      // 空正文及元数据帧不能结束思考，首个非空正文才代表当前思考阶段完成。
+      if (!event.content) {
+        return
+      }
+      msg.startLoading = false
+      finishActiveThinkingStep(msg)
+      msg.content = `${msg.content || ''}${event.content}`
+      msg.voice_content = extractVoiceInfo(msg.content)
+      msg.content = removeVoiceFormat(msg.content)
+      return
+    }
+
+    if (event.type === 'round_begin') {
+      ensureProcessStepState(msg)
+      msg.current_round_index += 1
+      return
+    }
+
+    if (event.type === 'round_finish') {
+      finishActiveThinkingStep(msg)
+      return
+    }
+
+    if (event.type === 'tool_start') {
+      appendProcessStep(msg, {
+        type: event.stepType,
+        title: event.title,
+        status: 'running',
+        expanded: false,
+        roundIndex: msg.current_round_index || 0,
+        paramsText: event.paramsText,
+        tool_call_id: event.toolCallId,
+        eventName: 'tool_call_full',
+      })
+      return
+    }
+
+    if (event.type === 'tool_finish') {
+      ensureProcessStepState(msg)
+      const matchedStep = event.toolCallId
+        ? msg.process_steps.find((step) => {
+            return ['tool', 'skill'].includes(step.type) &&
+              step.status === 'running' &&
+              step.tool_call_id === event.toolCallId
+          })
+        : [...msg.process_steps].reverse().find((step) => {
+            return ['tool', 'skill'].includes(step.type) &&
+              step.status === 'running' &&
+              (!event.toolName || step.title === event.toolName)
+          })
+
+      // 结果无法关联时不补造步骤，避免错误完成其他并行工具。
+      if (matchedStep) {
+        matchedStep.status = 'done'
+        matchedStep.resultText = event.result
+      }
+      return
+    }
+
+    if (event.type === 'operation') {
+      // 文件和命令事件只保留审计数据，前端不展示也不会执行其中内容。
+      appendProcessStep(msg, {
+        type: 'operation',
+        title: event.eventName,
+        status: '',
+        hidden: true,
+        expanded: false,
+        roundIndex: msg.current_round_index || 0,
+        paramsText: event.rawData,
+        eventName: event.eventName,
+      })
+      return
+    }
+
+    if (event.type === 'process_finalize') {
+      // 正常完成、用户停止和断流统一清理 running，避免页面残留 spinner。
+      finalizeRunningProcessSteps(msg, event.reason)
+      return
+    }
+
+    if (event.type === 'final_snapshot') {
+      const snapshot = event.message || {}
+      finalizeRunningProcessSteps(msg, 'finish')
+      if (snapshot.menu_json && snapshot.msg_type == 2) {
+        const menuJson = safeParseJson(snapshot.menu_json, {})
+        msg.question = menuJson.question || []
+      }
+      msg.id = snapshot.id
+      msg.message_id = snapshot.message_id || snapshot.id || msg.message_id
+      if (snapshot.msg_type !== undefined) {
+        msg.msg_type = snapshot.msg_type
+      }
+      msg.content = snapshot.content || ''
+      msg.voice_content = extractVoiceInfo(msg.content)
+      msg.content = removeVoiceFormat(msg.content)
+      if (snapshot.reply_content_list !== undefined) {
+        msg.reply_content_list = safeParseJson(snapshot.reply_content_list, snapshot.reply_content_list || [])
+      }
+      if (snapshot.quote_file !== undefined) {
+        msg.quote_file = safeParseJson(snapshot.quote_file, snapshot.quote_file || [])
+      }
+    }
+  }
+
+  /**
+   * 旧历史机器人文本消息没有 process_steps 时，将 reasoning_content 转成确定性的完成步骤。
+   * 已有步骤、用户消息、菜单、图片和空思考均不转换，避免分页或重进时重复生成。
+   */
+  const normalizeHistoricalProcessSteps = (msg) => {
+    const parsedSteps = Array.isArray(msg.process_steps)
+      ? msg.process_steps
+      : safeParseJson(msg.process_steps, [])
+    if (Array.isArray(parsedSteps) && parsedSteps.length > 0) {
+      return parsedSteps
+    }
+
+    const reasoningContent = typeof msg.reasoning_content === 'string' ? msg.reasoning_content : ''
+    if (msg.is_customer == 1 || msg.msg_type != 1 || !reasoningContent.trim()) {
+      return []
+    }
+
+    return [createProcessStep({
+      id: `legacy-thinking-${msg.message_id || msg.id || msg.uid}`,
+      type: 'thinking',
+      status: 'done',
       expanded: false,
-    }))
-    msg.reasoning_expanded = false
+      hidden: false,
+      roundIndex: 1,
+      contentText: reasoningContent,
+      resultText: '',
+      eventName: 'reasoning_content',
+    })]
   }
 
   // 更新AI的消息到列表
@@ -302,26 +595,17 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     const currentMessage = messageList.value[msgIndex]
     ensureProcessStepState(currentMessage)
 
+    const normalizedEvents = normalizeSseEvent(type, content)
+    if (normalizedEvents.length > 0) {
+      normalizedEvents.forEach((event) => applyNormalizedChatEvent(currentMessage, event))
+      emitter.emit('updateAiMessage', currentMessage)
+      return
+    }
+
     if (type == 'reply_content_list') {
       if (content !== undefined && typeof content === 'string') {
         currentMessage.reply_content_list = safeParseJson(content, [])
       }
-    }
-
-    if (type == 'reasoning_content') {
-      let oldText = currentMessage.reasoning_content || ''
-      currentMessage.reasoning_content = oldText + content
-      currentMessage.reasoning_status = true
-      currentMessage.show_reasoning = true
-    }
-
-    if (type == 'sending') {
-      currentMessage.startLoading = false
-      currentMessage.reasoning_status = false
-      let oldText = currentMessage.content || ''
-      currentMessage.content = oldText + content
-      currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
-      currentMessage.content = removeVoiceFormat(currentMessage.content)
     }
 
     if (type == 'start_quote_file') {
@@ -332,24 +616,6 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       currentMessage.quote_file = content?.length > 0 ? content : []
       currentMessage.show_quote_file = true
       currentMessage.quote_loading = false
-    }
-
-    if (type == 'ai_message') {
-      if (content.menu_json && content.msg_type == 2) {
-        let menu_json_obj = safeParseJson(content.menu_json, {})
-        currentMessage.question = menu_json_obj.question || []
-      }
-      currentMessage.startLoading = false
-      currentMessage.id = content.id
-      currentMessage.content = content.content
-      currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
-      currentMessage.content = removeVoiceFormat(currentMessage.content)
-      if (content.reply_content_list !== undefined && typeof content.reply_content_list === 'string') {
-        currentMessage.reply_content_list = safeParseJson(content.reply_content_list, [])
-      }
-      if (content.quote_file && typeof content.quote_file === 'string') {
-        currentMessage.quote_file = safeParseJson(content.quote_file, [])
-      }
     }
 
     if (type == 'debug') {
@@ -364,125 +630,6 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     }
     if (type == 'request_time') {
       currentMessage.request_time = content || 0
-    }
-
-    if (type == 'llm_rounds') {
-      if (content === 'begin') {
-        currentMessage.current_round_index += 1
-      }
-
-      if (content === 'finish') {
-        const activeStep = getProcessStepById(currentMessage, currentMessage.active_thinking_step_id)
-        if (activeStep) {
-          if (!activeStep.contentText) {
-            currentMessage.process_steps = currentMessage.process_steps.filter((item) => item.id !== activeStep.id)
-          } else {
-            activeStep.status = 'done'
-            activeStep.resultText = ''
-          }
-        }
-        currentMessage.active_thinking_step_id = ''
-        currentMessage.reasoning_status = false
-      }
-    }
-
-    if (type == 'stream_message') {
-      const nextData = safeParseJson(content, {})
-      const reasoningText = nextData?.reasoning_content || ''
-      const messageText = nextData?.content || ''
-
-      if (reasoningText) {
-        let activeStep = getProcessStepById(currentMessage, currentMessage.active_thinking_step_id)
-        if (!activeStep) {
-          currentMessage.current_round_index += 1
-          activeStep = appendProcessStep(currentMessage, {
-            type: 'thinking',
-            title: '思考过程',
-            status: 'running',
-            expanded: true,
-            roundIndex: currentMessage.current_round_index,
-            resultText: '思考中...',
-            eventName: 'stream_message',
-          })
-          currentMessage.active_thinking_step_id = activeStep.id
-        }
-
-        activeStep.contentText = `${activeStep.contentText || ''}${reasoningText}`
-        activeStep.resultText = ''
-        let oldText = currentMessage.reasoning_content || ''
-        currentMessage.reasoning_content = oldText + reasoningText
-        currentMessage.show_reasoning = true
-        currentMessage.reasoning_status = true
-      }
-
-      if (messageText) {
-        currentMessage.startLoading = false
-        currentMessage.reasoning_status = false
-        const oldText = currentMessage.content || ''
-        currentMessage.content = oldText + messageText
-        currentMessage.voice_content = extractVoiceInfo(currentMessage.content)
-        currentMessage.content = removeVoiceFormat(currentMessage.content)
-      }
-    }
-
-    if (type == 'tool_call') {
-      const nextData = safeParseJson(content, {})
-      appendProcessStep(currentMessage, {
-        type: 'tool',
-        title: nextData?.name || 'tool',
-        status: 'running',
-        expanded: true,
-        roundIndex: currentMessage.current_round_index,
-        paramsText: typeof content === 'string' ? content : JSON.stringify(nextData || {}),
-        eventName: 'tool_call',
-      })
-      currentMessage.show_reasoning = true
-    }
-
-    if (type == 'tool_call_full') {
-      const functionInfo = content?.function || {}
-      appendProcessStep(currentMessage, {
-        type: 'tool',
-        title: functionInfo?.name || 'tool',
-        status: 'running',
-        expanded: true,
-        roundIndex: currentMessage.current_round_index,
-        paramsText: functionInfo?.arguments || '',
-        tool_call_id: content?.id || '',
-        eventName: 'tool_call_full',
-      })
-      currentMessage.show_reasoning = true
-    }
-
-    if (type == 'tool_result') {
-      const nextData = safeParseJson(content, {})
-      const toolCallId = nextData?.tool_call_id || ''
-      const matchedStep = currentMessage.process_steps.find((step) => {
-        return step.type === 'tool' && step.status === 'running' && step.tool_call_id === toolCallId
-      })
-
-      if (matchedStep) {
-        matchedStep.status = 'done'
-        matchedStep.resultText = nextData?.content || ''
-      }
-    }
-
-    if (type == 'process_event') {
-      appendProcessStep(currentMessage, {
-        type: 'operation',
-        title: content?.eventName || '',
-        status: '',
-        hidden: true,
-        roundIndex: currentMessage.current_round_index,
-        paramsText: content?.rawData || '',
-        eventName: content?.eventName || '',
-      })
-      currentMessage.show_reasoning = true
-    }
-
-    if (type == 'finalize_process_steps') {
-      setRunningProcessStepsDone(currentMessage)
-      collapseCompletedProcessBlocks(currentMessage)
     }
 
     emitter.emit('updateAiMessage', messageList.value[msgIndex])
@@ -507,10 +654,13 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
   const getRunningAiMessageIndex = () => {
     for (let i = messageList.value.length - 1; i >= 0; i--) {
       const item = messageList.value[i]
+      const hasRunningProcess = Array.isArray(item.process_steps) && item.process_steps.some((step) => {
+        return step?.status === 'running'
+      })
       if (
         item.is_customer != 1 &&
         !item.is_stopped &&
-        (item.loading || item.startLoading || item.quote_loading || item.reasoning_status)
+        (item.loading || item.startLoading || item.quote_loading || hasRunningProcess)
       ) {
         return i
       }
@@ -527,9 +677,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       msg.loading = false
       msg.startLoading = false
       msg.quote_loading = false
-      msg.reasoning_status = false
-      // 复用 finalize_process_steps 完成 process_steps 收尾 + emit
-      updateAiMessage('finalize_process_steps', null, msg.uid)
+      updateAiMessage('finalize_process_steps', { reason: 'stop' }, msg.uid)
     }
 
     abortCurrentSSE()
@@ -557,9 +705,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       error: '',
       recall_time: '',
       request_time: '',
-      show_reasoning: false,
-      reasoning_expanded: false,
-      reasoning_status: false,
+      process_expanded: true,
       process_steps: [],
       current_round_index: 0,
       active_thinking_step_id: '',
@@ -630,10 +776,6 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       if (res.event == 'sending') {
         updateAiMessage('sending', res.data, aiMsg.uid)
       }
-      // tool_call 已废弃，使用 tool_call_full 替代
-      // if (res.event == 'tool_call') {
-      //   updateAiMessage('tool_call', res.data, aiMsg.uid)
-      // }
       if (res.event == 'tool_call_full') {
         const data = safeParseJson(res.data, {})
         updateAiMessage('tool_call_full', data, aiMsg.uid)
@@ -650,6 +792,9 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       if (res.event == 'ai_message') {
         let data = safeParseJson(res.data, {})
         updateAiMessage('ai_message', data, aiMsg.uid)
+      }
+      if (res.event == 'finish') {
+        updateAiMessage('finalize_process_steps', { reason: 'finish' }, aiMsg.uid)
       }
       if (res.event == 'start_quote_file') {
         updateAiMessage('start_quote_file', res.data, aiMsg.uid)
@@ -690,7 +835,7 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       if (requestSeq !== sseRequestSeq) {
         return
       }
-      updateAiMessage('finalize_process_steps', null, aiMsg.uid)
+      updateAiMessage('finalize_process_steps', { reason: 'close' }, aiMsg.uid)
       closeAiMessageLoading()
       sendLock.value = false
       mySSE = null
@@ -838,12 +983,12 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       if (item.menu_json) {
         item.menu_json = safeParseJson(item.menu_json, {})
       }
-      item.process_steps = Array.isArray(item.process_steps) ? item.process_steps : []
+      item.process_steps = normalizeHistoricalProcessSteps(item)
+      item.process_expanded = typeof item.process_expanded === 'boolean'
+        ? item.process_expanded
+        : true
       item.current_round_index = Number(item.current_round_index || 0)
       item.active_thinking_step_id = item.active_thinking_step_id || ''
-      item.reasoning_expanded = typeof item.reasoning_expanded === 'boolean'
-        ? item.reasoning_expanded
-        : false
       if (item.quote_file) {
         item.quote_file = safeParseJson(item.quote_file, [])
       }

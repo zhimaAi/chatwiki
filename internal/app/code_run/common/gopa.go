@@ -148,7 +148,7 @@ __builtins__ = SafeDict({
 
 def main_wrapper():
     try:
-        input_data = json.loads('%s')
+        input_data = json.loads(sys.stdin.buffer.read().decode("utf-8"))
         %s
         result = main(**input_data)
         print(json.dumps(result))
@@ -161,11 +161,12 @@ def main_wrapper():
 
 if __name__ == "__main__":
     main_wrapper()
-`, paramsJson, indentedMainFunc)
+`, indentedMainFunc)
 
 	logs.Debug("wrapperCode :%s", wrapperCode)
 
 	cmd := exec.Command("python", "-c", wrapperCode)
+	cmd.Stdin = strings.NewReader(paramsJson)
 
 	var output strings.Builder
 	cmd.Stdout = &output

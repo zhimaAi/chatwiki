@@ -1,9 +1,7 @@
 <template>
   <div class="message-item robot-message" :id="'msg-' + item.uid">
     <div class="itme-left">
-      <a-spin size="small" :spinning="item.loading">
-        <img class="robot-avatar" :src="item.robot_avatar" />
-      </a-spin>
+      <img class="robot-avatar" :src="item.robot_avatar" />
     </div>
 
     <div class="itme-right">
@@ -14,16 +12,10 @@
       />
 
       <div class="label-flex-block">
-        <div class="thinking-label-wrapper" v-if="tipsBeforeAnswerSwitch && item.startLoading">
-          <div class="thinking-label">
-            <LoadingOutlined class="loading" />
-            <span class="label-text">{{ tipsBeforeAnswerContent }}</span>
-          </div>
-        </div>
         <div
           class="thinking-label-wrapper"
           :class="{ reasoning_open: item.show_quote_file }"
-          v-if="item.msg_type == 1 && isShowQuoteFileProgress && (!item.startLoading || !tipsBeforeAnswerSwitch) && (!item.is_stopped || item.quote_loading || getQuoteFileCount(item) > 0)"
+          v-if="shouldShowQuoteFileProgress(item)"
         >
           <div class="thinking-label" @click="toggleQuoteFiel(item)">
             <template v-if="item.quote_loading">
@@ -44,29 +36,6 @@
           </div>
         </div>
 
-        <div
-          class="thinking-label-wrapper"
-          :class="{ reasoning_open: isReasoningExpanded(item) }"
-          v-if="hasReasoningContent(item) && !hasProcessSteps(item)"
-        >
-          <div class="thinking-label" @click="toggleReasonProcess(item)">
-            <LoadingOutlined class="loading" v-if="item.reasoning_status && !item.is_stopped" />
-            <svg-icon class="think-icon" name="think" v-else></svg-icon>
-            <span class="label-text">
-              {{ getReasoningLabel(item) }}
-            </span>
-            <svg-icon
-              name="arrow-down"
-              class="arrow-down"
-              v-if="!item.reasoning_status || item.is_stopped"
-            ></svg-icon>
-          </div>
-          <a-tooltip>
-            <template #title>{{ t('msg_disable_reasoning_tooltip') }}</template>
-            <InfoCircleOutlined class="tip" />
-          </a-tooltip>
-        </div>
-
         <div class="stopped-label" v-if="showStoppedLabel">
           {{ t('label_stopped') }}
         </div>
@@ -74,11 +43,12 @@
 
       <div class="item-body" :class="{ 'item-body-final': item.msg_type == 1 }" v-if="isShowBody">
         <QuoteFilePanel :item="item" />
-        <ProcessTimeline v-if="hasProcessSteps(item)" :item="item" />
-        <div class="thinking-content" v-if="isReasoningExpanded(item) && hasReasoningContent(item) && !hasProcessSteps(item)">
-          <CherryMarkdown :content="item.reasoning_content"></CherryMarkdown>
-        </div>
-
+        <ProcessTimeline
+          v-if="shouldShowProcessTimeline(item)"
+          :item="item"
+          :running-label="processRunningLabel"
+          :quote-loading-visible="shouldShowQuoteFileProgress(item) && item.quote_loading"
+        />
         <FinalAnswerCard
           v-if="item.msg_type == 1"
           :item="item"
@@ -113,15 +83,6 @@
         </template>
       </div>
 
-      <div class="message-loading" v-if="showMessageLoading">
-        <span class="loading-text"></span>
-        <span class="loading-dots">
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
-      </div>
-
       <div v-if="item.voice_content && item.voice_content.length">
         <VoiceMessage :voice_content="item.voice_content" />
       </div>
@@ -131,7 +92,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import VoiceMessage from '../voice-message.vue'
@@ -180,12 +141,6 @@ const parseReplyList = (val) => {
 
 const hasReplyList = computed(() => parseReplyList(props.item.reply_content_list).length > 0)
 
-const hasReasoningContent = (item) => {
-  return typeof item?.reasoning_content === 'string'
-    ? item.reasoning_content.trim().length > 0
-    : !!item?.reasoning_content
-}
-
 const getVisibleProcessSteps = (item) => {
   if (!Array.isArray(item?.process_steps)) {
     return []
@@ -194,15 +149,28 @@ const getVisibleProcessSteps = (item) => {
     if (step?.hidden === true) {
       return false
     }
-    if (step?.type === 'tool') {
-      return true
+    if (step?.type === 'tool' || step?.type === 'skill') {
+      return !!step.title || !!step.paramsText || !!step.resultText || step.status === 'running'
     }
-    return hasReasoningContent(item)
+    return !!step?.contentText || !!step?.resultText || step?.status === 'running'
   })
 }
 
 const hasProcessSteps = (item) => {
   return getVisibleProcessSteps(item).length > 0
+}
+
+const processRunningLabel = computed(() => {
+  if (!props.tipsBeforeAnswerSwitch) {
+    return ''
+  }
+  return props.tipsBeforeAnswerContent?.trim() || ''
+})
+
+const shouldShowProcessTimeline = (item) => {
+  return item?.msg_type == 1 && (
+    hasProcessSteps(item) || (!!item.startLoading && !item.is_stopped)
+  )
 }
 
 const hasFinalAnswerContent = (item) => {
@@ -221,31 +189,12 @@ const hasFinalAnswerContent = (item) => {
   return !!item.content
 }
 
-const showMessageLoading = computed(() => {
-  return !!props.item?.loading && !hasFinalAnswerContent(props.item)
-})
-
 const showStoppedLabel = computed(() => {
   return !!props.item?.is_stopped &&
     !hasReplyList.value &&
-    !hasReasoningContent(props.item) &&
     !hasProcessSteps(props.item) &&
     !hasFinalAnswerContent(props.item)
 })
-
-const isReasoningExpanded = (item) => {
-  if (!item) {
-    return false
-  }
-  if (typeof item.reasoning_expanded === 'boolean') {
-    return item.reasoning_expanded
-  }
-  return !!item.show_reasoning
-}
-
-const toggleReasonProcess = (item) => {
-  item.reasoning_expanded = !isReasoningExpanded(item)
-}
 
 const toggleQuoteFiel = (item) => {
   item.show_quote_file = !item.show_quote_file
@@ -255,15 +204,15 @@ const getQuoteFileCount = (item) => {
   return Array.isArray(item?.quote_file) ? item.quote_file.length : 0
 }
 
-const getReasoningLabel = (item) => {
-  if (item?.is_stopped) {
-    return t('label_stopped')
-  }
-  return item?.reasoning_status ? t('label_thinking') : t('label_thinking_completed')
+const shouldShowQuoteFileProgress = (item) => {
+  return item?.msg_type == 1 &&
+    props.isShowQuoteFileProgress &&
+    (!item.startLoading || !props.tipsBeforeAnswerSwitch) &&
+    (!item.is_stopped || item.quote_loading || getQuoteFileCount(item) > 0)
 }
 
 const isShowBody = computed(() => {
-  if (hasProcessSteps(props.item)) {
+  if (shouldShowProcessTimeline(props.item)) {
     return true
   }
   if (hasReplyList.value && props.item.content == '') {
@@ -319,52 +268,6 @@ const onClickMeun = (item) => {
   color: #595959;
   background: #e4e6eb;
   margin-bottom: 8px;
-}
-
-.message-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding-left: 0;
-  color: #8c8c8c;
-  font-size: 13px;
-  line-height: 20px;
-
-  .loading-dots {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    span {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: currentColor;
-      opacity: 0.3;
-      animation: loading-dot-blink 1.2s infinite ease-in-out;
-
-      &:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-
-      &:nth-child(3) {
-        animation-delay: 0.4s;
-      }
-    }
-  }
-}
-
-@keyframes loading-dot-blink {
-  0%, 80%, 100% {
-    opacity: 0.25;
-    transform: translateY(0);
-  }
-
-  40% {
-    opacity: 1;
-    transform: translateY(-1px);
-  }
 }
 
 .msg-img {
@@ -433,13 +336,6 @@ const onClickMeun = (item) => {
     }
   }
 
-  .tip {
-    margin-left: 8px;
-    font-size: 16px;
-    color: #8c8c8c;
-    cursor: pointer;
-  }
-
   &.reasoning_open {
     .arrow-down {
       transform: rotate(180deg);
@@ -447,26 +343,4 @@ const onClickMeun = (item) => {
   }
 }
 
-.thinking-content {
-  position: relative;
-  line-height: 22px;
-  padding-bottom: 0;
-  padding-left: 16px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 400;
-  color: #8c8c8c;
-  border-bottom: 1px solid #edeff2;
-
-  &::before {
-    display: block;
-    position: absolute;
-    content: '';
-    left: 0;
-    top: 4px;
-    bottom: 20px;
-    width: 4px;
-    background-color: #d9d9d9;
-  }
-}
 </style>

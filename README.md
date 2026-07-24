@@ -43,8 +43,7 @@ and AI-curated comment replies.
   unknown questions, and summarizes common FAQs from human conversations.
 
 - **Human Handoff**: Handles general user inquiries via bot, while also supporting human staff. Issues that the bot
-  cannot
-  resolve can be escalated to human客服, with multi-agent collaborative assignment.
+  cannot resolve can be escalated to human客服, with multi-agent collaborative assignment.
 
 - **Model Support**: Supports over 20 mainstream global models, including DeepSeek R1, doubao pro, qwen max, OpenAI,
   Claude, etc.
@@ -62,8 +61,8 @@ and AI-curated comment replies.
 
 ## 🛸 UI
 
-- 🌍**Free Trial URL**: [chatwiki.com](https://chatwiki.com/)
-- 🖼️**Screenshots**:
+- 🌍 **Free Trial URL**: [chatwiki.com](https://chatwiki.com/)
+- 🖼️ **Screenshots**:
 
 <p align="center">   <img src="./imgs/ui_1.png" alt="1" width="49%" />   <img src="./imgs/ui_2.png" alt="2" width="49%" /> </p> 
 <p align="center">   <img src="./imgs/ui_3.png" alt="3" width="49%" />   <img src="./imgs/ui_4.png" alt="4" width="49%" /> </p> 
@@ -133,10 +132,23 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 
 <p align="left"><img src="./imgs/contact-us.png" alt="contact-us"></p>
 
-## 📖**Changelog**
+## 📖 **Changelog**
 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
+
+**2026/07/24**
+
+1.Workflow - Added product library search node<br/>
+2.Workflow: Added chat test mode when conversation trigger exists<br/>
+3.Fixed issue where question text was not correctly retrieved when multimodal was enabled in workflow chat test<br/>
+4.Workflow code execution: Pass Python parameters via standard input<br/>
+5.Optimized Agent bot thinking process display interaction<br/>
+6.LLM calls now use session ID to retrieve context<br/>
+7.Agent bot skill generation tool: DocToSkill optimization<br/>
+8.Agent bot configuration: Changed execute tool to be enabled by default<br/>
+9.Workflow editing: Optimized multi-user edit lock mechanism<br/>
+10.[STD] Added Alibaba Cloud SMS plugin - system plugin<br/>
 
 **2026/07/17**
 
@@ -170,19 +182,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 8.PDF plain-text parsing now supports custom fonts, control-character cleanup, and Kangxi radical conversion<br/>
 9.Added product library, and Agent bots now support querying the product library tool<br/>
 10.Agent bots now support configuring E2B for script and command execution<br/>
-
-**2026/06/26**
-
-1.[STD] Added content review menu, supporting Alibaba Cloud machine review and manual review<br/>
-2.Workflow supports stopping running workflows<br/>
-3.External service H5 webApp supports pause generation<br/>
-4.[STD] Fixed custom domain validation and default domain protocol<br/>
-5.[STD] Cloud version login added complaint feedback entry<br/>
-6.External service H5 embedded website optimization<br/>
-7.External service now supports Messenger<br/>
-8.[STD] Added knowledge base capacity limit restriction and prompt notification<br/>
-9.Workflow added HTTP node exception handling branch<br/>
-10.[STD] LLM intelligent tools added session access/transfer/end summary and statistics<br/>
 
 ## License
 

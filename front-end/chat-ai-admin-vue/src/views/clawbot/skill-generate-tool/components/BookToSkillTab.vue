@@ -31,7 +31,7 @@
           <span class="status-tag" :class="getStatusConfig(record.status).className">
             <CheckCircleFilled v-if="Number(record.status) === 2" />
             <ExclamationCircleFilled v-else-if="Number(record.status) === 3" />
-            <LoadingOutlined v-else-if="Number(record.status) === 1" />
+            <LoadingOutlined v-else-if="[1, 4].includes(Number(record.status))" />
             <ClockCircleFilled v-else />
             {{ getStatusConfig(record.status).text }}
           </span>
@@ -53,7 +53,6 @@
 
     <CreateBookToSkillModal
       v-model:visible="createModalVisible"
-      :robot-id="robotId"
       @confirm="handleCreateConfirm"
     />
     <BookToSkillLogModal v-model:visible="logModalVisible" :task-id="logTaskId" />
@@ -73,10 +72,10 @@ import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useUserStore } from '@/stores/modules/user'
 import {
-  getBookToSkillTaskList,
-  installBookToSkill,
-  retryBookToSkillTask,
-  stopBookToSkillTask
+  getDocToSkillTaskList,
+  installDocToSkill,
+  regenerateDocToSkillTask,
+  stopDocToSkillTask
 } from '@/api/clawbot'
 import CreateBookToSkillModal from './CreateBookToSkillModal.vue'
 import BookToSkillLogModal from './BookToSkillLogModal.vue'
@@ -85,10 +84,6 @@ const props = defineProps({
   active: {
     type: Boolean,
     default: false
-  },
-  robotId: {
-    type: [String, Number],
-    default: ''
   }
 })
 
@@ -129,7 +124,8 @@ const getStatusConfig = (status) => {
     1: { text: t('status_running'), className: 'running' },
     2: { text: t('status_success'), className: 'success' },
     3: { text: t('status_failed'), className: 'failed' },
-    4: { text: t('status_stopped'), className: 'stopped' }
+    4: { text: t('status_stopping'), className: 'stopping' },
+    5: { text: t('status_stopped'), className: 'stopped' }
   }
   return statusMap[Number(status)] || statusMap[0]
 }
@@ -149,12 +145,10 @@ const isRequestSuccess = (res) => res && (res.res === 0 || res.code === 0)
 const getActions = (record) => {
   const status = Number(record.status)
   if (status === 2) {
-    return Number(record.install_status) === 1
-      ? [{ key: 'download', label: t('action_download') }]
-      : [
-          { key: 'install', label: t('action_install') },
-          { key: 'download', label: t('action_download') }
-        ]
+    return [
+      { key: 'install', label: t('action_install') },
+      { key: 'download', label: t('action_download') }
+    ]
   }
   if (status === 3) {
     return [
@@ -165,34 +159,50 @@ const getActions = (record) => {
   if (status === 0 || status === 1) {
     return [{ key: 'stop', label: t('action_stop') }]
   }
+  if (status === 5) {
+    return [{ key: 'retry', label: t('action_retry') }]
+  }
   return []
 }
 
-const loadTaskList = async () => {
-  if (!props.robotId) {
-    taskList.value = []
-    pager.total = 0
-    stopPolling()
-    return
-  }
+const updateTaskListSilently = (nextList) => {
+  const currentTaskMap = new Map(taskList.value.map((item) => [item.id, item]))
+  taskList.value = nextList.map((nextTask) => {
+    const currentTask = currentTaskMap.get(nextTask.id)
+    if (currentTask && JSON.stringify(currentTask) === JSON.stringify(nextTask)) {
+      return currentTask
+    }
+    return nextTask
+  })
+}
 
-  taskLoading.value = true
+const loadTaskList = async ({ silent = false } = {}) => {
+  if (!silent) {
+    taskLoading.value = true
+  }
   try {
-    const res = await getBookToSkillTaskList({
-      robot_id: props.robotId,
+    const res = await getDocToSkillTaskList({
+      status: -1,
       page: pager.page,
-      page_size: pager.pageSize
+      size: pager.pageSize
     })
     const data = res.data || {}
-    taskList.value = data.list || []
+    const nextTaskList = data.list || []
+    if (silent) {
+      updateTaskListSilently(nextTaskList)
+    } else {
+      taskList.value = nextTaskList
+    }
     pager.total = Number(data.total || 0)
     pager.page = Number(data.page || pager.page)
-    pager.pageSize = Number(data.page_size || pager.pageSize)
+    pager.pageSize = Number(data.size || pager.pageSize)
     updatePolling()
   } catch (error) {
     console.error('获取Book转Skill任务列表失败', error)
   } finally {
-    taskLoading.value = false
+    if (!silent) {
+      taskLoading.value = false
+    }
   }
 }
 
@@ -204,13 +214,13 @@ const stopPolling = () => {
 }
 
 const updatePolling = () => {
-  const hasRunningTask = taskList.value.some((item) => Number(item.status) === 1)
-  if (!props.active || !hasRunningTask) {
+  const hasActiveTask = taskList.value.some((item) => [0, 1, 4].includes(Number(item.status)))
+  if (!props.active || !hasActiveTask) {
     stopPolling()
     return
   }
   if (!pollingTimer) {
-    pollingTimer = setInterval(loadTaskList, 5000)
+    pollingTimer = setInterval(() => loadTaskList({ silent: true }), 5000)
   }
 }
 
@@ -247,7 +257,7 @@ const handleStopTask = async (record) => {
     return
   }
   try {
-    const res = await stopBookToSkillTask({ task_id: record.id })
+    const res = await stopDocToSkillTask({ id: record.id })
     if (isRequestSuccess(res)) {
       message.success(t('msg_stop_success'))
       loadTaskList()
@@ -265,13 +275,9 @@ const handleInstallSkill = async (record) => {
     return
   }
   try {
-    const res = await installBookToSkill({
-      task_id: record.id,
-      target_robot_id: props.robotId
-    })
+    const res = await installDocToSkill({ id: record.id })
     if (isRequestSuccess(res)) {
       message.success(t('msg_install_success'))
-      loadTaskList()
     } else {
       message.error(res?.msg || t('msg_install_failed'))
     }
@@ -287,12 +293,12 @@ const handleDownloadSkill = (record) => {
   }
   const token = userStore.getToken
   const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : ''
-  window.open(`/manage/bookToSkill/downloadSkill?task_id=${record.id}${tokenQuery}`, '_blank')
+  window.open(`/manage/downloadDocToSkillFile?id=${record.id}${tokenQuery}`, '_blank')
 }
 
 const handleRetryTask = async (record) => {
   try {
-    const res = await retryBookToSkillTask({ task_id: record.id })
+    const res = await regenerateDocToSkillTask({ id: record.id })
     if (isRequestSuccess(res)) {
       message.success(t('msg_retry_success'))
       loadTaskList()
@@ -314,17 +320,6 @@ watch(
     }
   },
   { immediate: true }
-)
-
-watch(
-  () => props.robotId,
-  () => {
-    stopPolling()
-    pager.page = 1
-    if (props.active) {
-      loadTaskList()
-    }
-  }
 )
 
 onBeforeUnmount(stopPolling)

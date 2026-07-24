@@ -101,8 +101,10 @@ export const useCompanyStore = defineStore('company', {
     setCompanyInfo(data) {
       const { t } = useI18n()
       // 开发环境固定用 localhost/127.0.0.1 模拟 admin/agent 分域，避免依赖后台真实域名配置。
-      const domainData = import.meta.env.DEV ? getDevFixedDomains() : {}
-      const companyData = data ? { ...data, ...domainData } : data
+      // const domainData = import.meta.env.DEV ? getDevFixedDomains() : {}
+      // const companyData = data ? { ...data, ...domainData } : data
+      const companyData = data ? { ...data } : data
+
 
       this.companyInfo = companyData;
       this.name = companyData ? companyData.name : '';

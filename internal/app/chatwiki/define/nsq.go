@@ -46,8 +46,8 @@ const OfficialAccountCommentAiCheckChannel = `chatwiki_official_account_comment_
 const OfficialAccountHisArticleSyncTopic = `chatwiki_official_account_his_article_sync_topic`
 const OfficialAccountHisArticleSyncChannel = `chatwiki_official_account_his_article_sync_channel`
 
-const BookToSkillTopic = `chatwiki_book_to_skill_topic`
-const BookToSkillChannel = `chatwiki_book_to_skill_channel`
+const DocToSkillTaskTopic = `chatwiki_doc_to_skill_task_topic`
+const DocToSkillTaskChannel = `chatwiki_doc_to_skill_task_channel`
 
 var ConsumerHandle *mq.ConsumerHandle
 var ProducerHandle *mq.ProducerHandle

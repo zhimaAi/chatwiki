@@ -83,7 +83,7 @@ func StartConsumer() {
 	common.RunTask(define.OfficialAccountBatchSendTopic, define.OfficialAccountBatchSendChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountBatchSend`]), business.OfficialAccountBatchSend)
 	common.RunTask(define.OfficialAccountCommentSyncTopic, define.OfficialAccountCommentSyncChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentSync`]), business.OfficialAccountCommentSync)
 	common.RunTask(define.OfficialAccountCommentAiCheckTopic, define.OfficialAccountCommentAiCheckChannel, cast.ToUint(define.Config.ConsumerNum[`OfficialAccountCommentAiCheck`]), business.OfficialAccountCommentAiCheck)
-	common.RunTask(define.BookToSkillTopic, define.BookToSkillChannel, cast.ToUint(define.Config.ConsumerNum[`BookToSkill`]), business.RunBookToSkillTask)
+	common.RunTask(define.DocToSkillTaskTopic, define.DocToSkillTaskChannel, cast.ToUint(define.Config.ConsumerNum[`DocToSkillTask`]), business.DocToSkillTask)
 }
 
 func StartCronTasks() {

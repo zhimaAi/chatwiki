@@ -84,7 +84,7 @@
 
 <script setup>
 import { ref, h, computed } from 'vue'
-import { workFlowVersions, workFlowVersionDetail, getNodeList, getDraftKey } from '@/api/robot/index'
+import { workFlowVersions, workFlowVersionDetail, getNodeList } from '@/api/robot/index'
 import { message, Modal } from 'ant-design-vue'
 import { EllipsisOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
@@ -112,15 +112,8 @@ const list = ref([])
 const showDrawer = () => {
   open.value = true
   getDetailList()
-  // 获取当前客户端信息
-  getDraftKey({
-    robot_key: query.robot_key
-  }).then((res) => {
-    // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
-    const data = res?.data || {}
-    currentIp.value = data.remote_addr || ''
-    currentUA.value = data.user_agent || ''
-  })
+  currentIp.value = robotInfo.value.last_edit_ip || ''
+  currentUA.value = robotInfo.value.last_edit_user_agent || ''
 }
 
 const getDetailList = () => {

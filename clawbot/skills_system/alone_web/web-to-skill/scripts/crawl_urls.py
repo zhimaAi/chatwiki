@@ -47,6 +47,14 @@ ASCII_KEYWORD_RE = re.compile(r"^[a-z0-9][a-z0-9._+-]*$", re.IGNORECASE)
 SKIPPED_RESOURCE_TYPES = {"font", "image", "media"}
 
 
+class DuplicateFinalURL(Exception):
+    def __init__(self, requested_url: str, final_url: str, first_requested_url: str):
+        super().__init__(f"{requested_url} redirects to the already captured URL {final_url}")
+        self.requested_url = requested_url
+        self.final_url = final_url
+        self.first_requested_url = first_requested_url
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sequentially crawl every URL in a URL-list file into HTML snapshots and a JSONL index.")
     parser.add_argument("--url-list", required=True, help="UTF-8 text file with one URL per line.")
@@ -261,7 +269,16 @@ async def wait_for_stable_body_snapshot(
     return best_text
 
 
-async def crawl_one(page: Any, guard: URLSafetyGuard, url: str, html_dir: Path, logger: CrawlLogger, index: int, total: int) -> dict[str, Any]:
+async def crawl_one(
+    page: Any,
+    guard: URLSafetyGuard,
+    url: str,
+    html_dir: Path,
+    logger: CrawlLogger,
+    index: int,
+    total: int,
+    captured_final_urls: dict[str, str],
+) -> dict[str, Any]:
     blocked_navigation_error: URLSafetyError | None = None
     route_requests = 0
     route_blocked = 0
@@ -299,6 +316,8 @@ async def crawl_one(page: Any, guard: URLSafetyGuard, url: str, html_dir: Path, 
             raise RuntimeError(f"HTTP status {response.status}")
         final_url = page.url
         await guard.validate(final_url)
+        if final_url in captured_final_urls:
+            raise DuplicateFinalURL(url, final_url, captured_final_urls[final_url])
 
         logger.emit("page.render.start", progress=f"{index}/{total}-step2/5", final_url=final_url)
         await wait_for_rendered_body(page, final_url, None, TIMEOUT_MS)
@@ -368,11 +387,15 @@ async def run(args: argparse.Namespace) -> tuple[int, int]:
         urls = urls[:5]
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    effective_url_list = out_dir / "url-list.txt"
+    effective_url_list.write_text("\n".join(urls) + "\n", encoding="utf-8", newline="\n")
     html_dir = out_dir / "html"
     index_path = out_dir / "index.jsonl"
     logger = CrawlLogger(out_dir / "crawl.log")
     successes = 0
     records: list[dict[str, Any]] = []
+    captured_final_urls: dict[str, str] = {}
+    duplicate_final_urls = 0
     consecutive_timeouts = 0
     max_consecutive_timeouts = 0
     stopped_by_consecutive_timeouts = False
@@ -407,7 +430,16 @@ async def run(args: argparse.Namespace) -> tuple[int, int]:
                         for attempt in range(2):
                             page = await context.new_page()
                             try:
-                                record = await crawl_one(page, guard, url, html_dir, logger, position, len(urls))
+                                record = await crawl_one(
+                                    page,
+                                    guard,
+                                    url,
+                                    html_dir,
+                                    logger,
+                                    position,
+                                    len(urls),
+                                    captured_final_urls,
+                                )
                                 final_error = None
                                 break
                             except Exception as exc:
@@ -428,6 +460,7 @@ async def run(args: argparse.Namespace) -> tuple[int, int]:
                         if record is not None:
                             index_file.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
                             records.append(record)
+                            captured_final_urls[str(record["url"])] = url
                             successes += 1
                             logger.emit("page.done", progress=f"{position}/{len(urls)}-step5/5", url=record["url"])
                             if consecutive_timeouts:
@@ -436,6 +469,23 @@ async def run(args: argparse.Namespace) -> tuple[int, int]:
                                     previous=consecutive_timeouts,
                                     outcome="success",
                                     url=record["url"],
+                                )
+                            consecutive_timeouts = 0
+                        elif isinstance(final_error, DuplicateFinalURL):
+                            duplicate_final_urls += 1
+                            logger.emit(
+                                "page.duplicate",
+                                progress=f"{position}/{len(urls)}-step5/5",
+                                url=final_error.requested_url,
+                                final_url=final_error.final_url,
+                                first_requested_url=final_error.first_requested_url,
+                            )
+                            if consecutive_timeouts:
+                                logger.emit(
+                                    "crawl.timeout_streak.reset",
+                                    previous=consecutive_timeouts,
+                                    outcome="duplicate",
+                                    url=final_error.requested_url,
                                 )
                             consecutive_timeouts = 0
                         elif final_error is not None:
@@ -489,7 +539,8 @@ async def run(args: argparse.Namespace) -> tuple[int, int]:
             requested=len(urls),
             attempted=attempted,
             succeeded=successes,
-            failed=attempted - successes,
+            failed=attempted - successes - duplicate_final_urls,
+            duplicate_final_urls=duplicate_final_urls,
             max_consecutive_timeouts=max_consecutive_timeouts,
             stopped_by_consecutive_timeouts=stopped_by_consecutive_timeouts,
             skipped_pages_after_timeout_stop=skipped_pages_after_timeout_stop,

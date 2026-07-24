@@ -114,6 +114,15 @@ func init() {
 	Route[http.MethodGet][`/manage/downloadWebToSkillFile`] = manage.DownloadWebToSkillFile
 	Route[http.MethodPost][`/manage/installWebToSkill`] = manage.InstallWebToSkill
 
+	/* Doc-to-Skill Task */
+	Route[http.MethodGet][`/manage/getDocToSkillTaskList`] = manage.GetDocToSkillTaskList
+	Route[http.MethodPost][`/manage/createDocToSkillTask`] = manage.CreateDocToSkillTask
+	Route[http.MethodPost][`/manage/stopDocToSkillTask`] = manage.StopDocToSkillTask
+	Route[http.MethodPost][`/manage/regenerateDocToSkillTask`] = manage.RegenerateDocToSkillTask
+	Route[http.MethodGet][`/manage/getDocToSkillTaskInfo`] = manage.GetDocToSkillTaskInfo
+	Route[http.MethodGet][`/manage/downloadDocToSkillFile`] = manage.DownloadDocToSkillFile
+	Route[http.MethodPost][`/manage/installDocToSkill`] = manage.InstallDocToSkill
+
 	/*apiKey API*/
 	Route[http.MethodPost][`/manage/addRobotApikey`] = manage.AddRobotApikey
 	Route[http.MethodPost][`/manage/deleteRobotApikey`] = manage.DeleteRobotApikey
@@ -289,6 +298,7 @@ func init() {
 	noAuthFuns(Route[http.MethodPost], `/chat/request`, business.ChatRequest)
 	noAuthFuns(Route[http.MethodPost], `/chat/requestNotStream`, business.ChatRequestNotStream)
 	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlow`, business.CallWorkFlow)
+	noAuthFuns(Route[http.MethodPost], `/chat/callWorkFlowDialog`, business.CallWorkFlowDialog)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlow`, business.CallLoopWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callBatchWorkFlow`, business.CallBatchWorkFlow)
 	noAuthFuns(Route[http.MethodPost], `/chat/callLoopWorkFlowParams`, business.CallLoopWorkFlowParams)
@@ -387,6 +397,8 @@ func init() {
 	Route[http.MethodGet][`/manage/getStartNode`] = manage.GetStartNode
 	Route[http.MethodPost][`/manage/saveNodes`] = manage.SaveNodes
 	Route[http.MethodGet][`/manage/getDraftKey`] = manage.GetDraftKey
+	Route[http.MethodPost][`/manage/heartbeatDraftKey`] = manage.HeartbeatDraftKey
+	Route[http.MethodPost][`/manage/releaseDraftKey`] = manage.ReleaseDraftKey
 	Route[http.MethodGet][`/manage/getAdminConfig`] = manage.GetAdminConfig
 	Route[http.MethodPost][`/manage/saveDraftExTime`] = manage.SaveDraftExTime
 	Route[http.MethodPost][`/manage/testCodeRun`] = manage.TestCodeRun
@@ -506,9 +518,6 @@ func init() {
 
 	/* ChatClaw */
 	RegChatClawRoute()
-
-	/* BookToSkill */
-	RegBookToSkillRoute()
 
 	/** mcp square */
 	Route[http.MethodGet][`/manage/getMcpSquareTypeList`] = manage.GetMcpSquareTypeList

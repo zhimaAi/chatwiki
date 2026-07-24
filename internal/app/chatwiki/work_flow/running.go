@@ -36,6 +36,7 @@ type WorkFlowParams struct {
 	CurMsgId           int
 	DialogueId         int
 	SessionId          int
+	IsDialogMode       bool
 	Draft              Draft
 	IsTestLoopNodeRun  bool
 	TriggerParams      TriggerParams //Trigger parameters
@@ -43,6 +44,8 @@ type WorkFlowParams struct {
 	IsFromWorkflow     bool //Whether it comes from workflow
 	//Immediate reply output handler
 	ImmediatelyReplyHandle func(replyContent common.ReplyContent)
+	// Main-process node completion callback. Loop/batch internals do not trigger it.
+	NodeLogHandle func(nodeLog common.NodeLog)
 }
 
 type LoopIntermediate struct {
@@ -159,6 +162,9 @@ func (flow *WorkFlow) Running() (err error) {
 		nodeLog.ErrorMsg = fmt.Sprintf(`%v`, err)
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flow.nodeLogs = append(flow.nodeLogs, nodeLog)
+		if flow.params.NodeLogHandle != nil {
+			flow.params.NodeLogHandle(nodeLog)
+		}
 		//node run end
 		flow.Logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
 		if len(flow.output) > 0 {
@@ -707,6 +713,9 @@ func CallHttpTest(workFlowParams *WorkFlowParams, curlNode *WorkFlowNode) (map[s
 		return nil, err
 	}
 	httpResultJson := curlNodeRun.GetHttpResultJson()
+	if httpResultJson == nil {
+		return nil, errors.New("http result is nil")
+	}
 	data := make(map[string]any)
 	err = tool.JsonDecode(*httpResultJson, &data)
 	if err != nil {

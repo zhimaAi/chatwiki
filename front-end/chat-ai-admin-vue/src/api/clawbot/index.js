@@ -55,48 +55,48 @@ export const getClawbotSkillList = (params = {}) => {
   })
 }
 
-export const getBookToSkillTaskList = (params = {}) => {
+export const getDocToSkillTaskList = (params = {}) => {
   return request.get({
-    url: '/manage/bookToSkill/taskList',
+    url: '/manage/getDocToSkillTaskList',
     params
   })
 }
 
-export const createBookToSkillTask = (data = {}) => {
+export const createDocToSkillTask = (data = {}) => {
   return request.post({
     headers: { 'Content-Type': 'multipart/form-data' },
-    url: '/manage/bookToSkill/createTask',
+    url: '/manage/createDocToSkillTask',
     data
   })
 }
 
-export const stopBookToSkillTask = (data = {}) => {
+export const stopDocToSkillTask = (data = {}) => {
   return request.post({
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    url: '/manage/bookToSkill/stopTask',
+    url: '/manage/stopDocToSkillTask',
     data
   })
 }
 
-export const installBookToSkill = (data = {}) => {
+export const installDocToSkill = (data = {}) => {
   return request.post({
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    url: '/manage/bookToSkill/installSkill',
+    url: '/manage/installDocToSkill',
     data
   })
 }
 
-export const getBookToSkillTaskLog = (params = {}) => {
+export const getDocToSkillTaskInfo = (params = {}) => {
   return request.get({
-    url: '/manage/bookToSkill/taskLog',
+    url: '/manage/getDocToSkillTaskInfo',
     params
   })
 }
 
-export const retryBookToSkillTask = (data = {}) => {
+export const regenerateDocToSkillTask = (data = {}) => {
   return request.post({
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    url: '/manage/bookToSkill/retryTask',
+    url: '/manage/regenerateDocToSkillTask',
     data
   })
 }

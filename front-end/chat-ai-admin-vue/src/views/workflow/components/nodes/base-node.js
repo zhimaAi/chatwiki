@@ -521,6 +521,20 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }]
       }
 
+      if(node.type === 'goods-search-node'){
+        obj.children = [{
+          key: 'output_list',
+          typ: 'array<object>',
+          name: 'output_list',
+          label: 'output_list'
+        },{
+          key: 'row_num',
+          typ: 'number',
+          name: 'row_num',
+          label: 'row_num'
+        }]
+      }
+
       if(node.type === 'knowledge-base-node'){
         obj.children = [{
           key: 'special.lib_paragraph_list',

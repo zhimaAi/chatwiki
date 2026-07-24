@@ -1,11 +1,12 @@
 <template>
   <a-modal
-    class="book-skill-log-modal"
+    wrapClassName="remove-model-padding"
     :open="visible"
     :title="t('modal_task_log')"
     :width="680"
     :footer="null"
     :destroyOnClose="false"
+    :bodyStyle="{'max-height': '70vh', 'overflow-y': 'auto', 'padding': '0 24px 24px'}"
     @cancel="handleCancel"
   >
     <a-spin :spinning="loading">
@@ -14,9 +15,14 @@
         <pre class="log-content error-content">{{ errorMsg }}</pre>
       </div>
 
-      <div class="log-box" v-if="false">
-        <div class="block-title">{{ t('label_execution_log') }}</div>
-        <pre v-if="logContent" class="log-content">{{ logContent }}</pre>
+      <div class="log-box">
+        <div class="block-title">{{ t('label_model_result') }}</div>
+        <template v-if="debugLogs.length">
+          <div v-for="(item, index) in debugLogs" :key="index" class="log-item">
+            <div class="log-type">{{ item?.type || 'log' }}</div>
+            <pre class="log-content">{{ formatContent(item?.content ?? item) }}</pre>
+          </div>
+        </template>
         <a-empty v-else-if="!loading" :description="t('empty_log')" />
       </div>
     </a-spin>
@@ -27,7 +33,7 @@
 import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import { getBookToSkillTaskLog } from '@/api/clawbot'
+import { getDocToSkillTaskInfo } from '@/api/clawbot'
 
 const { t } = useI18n('views.clawbot.skill-generate-tool.index')
 
@@ -45,7 +51,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible'])
 
 const loading = ref(false)
-const logContent = ref('')
+const debugLogs = ref([])
 const errorMsg = ref('')
 
 watch(
@@ -58,9 +64,20 @@ watch(
 )
 
 const resetState = () => {
-  logContent.value = ''
+  debugLogs.value = []
   errorMsg.value = ''
   loading.value = false
+}
+
+const formatContent = (content) => {
+  if (typeof content === 'string') {
+    return content
+  }
+  try {
+    return JSON.stringify(content, null, 2)
+  } catch {
+    return String(content || '')
+  }
 }
 
 const loadTaskLog = async () => {
@@ -71,13 +88,11 @@ const loadTaskLog = async () => {
 
   loading.value = true
   try {
-    const res = await getBookToSkillTaskLog({
-      task_id: props.taskId
-    })
+    const res = await getDocToSkillTaskInfo({ id: props.taskId })
     if (res && (res.res === 0 || res.code === 0)) {
       const data = res.data || {}
-      logContent.value = data.log_content || ''
-      errorMsg.value = data.error_msg || ''
+      debugLogs.value = Array.isArray(data.debug_log) ? data.debug_log : []
+      errorMsg.value = data.err_msg || ''
     } else {
       message.error(res?.msg || t('msg_fetch_task_log_failed'))
     }
@@ -94,29 +109,30 @@ const handleCancel = () => {
 </script>
 
 <style lang="less" scoped>
-.book-skill-log-modal {
-  :deep(.ant-modal-content) {
-    border-radius: 12px;
-  }
-
-  :deep(.ant-modal-title) {
-    color: #262626;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 24px;
-  }
-}
 
 .error-box {
   margin-bottom: 16px;
 }
 
-.block-title {
-  margin-bottom: 8px;
+.block-title,
+.log-type {
   color: #262626;
   font-size: 14px;
-  font-weight: 600;
   line-height: 22px;
+}
+
+.block-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.log-item + .log-item {
+  margin-top: 12px;
+}
+
+.log-type {
+  margin-bottom: 4px;
+  color: #595959;
 }
 
 .log-content {

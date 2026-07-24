@@ -19,7 +19,7 @@
         <span class="file-number" :class="{ big: fileList.length > 9 }" v-if="fileList.length > 0">{{ fileList.length }}</span>
       </div>
 
-      <a-tooltip v-if="props.loading" title="停止发送">
+      <a-tooltip v-if="props.loading && props.showStop" title="停止发送">
         <button
           class="send-msg-btn loading"
           @click="stopMessage"
@@ -33,7 +33,8 @@
         :disabled="disabled"
         @click="sendMessage"
       >
-        <svg-icon class="paper-airplane" name="paper-airplane"></svg-icon>
+        <a-spin v-if="props.loading" size="small" />
+        <svg-icon v-else class="paper-airplane" name="paper-airplane"></svg-icon>
       </button>
     </div>
   </div>
@@ -66,6 +67,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  showStop: {
+    type: Boolean,
+    default: true
+  },
 })
 
 const { fileList } = toRefs(props)
@@ -93,24 +98,17 @@ const disabled = computed(() => {
 })
 
 const onChange = (e) => {
-  emit('update:value', e.target.value.trim())
+  emit('update:value', e.target.value)
 }
 
 const handleKeydown = (event) => {
-  // 键盘 enter事件 和 enter+shift 组合键 绑定事件
   if (event.key === 'Enter' && !event.shiftKey) {
-    // 只按下了 Enter 键
     if (!event.target.value.trim()) {
       return
     }
     event.preventDefault()
     event.stopPropagation()
     sendMessage()
-  } else if (event.key === 'Enter' && event.shiftKey) {
-    // 同时按下了 Shift 和 Enter 键
-    event.preventDefault()
-    event.stopPropagation()
-    emit('update:value', props.value + '\n')
   }
 }
 

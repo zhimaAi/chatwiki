@@ -281,7 +281,7 @@ services:
           memory: 1G
 
   chatwiki_llm_runner:
-    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/llm_runner:20260710
+    image: registry.cn-hangzhou.aliyuncs.com/chatwiki/llm_runner:20260720
     container_name: chatwiki_llm_runner
     networks:
       - chatwiki_network

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc To Skill"
+  short_description: "Build an indexed skill from uploaded documents"
+  default_prompt: "Use $doc-to-skill to convert uploaded documents, extract grounded knowledge points, and package a retrieval skill."

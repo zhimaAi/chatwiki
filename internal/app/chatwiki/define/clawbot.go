@@ -14,26 +14,12 @@ const (
 	PrivateSkillsDir = `clawbot/skills_robot/<robot_key>`
 	PrivateFileDir   = `clawbot/skills_robot/<robot_key>/query-local-docs/references`
 	PrivateWorkDir   = `clawbot/working_dir/<robot_key>`
-
-	// BookToSkillTaskDir book-to-skill task working directories (require <robot_key> + <task_id> replacement)
-	BookToSkillTaskDir = `clawbot/working_dir/<robot_key>/book_to_skill_<task_id>` //book to skill dir
-	WorkInputDir       = BookToSkillTaskDir + `/input`
-	WorkOutputDir      = BookToSkillTaskDir + `/skill`
-	WorkScriptsDir     = BookToSkillTaskDir + `/scripts`
-	WorkChunksDir      = BookToSkillTaskDir + `/chunks`
-	WorkTemplatesDir   = BookToSkillTaskDir + `/templates`
-	WorkSummariesDir   = BookToSkillTaskDir + `/summaries`
-
-	// WebToSkillWorkDir web-to-skill task working directories
-	WebToSkillWorkDir = `clawbot/working_dir/web-to-skill/<task_batch>`
 )
 
 // skill management constants
 const (
 	SkillMdFileName      = `SKILL.md`
-	MaxSkillZipSize      = 10 * 1024 * 1024
-	MaxSkillUnzipSize    = 50 * 1024 * 1024
-	MaxSkillZipEntries   = 2000
+	MaxSkillZipSize      = 100 * 1024 * 1024
 	SkillReservedName    = `query-local-docs`
 	SkillTmpDir          = `.skill_tmp`
 	SkillUploadKeyExpire = 10 * time.Minute

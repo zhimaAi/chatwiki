@@ -57,8 +57,15 @@ func ConvertChatResp(chatResp adaptor.ZhimaChatCompletionResponse) *schema.Messa
 	}
 	msg := schema.AssistantMessage(content, toolCalls)
 	msg.ReasoningContent = chatResp.ReasoningContent
+	msg.ResponseMeta = &schema.ResponseMeta{
+		Usage: &schema.TokenUsage{
+			PromptTokens:     chatResp.PromptToken,
+			CompletionTokens: chatResp.CompletionToken,
+			TotalTokens:      chatResp.PromptToken + chatResp.CompletionToken,
+		},
+	}
 	if len(toolCalls) > 0 {
-		msg.ResponseMeta = &schema.ResponseMeta{FinishReason: `tool_calls`}
+		msg.ResponseMeta.FinishReason = `tool_calls`
 	}
 	return msg
 }

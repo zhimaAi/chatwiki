@@ -5,7 +5,9 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"fmt"
+	"io"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -28,6 +30,38 @@ func WriteFileByString(objectKey, content string) (string, error) {
 		return ``, err
 	}
 	return define.LocalUploadPrefix + objectKey, nil
+}
+
+func WriteFileByFile(objectKey, filePath string) (string, error) {
+	if cast.ToUint(define.Config.OssConfig[`enable`]) > 0 { //put oss
+		if link, err := PutObjectFromFile(objectKey, filePath); err == nil {
+			return link, nil
+		} else {
+			logs.Error(err.Error())
+		}
+	}
+	if err := copyFile(filePath, define.UploadDir+objectKey); err != nil {
+		return ``, err
+	}
+	return define.LocalUploadPrefix + objectKey, nil
+}
+
+func copyFile(src, dest string) error {
+	if err := tool.MkDirAll(filepath.Dir(dest)); err != nil {
+		return err
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = in.Close() }()
+	out, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = out.Close() }()
+	_, err = io.Copy(out, in)
+	return err
 }
 
 func GetFileByLink(link string) string {
