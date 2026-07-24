@@ -1592,40 +1592,9 @@ func ImportLibFileFaq(msg string, _ ...string) error {
 	return nil
 }
 
-func RunBookToSkillTask(msg string, _ ...string) error {
-	data := make(map[string]any)
-	if err := tool.JsonDecode(msg, &data); err != nil {
-		logs.Error(`BookToSkill parsing failure:%s/%s`, msg, err.Error())
-		return nil
+func DocToSkillTask(msg string, _ ...string) error {
+	if err := common.RunDocToSkillTask(cast.ToInt64(msg)); err != nil {
+		logs.Error(`DocToSkillTask:%s,err:%s`, msg, err.Error())
 	}
-	taskId := cast.ToInt(data[`task_id`])
-	if taskId <= 0 {
-		logs.Error(`BookToSkill data exception:%s`, msg)
-		return nil
-	}
-
-	// Load task from DB
-	task, err := common.GetBookToSkillTaskById(taskId)
-	if err != nil {
-		logs.Error(`BookToSkill task not found:%d err:%s`, taskId, err.Error())
-		return nil
-	}
-
-	// Only allow Pending tasks to execute. NSQ may re-deliver messages after
-	// service restart, causing tasks in Running/Success/Failed status to be
-	// picked up again and potentially loop indefinitely.
-	if task.Status != define.BookToSkillStatusPending {
-		logs.Debug("BookToSkill task %d status is %d (not Pending), skip", taskId, task.Status)
-		return nil
-	}
-
-	// Execute synchronously (NSQ consumer is already async)
-	defer func() {
-		if r := recover(); r != nil {
-			logs.Error(`BookToSkill task panic:%d err:%v`, taskId, r)
-			common.UpdateBookToSkillTaskFailed(taskId, fmt.Sprintf("panic: %v", r))
-		}
-	}()
-	common.RunBookToSkillTaskSync(task)
 	return nil
 }

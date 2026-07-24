@@ -9,6 +9,7 @@ import aiDialogueNode from './ai-dialogue-node'
 import httpNode from './http-node/index.js'
 import httpToolNode from './http-tool-node/index.js'
 import knowledgeBaseNode from './knowledge-base-node/index.js'
+import goodsSearchNode from './goods-search-node/index.js'
 import endNode from './end-node/index.js'
 import explainNode from './explain-node/index.js'
 import variableAssignmentNode from './variable-assignment-node/index.js'
@@ -52,6 +53,7 @@ export default function registerCustomNodes(lf) {
   register(qaNode, lf)
   register(aiDialogueNode, lf)
   register(knowledgeBaseNode, lf)
+  register(goodsSearchNode, lf)
   register(endNode, lf)
   register(terminateMode, lf)
   register(explainNode, lf)

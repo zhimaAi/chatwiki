@@ -45,7 +45,6 @@
                 :msg="item"
                 :prevMsg="messageList[index - 1]"
                 @sendTextMessage="sendTextMessage"
-                @toggleReasonProcess="handleToggleReasonProcess"
                 @toggleQuoteFiel="handleToggleQuoteFiel"
               />
             </template>
@@ -229,17 +228,6 @@ const handleSelectSession = async (data: any) => {
 
   if (res) {
     scrollToBottom ()
-  }
-}
-
-const handleToggleReasonProcess = (msgId: number) => {
-  const msg = messageList.value.find((m) => {
-    let id = m.message_id || m.id
-    return id == msgId
-  })
-
-  if (msg) {
-    msg.show_reasoning = !msg.show_reasoning
   }
 }
 

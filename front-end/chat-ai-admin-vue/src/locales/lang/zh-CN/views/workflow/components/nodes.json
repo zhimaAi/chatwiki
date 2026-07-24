@@ -26,6 +26,7 @@
     "loop": "循环",
     "batchExecution": "批量执行",
     "knowledgeBase": "检索知识库",
+    "goodsSearch": "检索商品库",
     "importLibrary": "导入知识库",
     "questionClassification": "问题分类",
     "judgeBranch": "判断分支",

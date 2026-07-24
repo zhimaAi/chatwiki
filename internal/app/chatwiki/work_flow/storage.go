@@ -35,12 +35,10 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 		RunNodeKeys: flow.runNodeKeys,
 		RunLogs:     flow.runLogs,
 	}
-	if flow.params.Draft.IsDraft {
-		flow.params.DialogueId = flow.params.AdminUserId
-	}
+	dialogId, sessionId := getWorkFlowStorageIDs(flow)
 	boolCreate := true
-	if flow.params.SessionId > 0 {
-		_, storeId, _ := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
+	if sessionId > 0 {
+		_, storeId, _ := GetWorkFlowRestore(dialogId, sessionId)
 		if cast.ToInt(storeId) > 0 {
 			_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, storeId).Update(msql.Datas{
 				"storage":     tool.JsonEncodeNoError(data),
@@ -57,8 +55,8 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 		newId, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Insert(msql.Datas{
 			"admin_user_id": flow.params.AdminUserId,
 			"robot_id":      flow.params.Robot[`id`],
-			"dialog_id":     flow.params.DialogueId,
-			"session_id":    flow.params.SessionId,
+			"dialog_id":     dialogId,
+			"session_id":    sessionId,
 			"openid":        flow.params.Openid,
 			"storage":       tool.JsonEncodeNoError(data),
 			"log_id":        flow.LogID, // preserve the stable identity of this run
@@ -68,7 +66,7 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 		if err != nil {
 			logs.Error(err.Error())
 		}
-		if flow.params.Draft.IsDraft {
+		if shouldRewriteDraftStorageSessionID(flow) {
 			flow.params.SessionId = cast.ToInt(newId)
 			_, err = msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, cast.ToString(newId)).Update(msql.Datas{
 				`session_id`:  newId,
@@ -79,6 +77,24 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 			}
 		}
 	}
+}
+
+func shouldRewriteDraftStorageSessionID(flow *WorkFlow) bool {
+	if flow == nil || flow.params == nil {
+		return false
+	}
+	return flow.params.Draft.IsDraft && !flow.params.IsDialogMode
+}
+
+// get storage ids
+func getWorkFlowStorageIDs(flow *WorkFlow) (dialogId, sessionId int) {
+	if flow == nil || flow.params == nil {
+		return 0, 0
+	}
+	if flow.params.Draft.IsDraft && !flow.params.IsDialogMode {
+		return flow.params.AdminUserId, flow.params.SessionId
+	}
+	return flow.params.DialogueId, flow.params.SessionId
 }
 
 func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s string, logID int64) {
@@ -105,6 +121,13 @@ func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s s
 	return data, storage[`id`], cast.ToInt64(storage[`log_id`])
 }
 
+func IsStoragePaused(flow *WorkFlow) bool {
+	if flow == nil {
+		return false
+	}
+	return flow.isStorage
+}
+
 func DelWorkFlowStorage(dialogId, sessionId int) {
 	_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).
 		Where(`dialog_id`, cast.ToString(dialogId)).
@@ -127,11 +150,12 @@ func DelWorkFlowStorageByLogID(logID int64) {
 }
 
 func WorkFlowRestore(flow *WorkFlow) (err error) {
+	restoreDialogId, restoreSessionId := getWorkFlowStorageIDs(flow)
 	defer func() {
-		DelWorkFlowStorage(flow.params.DialogueId, flow.params.SessionId)
+		DelWorkFlowStorage(restoreDialogId, restoreSessionId)
 	}()
-	logs.Debug(`to restore，dialog_id %v session_id %v`, flow.params.DialogueId, flow.params.SessionId)
-	data, _, logID := GetWorkFlowRestore(flow.params.DialogueId, flow.params.SessionId)
+	logs.Debug(`to restore，dialog_id %v session_id %v`, restoreDialogId, restoreSessionId)
+	data, _, logID := GetWorkFlowRestore(restoreDialogId, restoreSessionId)
 	if data == nil || data.CurNodeKey == `` {
 		return
 	}
@@ -162,6 +186,18 @@ func WorkFlowRestore(flow *WorkFlow) (err error) {
 	flow.runLogs = data.RunLogs
 	if _, exist := flow.outputs[flow.curNodeKey]; !exist {
 		return
+	}
+	// Sync the current user input into global.question before matching a
+	// smart-menu option. The value assembled from the restored context (or the
+	// stale global carried by the request) must not be used to pick a menu
+	// branch; otherwise the reply never hits the option the user clicked.
+	if len(flow.params.Question) > 0 {
+		q := flow.params.Question
+		flow.global[`question`] = common.SimpleField{
+			Key:  `question`,
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: &q}},
+		}
 	}
 	menuQuestion := ``
 	//last node output

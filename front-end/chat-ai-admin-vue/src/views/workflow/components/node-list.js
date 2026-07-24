@@ -593,6 +593,37 @@ export const nodeList = [
   },
   {
     id: '',
+    groupKey: 'knowledge-retrieval',
+    type: 'goods-search-node',
+    width: 420,
+    height: 152,
+    properties: {
+      ...getRowData(),
+      node_type: 50,
+      node_name: t('node.goodsSearch'),
+      node_icon: getNodeIconUrl('knowledge-base-node'),
+      node_icon_name: 'knowledge-base-node',
+      node_header_bg_color: 'linear-gradient(180deg, #F0FFFF 2%, rgba(229, 239, 255, 0) 100%)',
+      node_params: JSON.stringify({
+        goods_search: {
+          condition_groups: [
+            {
+              is_or: false,
+              conditions: [
+                {
+                  field: '',
+                  match: '',
+                  value: ''
+                }
+              ]
+            }
+          ]
+        }
+      })
+    }
+  },
+  {
+    id: '',
     groupKey: 'large-model-capability',
     type: 'question-node',
     width: 420,

@@ -23,7 +23,10 @@ const (
 	WebToSkillTaskDNSLookupTimeout = time.Second
 )
 
-const WebToSkillTaskStopKeyPrefix = `chatwiki.web_to_skill.stop.`
+const (
+	WebToSkillTaskStopKeyPrefix = `chatwiki.web_to_skill.stop.`
+	WebToSkillWorkDir           = `clawbot/working_dir/web-to-skill/<task_batch>`
+)
 
 var WebToSkillTaskZipAllowExt = []string{`zip`}
 

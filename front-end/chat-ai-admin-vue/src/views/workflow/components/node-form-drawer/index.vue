@@ -48,7 +48,7 @@
  * <node-form-drawer ref="drawerRef" node-key="start-node" />
  */
 
-import { ref, computed, provide } from 'vue'
+import { computed, provide } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.workflow.components.node-form-drawer.index')
@@ -57,6 +57,7 @@ import ProblemOptimizationForm from './problem-optimization-form.vue'
 import AiDialogueNodeFrom from './ai-dialogue-node-from.vue'
 import AddDataForm from './add-data-form.vue'
 import KnowledgeBaseNodeForm from './knowledge-base-node-form.vue'
+import GoodsSearchNodeForm from './goods-search-node-form.vue'
 import CodeRunNodeForm from './code-run-node/code-run-node-form.vue'
 import HttpNodeForm from './http-node/http-node-form.vue'
 import HttpToolNodeForm from './http-tool-node/http-tool-node-form.vue'
@@ -97,6 +98,7 @@ const formComponents = {
   'ai-dialogue-node': AiDialogueNodeFrom,
   'add-data-node': AddDataForm,
   'knowledge-base-node': KnowledgeBaseNodeForm,
+  'goods-search-node': GoodsSearchNodeForm,
   'code-run-node': CodeRunNodeForm,
   'http-node': HttpNodeForm,
   'http-tool-node': HttpToolNodeForm,
@@ -196,6 +198,7 @@ const width = computed(() => {
     'delete-data-node': 600,
     'update-data-node': 600,
     'select-data-node': 600,
+    'goods-search-node': 600,
     'judge-node': 600,
     'custom-group': 640,
     'timing-trigger-node': 420,

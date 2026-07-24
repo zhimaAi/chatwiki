@@ -303,6 +303,9 @@ func InstallWebToSkillTask(lang string, adminUserId int, id int64, overwrite boo
 		info[`file_url`] == `` || info[`skill_name`] == `` || info[`skill_description`] == `` {
 		return nil, errors.New(i18n.Show(lang, `no_data`))
 	}
+	if cast.ToInt64(info[`file_size`]) > int64(define.MaxSkillZipSize) {
+		return nil, errors.New(i18n.Show(lang, `clawbot_skill_zip_too_big`))
+	}
 	file := GetFileByLink(info[`file_url`])
 	if file == `` {
 		return nil, errors.New(i18n.Show(lang, `no_data`))
@@ -329,10 +332,18 @@ func InstallWebToSkillTask(lang string, adminUserId int, id int64, overwrite boo
 	return item, nil
 }
 
-func RunWebToSkillTask(id int64) error {
+func RunWebToSkillTask(id int64) (returnErr error) {
 	if id <= 0 {
 		return errors.New(`invalid web-to-skill task id`)
 	}
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			panicErr := fmt.Errorf(`web-to-skill task panic: %v`, recovered)
+			logs.Error(`task:%d,err:%s`, id, panicErr.Error())
+			_ = finishWebToSkillTask(id, define.WebToSkillTaskStatusFailed, msql.Datas{`err_msg`: panicErr.Error()})
+			returnErr = panicErr
+		}
+	}()
 	if _, loaded := runningWebToSkillTasks.LoadOrStore(id, struct{}{}); loaded {
 		return nil
 	}
@@ -643,9 +654,11 @@ func normalizeWebToSkillZipPath(raw, taskBatch string) string {
 	if !strings.HasSuffix(strings.ToLower(raw), `.zip`) {
 		return ``
 	}
-	workDir := strings.ReplaceAll(define.WebToSkillWorkDir, `<task_batch>`, taskBatch)
+	workDir, err := getWebToSkillTaskWorkDir(taskBatch)
+	if err != nil {
+		return ``
+	}
 	clean := filepath.Clean(filepath.FromSlash(raw))
-	workDir = filepath.Clean(filepath.FromSlash(workDir))
 	rel, err := filepath.Rel(workDir, clean)
 	if err != nil || rel == `.` || strings.HasPrefix(rel, `..`) {
 		return ``
@@ -657,38 +670,32 @@ func normalizeWebToSkillZipPath(raw, taskBatch string) string {
 }
 
 func cleanupWebToSkillTaskWorkDir(taskBatch string) {
-	workDir := strings.ReplaceAll(define.WebToSkillWorkDir, `<task_batch>`, taskBatch)
+	workDir, err := getWebToSkillTaskWorkDir(taskBatch)
+	if err != nil {
+		logs.Error(`invalid web-to-skill task batch:%s,err:%s`, taskBatch, err.Error())
+		return
+	}
 	if tool.IsDir(workDir) {
-		if err := os.RemoveAll(workDir); err != nil {
+		if err = os.RemoveAll(workDir); err != nil {
 			logs.Error(`remove web-to-skill work dir:%s,err:%s`, workDir, err.Error())
 		}
 	}
 }
 
+func getWebToSkillTaskWorkDir(taskBatch string) (string, error) {
+	taskBatch = strings.TrimSpace(taskBatch)
+	if _, err := uuid.Parse(taskBatch); err != nil {
+		return ``, fmt.Errorf(`invalid task batch: %w`, err)
+	}
+	baseDir := filepath.Clean(filepath.Dir(filepath.FromSlash(define.WebToSkillWorkDir)))
+	workDir := filepath.Clean(filepath.Join(baseDir, taskBatch))
+	rel, err := filepath.Rel(baseDir, workDir)
+	if err != nil || rel == `.` || strings.HasPrefix(rel, `..`) {
+		return ``, errors.New(`task work directory is outside web-to-skill root`)
+	}
+	return workDir, nil
+}
+
 func saveWebToSkillZipFile(adminUserId int, zipPath string) (*define.UploadInfo, error) {
-	info, err := os.Stat(zipPath)
-	if err != nil {
-		return nil, err
-	}
-	if info.IsDir() || info.Size() <= 0 {
-		return nil, errors.New(`invalid zip file size`)
-	}
-	ext := strings.ToLower(strings.TrimLeft(filepath.Ext(zipPath), `.`))
-	if !tool.InArrayString(ext, define.WebToSkillTaskZipAllowExt) {
-		return nil, errors.New(ext + ` not allow`)
-	}
-	bs, err := os.ReadFile(zipPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(bs) == 0 {
-		return nil, errors.New(`file content is empty`)
-	}
-	content := string(bs)
-	objectKey := fmt.Sprintf(`chat_ai/%v/%s/%s/%s.%s`, adminUserId, `web_to_skill`, tool.Date(`Ym`), tool.MD5(content), ext)
-	link, err := WriteFileByString(objectKey, content)
-	if err != nil {
-		return nil, err
-	}
-	return &define.UploadInfo{Name: filepath.Base(zipPath), Size: info.Size(), Ext: ext, Link: link}, nil
+	return saveGeneratedSkillZipFile(adminUserId, `web_to_skill`, zipPath, define.WebToSkillTaskZipAllowExt)
 }

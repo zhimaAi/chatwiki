@@ -22,33 +22,8 @@
 
 <script setup>
 import { ref, nextTick, computed, watch } from 'vue'
-import { useRobotStore } from '@/stores/modules/robot'
 import UserMessageItem from './messages/user-message-item.vue'
 import RobotMessageItem from './messages/robot-message-item.vue'
-
-const robotStore = useRobotStore()
-
-
-const currentLangConfig = computed(()=>{
-  let currentLang = localStorage.getItem('lang') ? JSON.parse(localStorage.getItem('lang'))?.value : 'zh-CN' || 'zh-CN'
-  let multi_lang_configs = robotStore.robotInfo.multi_lang_configs
-  let configs = multi_lang_configs.find(item => item.lang_key === currentLang) || multi_lang_configs[0]
-  return configs
-})
-const tips_before_answer_content = computed(()=>{
-  return currentLangConfig.value?.tips_before_answer_content
-})
-
-const tips_before_answer_switch = computed(()=>{
-  return currentLangConfig.value?.tips_before_answer_switch == 'true'
-})
-
-const emit = defineEmits([
-  'clickMsgMeun',
-  'scroll',
-  'scrollStart',
-  'scrollEnd'
-])
 
 const props = defineProps({
   messages: {
@@ -64,6 +39,54 @@ const props = defineProps({
     default: false
   }
 })
+
+const parseMultiLangConfigs = (value) => {
+  if (Array.isArray(value)) {
+    return value
+  }
+  if (typeof value !== 'string') {
+    return []
+  }
+  try {
+    const configs = JSON.parse(value)
+    return Array.isArray(configs) ? configs : []
+  } catch (_e) {
+    return []
+  }
+}
+
+const currentLangConfig = computed(() => {
+  let currentLang = 'zh-CN'
+  try {
+    currentLang = JSON.parse(localStorage.getItem('lang') || '{}')?.value || currentLang
+  } catch (_e) {
+    // 本地语言配置异常时使用默认语言，避免影响消息列表渲染。
+  }
+  const configs = parseMultiLangConfigs(props.robotInfo?.multi_lang_configs)
+  return configs.find((item) => item.lang_key === currentLang) || configs[0] || {}
+})
+
+const tips_before_answer_content = computed(() => {
+  const langContent = currentLangConfig.value?.tips_before_answer_content
+  if (typeof langContent === 'string' && langContent.trim()) {
+    return langContent
+  }
+  const content = props.robotInfo?.tips_before_answer_content
+  return typeof content === 'string' ? content : ''
+})
+
+const tips_before_answer_switch = computed(() => {
+  const value = currentLangConfig.value?.tips_before_answer_switch ??
+    props.robotInfo?.tips_before_answer_switch
+  return value === true || value === 'true'
+})
+
+const emit = defineEmits([
+  'clickMsgMeun',
+  'scroll',
+  'scrollStart',
+  'scrollEnd'
+])
 
 const isTruthyHidden = (value) => {
   if (value === true || value === 1) {

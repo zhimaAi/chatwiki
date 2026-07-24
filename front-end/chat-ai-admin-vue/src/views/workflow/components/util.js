@@ -49,6 +49,7 @@ export const allParentVariableNodeWhiteList = [
   'http-tool-node',
   'parameter-extraction-node',
   'knowledge-base-node',
+  'goods-search-node',
   'ai-dialogue-node',
   'specify-reply-node',
   'immediately-reply-node',

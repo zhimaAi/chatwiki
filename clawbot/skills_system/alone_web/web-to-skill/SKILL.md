@@ -5,12 +5,20 @@ description: "Convert one public website URL or an explicit batch of public URLs
 
 # Web To Skill
 
-Use three deterministic stages. Keep every intermediate file and the final zip under the writable task directory
-provided by the system prompt. Run all scripts with Python 3.
+Use three deterministic stages. Keep every agent-created intermediate file and the final zip under the writable task
+directory provided by the system prompt. Run all scripts with Python 3. Do not install or upgrade packages or browser
+binaries at runtime.
+
+Let `<skill-dir>` be the skill base directory supplied by the skill loader immediately above these instructions. Use
+that directory exactly as supplied. Execute bundled scripts in place with `python3 <skill-dir>/scripts/...`; never copy
+them into the task directory or a temporary directory.
+
+Let `<task-dir>` be the writable task directory supplied by the system prompt. Use it exactly as supplied for every
+intermediate artifact, model-authored JSON file, and final zip.
 
 ## Stage 1: Prepare the URL list
 
-Always run `scripts/prepare_urls.py` first.
+Always run `<skill-dir>/scripts/prepare_urls.py` first.
 
 - When the user supplies exactly one URL, the script opens that page with Playwright, detects its directory or
   navigation tree, and writes the start page plus all discovered in-scope page URLs.
@@ -19,13 +27,13 @@ Always run `scripts/prepare_urls.py` first.
 - The output is always a UTF-8 text file with one URL per line.
 
 ```bash
-python3 scripts/prepare_urls.py \
+python3 <skill-dir>/scripts/prepare_urls.py \
   --out <task-dir>/crawl/url-list.txt \
   "https://example.com/docs"
 ```
 
 ```bash
-python3 scripts/prepare_urls.py \
+python3 <skill-dir>/scripts/prepare_urls.py \
   --out <task-dir>/crawl/url-list.txt \
   "https://example.com/page-a" \
   "https://example.com/page-b"
@@ -46,10 +54,10 @@ Treat a result containing only the supplied page as a preparation failure; do no
 
 ## Stage 2: Crawl the prepared URLs
 
-Run `scripts/crawl_urls.py` with the URL-list file from Stage 1.
+Run `<skill-dir>/scripts/crawl_urls.py` with the URL-list file from Stage 1.
 
 ```bash
-python3 scripts/crawl_urls.py \
+python3 <skill-dir>/scripts/crawl_urls.py \
   --url-list <task-dir>/crawl/url-list.txt \
   --out-dir <task-dir>/crawl
 ```
@@ -65,6 +73,8 @@ The crawler has intentionally fixed behavior:
   WeChat Official Account articles; use the rendered page body as the fallback.
 - For Feishu, retain the longest stable body snapshot when the final body is empty or shorter.
 - Save cleaned rendered HTML under `<task-dir>/crawl/html/`.
+- When different prepared URLs redirect to the same final URL, capture and index that page once. Record the other
+  prepared URLs as redirect duplicates in crawl coverage; they are not crawl failures.
 - Extract keywords with jieba from the title, description, and selected body, then merge them with the page's original
   metadata keywords.
 - When at least four pages succeed, remove cross-page high-frequency noise terms unless they occur in the page title or
@@ -76,7 +86,7 @@ The crawler has intentionally fixed behavior:
 Use debug mode only when validating the workflow. It processes at most the first five URLs:
 
 ```bash
-python3 scripts/crawl_urls.py \
+python3 <skill-dir>/scripts/crawl_urls.py \
   --url-list <task-dir>/crawl/url-list.txt \
   --out-dir <task-dir>/crawl-debug \
   --debug
@@ -85,58 +95,54 @@ python3 scripts/crawl_urls.py \
 Do not pass browser, concurrency, wait, retry, depth, link-scope, or timeout options. Those controls are not part of
 this workflow.
 
-## Stage 3: Build the specialized skill
+Never edit or delete the generated URL list, JSONL index, crawl log, or rendered HTML snapshots by hand. After crawl
+validation succeeds, never rerun URL preparation or crawling because a downstream stage fails. If crawl validation
+fails, rerun the crawler at most once without deleting artifacts; if the same error repeats, return that error instead
+of restarting the workflow.
 
-Inspect the bounded page metadata in `index.jsonl` and create exactly one UTF-8 JSON metadata file. The model must
-provide the skill identity and source profile; the build script does not infer them.
-
-Use this schema:
-
-```json
-{
-	"name": "example-docs",
-	"title": "Example Docs",
-	"description": "Answer questions using the indexed Example Docs pages and rendered snapshots.",
-	"source_summary": "The indexed pages cover the Example product documentation and operational guidance.",
-	"topic_groups": [
-		{
-			"name": "Product usage",
-			"summary": "Setup, configuration, and common product workflows.",
-			"query_terms": [
-				"product name",
-				"configuration"
-			],
-			"page_urls": [
-				"https://example.com/docs/setup"
-			]
-		}
-	],
-	"aliases": [
-		{
-			"canonical": "Example Product",
-			"aliases": [
-				"Example"
-			]
-		}
-	],
-	"coverage_notes": [
-		"The index does not cover account billing."
-	]
-}
-```
-
-Requirements:
-
-- `name`, `title`, `description`, `source_summary`, and `topic_groups` are required.
-- `name` must contain only lowercase letters, digits, and single hyphens, and must not exceed 50 characters.
-- `page_urls` must use exact URLs present in `index.jsonl`.
-- Keep profile statements grounded in the indexed page metadata. Do not invent product behavior or coverage.
-- `aliases` and `coverage_notes` may be empty arrays.
-
-Build the zip:
+Validate the completed crawl with the bundled helper:
 
 ```bash
-python3 scripts/build_skill.py \
+python3 <skill-dir>/scripts/validate_crawl.py \
+  --index <task-dir>/crawl/index.jsonl
+```
+
+The helper resolves every crawl-index `html_path` relative to the directory containing `index.jsonl`, never relative to
+the process working directory. It returns a bounded completion result containing the latest `crawl_urls run.done`
+counts, a bounded failure summary, and a bounded redirect-duplicate summary. Do not open, list, print, `cat`, or
+otherwise load `crawl.log` through model file tools or ad hoc commands. Use only the helper output when evaluating crawl
+completion, failures, or redirect duplicates.
+
+## Stage 3: Build the specialized skill
+
+Run the deterministic metadata-outline helper. Do not open, list, or read `index.jsonl` through model file tools.
+
+```bash
+python3 <skill-dir>/scripts/metadata_outline.py \
+  --index <task-dir>/crawl/index.jsonl
+```
+
+The helper returns at most 60 compact page records. It allocates slots in proportion to each source site's successful
+page count, preserves source-site coverage when the limit permits, and samples evenly within each site instead of taking
+only its first pages. Use only the returned `outline` and exact URLs to create one UTF-8 JSON metadata file at
+`<task-dir>/skill-metadata.json`.
+
+Read [references/metadata.md](references/metadata.md) for the schema and limits. The model must provide the skill
+identity and source profile; the build script does not infer them. If `outline_truncated` is true, describe represented
+themes without claiming exhaustive index coverage. Do not infer negative coverage from topics missing in the outline.
+
+If build validation rejects the metadata file, correct only `<task-dir>/skill-metadata.json` and rerun the build stage.
+Do not repeat URL preparation or crawling when their validated outputs are already present.
+
+The build stage also reads the last `crawl_urls run.done` event from `<task-dir>/crawl/crawl.log`, validates its counts
+against `index.jsonl`, and writes a deterministic succeeded, failed, redirect-duplicate, and timeout-skipped coverage
+note into the generated Skill. Model-authored `coverage_notes` supplement this deterministic crawl boundary and cannot
+replace or hide it.
+
+Use the metadata `name` value as `<skill-name>` and build the zip:
+
+```bash
+python3 <skill-dir>/scripts/build_skill.py \
   --index <task-dir>/crawl/index.jsonl \
   --metadata <task-dir>/skill-metadata.json \
   --zip-out <task-dir>/generate_skill/<skill-name>.zip
@@ -165,8 +171,11 @@ when the saved snapshots are insufficient or the user explicitly requests curren
 
 Before returning success:
 
-1. Confirm `crawl/url-list.txt` contains at least one URL.
-2. Confirm `index.jsonl` contains at least one valid JSON object and every `html_path` exists.
-3. Confirm the final zip exists and contains `<skill-name>/SKILL.md`, the JSONL index, at least one HTML snapshot, and
-   both helper scripts.
-4. Output only the final zip path required by the system prompt.
+1. Confirm the crawl-validation helper reports `status: complete` with nonzero `url_count` and `index_rows`. Require
+   `run_done.requested == url_count`, `run_done.succeeded == index_rows`, `html_paths_checked == index_rows`,
+   `failure_summary.count == run_done.failed`, and `duplicate_summary.count == run_done.duplicate_final_urls`.
+2. Confirm the metadata-outline helper reports `status: complete`, at least one outline item, and no more than 60.
+3. Confirm the build command succeeds. Its deterministic input validation and packaging create the required Skill
+   contents at `<task-dir>/generate_skill/<skill-name>.zip`.
+4. Immediately return only the final zip path required by the system prompt. Do not call `ls` or reopen the zip, index,
+   HTML snapshots, or `crawl.log` after a successful build. Inspect them only to diagnose a reported script error.

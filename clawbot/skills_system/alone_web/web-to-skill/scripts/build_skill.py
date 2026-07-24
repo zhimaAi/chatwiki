@@ -20,6 +20,14 @@ if hasattr(sys.stderr, "reconfigure"):
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REQUIRED_METADATA_FIELDS = ("name", "title", "description", "source_summary", "topic_groups")
+CRAWL_COVERAGE_FIELDS = (
+    "requested",
+    "attempted",
+    "succeeded",
+    "failed",
+    "max_consecutive_timeouts",
+    "skipped_pages_after_timeout_stop",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -59,6 +67,7 @@ def optional_text_list(value: Any, label: str, *, max_items: int, max_length: in
 
 def load_index(path: Path) -> list[dict[str, Any]]:
     pages: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
     for line_number, raw_line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
         if not raw_line.strip():
             continue
@@ -71,8 +80,12 @@ def load_index(path: Path) -> list[dict[str, Any]]:
         for field in ("url", "title", "description", "keywords", "html_path"):
             if field not in page:
                 raise ValueError(f"index record at {path}:{line_number} is missing {field}")
+        url = str(page["url"]).strip()
+        if not url or url in seen_urls:
+            raise ValueError(f"index contains an empty or duplicate URL at {path}:{line_number}: {url}")
         if not isinstance(page["keywords"], list):
             raise ValueError(f"index record keywords at {path}:{line_number} must be an array")
+        seen_urls.add(url)
         pages.append(page)
     if not pages:
         raise ValueError(f"index has no page records: {path}")
@@ -144,6 +157,55 @@ def load_metadata(path: Path, page_urls: set[str]) -> dict[str, Any]:
     }
 
 
+def load_crawl_coverage(path: Path, page_count: int) -> dict[str, int | bool]:
+    if not path.is_file():
+        raise ValueError(f"crawl log not found: {path}")
+    run_done = ""
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        if "[crawl_urls]" in line and " run.done " in f" {line} ":
+            run_done = line
+    if not run_done:
+        raise ValueError(f"crawl log has no crawl_urls run.done event: {path}")
+
+    coverage: dict[str, int | bool] = {}
+    for field in CRAWL_COVERAGE_FIELDS:
+        match = re.search(rf"(?:^|\s){re.escape(field)}=(-?\d+)(?:\s|$)", run_done)
+        if not match:
+            raise ValueError(f"crawl run.done is missing {field}: {path}")
+        coverage[field] = int(match.group(1))
+    duplicate_match = re.search(r"(?:^|\s)duplicate_final_urls=(-?\d+)(?:\s|$)", run_done)
+    coverage["duplicate_final_urls"] = int(duplicate_match.group(1)) if duplicate_match else 0
+    stopped_match = re.search(r"(?:^|\s)stopped_by_consecutive_timeouts=(true|false)(?:\s|$)", run_done)
+    if not stopped_match:
+        raise ValueError(f"crawl run.done is missing stopped_by_consecutive_timeouts: {path}")
+    coverage["stopped_by_consecutive_timeouts"] = stopped_match.group(1) == "true"
+
+    requested = int(coverage["requested"])
+    attempted = int(coverage["attempted"])
+    succeeded = int(coverage["succeeded"])
+    failed = int(coverage["failed"])
+    duplicate_final_urls = int(coverage["duplicate_final_urls"])
+    skipped = int(coverage["skipped_pages_after_timeout_stop"])
+    if (
+        requested <= 0
+        or attempted < 0
+        or succeeded < 0
+        or failed < 0
+        or duplicate_final_urls < 0
+        or skipped < 0
+    ):
+        raise ValueError(f"crawl run.done has invalid negative or empty counts: {path}")
+    if attempted + skipped != requested:
+        raise ValueError("crawl coverage mismatch: attempted plus skipped must equal requested")
+    if succeeded + failed + duplicate_final_urls != attempted:
+        raise ValueError(
+            "crawl coverage mismatch: succeeded plus failed plus duplicate final URLs must equal attempted"
+        )
+    if succeeded != page_count:
+        raise ValueError("crawl coverage mismatch: succeeded must equal the number of index records")
+    return coverage
+
+
 def yaml_quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
@@ -152,7 +214,40 @@ def markdown_text(value: str) -> str:
     return value.replace("\r", " ").replace("\n", " ").strip()
 
 
-def profile_markdown(metadata: dict[str, Any]) -> str:
+def crawl_coverage_note(coverage: dict[str, int | bool]) -> str:
+    requested = int(coverage["requested"])
+    succeeded = int(coverage["succeeded"])
+    failed = int(coverage["failed"])
+    duplicate_final_urls = int(coverage["duplicate_final_urls"])
+    skipped = int(coverage["skipped_pages_after_timeout_stop"])
+    if failed == 0 and skipped == 0 and duplicate_final_urls == 0:
+        if requested == 1:
+            return "The prepared page was captured successfully."
+        return f"All {requested} prepared pages were captured successfully."
+    duplicate_note = (
+        f" {duplicate_final_urls} prepared URL"
+        f"{' redirected' if duplicate_final_urls == 1 else 's redirected'}"
+        " to already captured pages."
+        if duplicate_final_urls
+        else ""
+    )
+    if failed == 0 and skipped == 0:
+        return (
+            f"Captured {succeeded} unique pages from {requested} prepared URLs."
+            f"{duplicate_note}"
+        )
+    reason = " The crawl stopped after consecutive timeouts." if coverage["stopped_by_consecutive_timeouts"] else ""
+    requested_label = "page" if requested == 1 else "pages"
+    failed_label = "page" if failed == 1 else "pages"
+    skipped_label = "page was" if skipped == 1 else "pages were"
+    return (
+        f"Crawl coverage is partial: captured {succeeded} of {requested} prepared {requested_label}; "
+        f"{failed} attempted {failed_label} failed and {skipped} {skipped_label} skipped."
+        f"{duplicate_note}{reason}"
+    )
+
+
+def profile_markdown(metadata: dict[str, Any], coverage: dict[str, int | bool]) -> str:
     lines = ["## Source profile", "", markdown_text(metadata["source_summary"]), "", "### Topic guide", ""]
     for group in metadata["topic_groups"]:
         lines.extend([f"- **{markdown_text(group['name'])}**: {markdown_text(group['summary'])}"])
@@ -164,13 +259,14 @@ def profile_markdown(metadata: dict[str, Any]) -> str:
         lines.extend(["", "### Terminology aliases", ""])
         for item in metadata["aliases"]:
             lines.append(f"- `{item['canonical']}`: {', '.join(f'`{alias}`' for alias in item['aliases'])}")
+    lines.extend(["", "### Coverage boundaries", ""])
     if metadata["coverage_notes"]:
-        lines.extend(["", "### Coverage boundaries", ""])
         lines.extend(f"- {markdown_text(note)}" for note in metadata["coverage_notes"])
+    lines.append(f"- {crawl_coverage_note(coverage)}")
     return "\n".join(lines)
 
 
-def build_skill_markdown(metadata: dict[str, Any]) -> str:
+def build_skill_markdown(metadata: dict[str, Any], coverage: dict[str, int | bool]) -> str:
     return f"""---
 name: {metadata['name']}
 description: {yaml_quote(metadata['description'])}
@@ -178,15 +274,18 @@ description: {yaml_quote(metadata['description'])}
 
 # {metadata['title']}
 
-{profile_markdown(metadata)}
+{profile_markdown(metadata, coverage)}
 
 ## Retrieval workflow
 
 1. Use the source profile and terminology aliases to choose two to four discriminating query terms from the user's question.
-2. Search the bounded JSONL index and return no more than three candidate pages:
+   Separate multiple query terms with a literal `|`, for example `product|feature|error`; do not use spaces as the
+   separator.
+2. Search the bounded JSONL index and return no more than three candidate pages. When searching the bundled skill
+   content, do not pass `--index`; the script locates `references/web-index.jsonl` from its own location:
 
 ```bash
-python3 scripts/search_index.py --index references/web-index.jsonl --query "product|feature|error" --limit 3
+python3 scripts/search_index.py --query "product|feature|error" --limit 3
 ```
 
 3. Inspect only the returned candidate files. For each file, run at most one targeted search with bounded matches and context:
@@ -290,11 +389,15 @@ def zip_directory(source_dir: Path, zip_path: Path) -> None:
     temporary_zip = zip_path.with_suffix(zip_path.suffix + ".tmp")
     if temporary_zip.exists():
         temporary_zip.unlink()
-    with zipfile.ZipFile(temporary_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in sorted(source_dir.rglob("*")):
-            if path.is_file():
-                archive.write(path, path.relative_to(source_dir.parent).as_posix())
-    temporary_zip.replace(zip_path)
+    try:
+        with zipfile.ZipFile(temporary_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for path in sorted(source_dir.rglob("*")):
+                if path.is_file():
+                    archive.write(path, path.relative_to(source_dir.parent).as_posix())
+        temporary_zip.replace(zip_path)
+    finally:
+        if temporary_zip.exists():
+            temporary_zip.unlink()
 
 
 def build(args: argparse.Namespace) -> Path:
@@ -303,13 +406,14 @@ def build(args: argparse.Namespace) -> Path:
     zip_path = Path(args.zip_out).resolve()
     pages = load_index(index_path)
     metadata = load_metadata(metadata_path, {str(page["url"]) for page in pages})
+    coverage = load_crawl_coverage(index_path.parent / "crawl.log", len(pages))
     if zip_path.suffix.lower() != ".zip":
         raise ValueError("--zip-out must end with .zip")
 
     with tempfile.TemporaryDirectory(prefix="web-to-skill-") as temporary_root:
         skill_dir = Path(temporary_root) / metadata["name"]
         (skill_dir / "agents").mkdir(parents=True, exist_ok=True)
-        (skill_dir / "SKILL.md").write_text(build_skill_markdown(metadata), encoding="utf-8")
+        (skill_dir / "SKILL.md").write_text(build_skill_markdown(metadata, coverage), encoding="utf-8")
         (skill_dir / "agents" / "openai.yaml").write_text(build_openai_yaml(metadata), encoding="utf-8")
         copy_resources(skill_dir, index_path, pages)
         zip_directory(skill_dir, zip_path)

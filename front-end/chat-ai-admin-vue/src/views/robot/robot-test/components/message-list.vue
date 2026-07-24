@@ -51,14 +51,20 @@
   .user-message {
     .item-body {
       padding: 5px 0;
+      color: var(--user-bubble-color, #3a4559);
+      background-color: var(--user-bubble-background-color, transparent);
     }
 
     .message-content {
       line-height: 22px;
       font-size: 14px;
       font-weight: 400;
-      color: #3a4559;
+      color: var(--user-bubble-color, #3a4559);
       white-space: pre-wrap;
+
+      :deep(.multiple-message .text-message) {
+        color: var(--user-bubble-color, #3a4559);
+      }
     }
   }
 
@@ -70,14 +76,19 @@
       min-height: 32px;
       max-width: 100%;
       overflow: hidden;
-      background-color: #fff;
+      color: var(--robot-bubble-color, #3a4559);
+      background-color: var(--robot-bubble-background-color, #fff);
+      --base-font-color: var(--robot-bubble-color, #3a4559);
+      --md-heading-color: var(--robot-bubble-color, #3a4559);
+      --md-paragraph-color: var(--robot-bubble-color, #3a4559);
+      --base-previewer-bg: transparent;
     }
 
     .message-content {
       line-height: 22px;
       font-size: 14px;
       font-weight: 400;
-      color: #3a4559;
+      color: var(--robot-bubble-color, #3a4559);
       white-space: pre-wrap;
     }
   }
@@ -369,10 +380,48 @@
     }
   }
 }
+
+.message-list-wrapper.message-align-split {
+  .message-list {
+    .user-message {
+      flex-direction: row-reverse;
+
+      .itme-left {
+        margin-right: 0;
+        margin-left: 8px;
+      }
+
+      .itme-right {
+        display: flex;
+        flex: 0 1 80%;
+        justify-content: flex-end;
+      }
+
+      .item-body {
+        width: fit-content;
+        max-width: 100%;
+        padding: 8px 16px;
+        border-radius: 16px 4px 16px 16px;
+      }
+    }
+
+    .robot-message {
+      justify-content: flex-start;
+
+      .item-body {
+        width: fit-content;
+      }
+    }
+  }
+}
 </style>
 
 <template>
-  <div class="message-list-wrapper">
+  <div
+    class="message-list-wrapper"
+    :class="{ 'message-align-split': props.messageAlign === 'split' }"
+    :style="bubbleStyleVariables"
+  >
     <div class="scroll-box" ref="scrollBoxRef" @scroll="onScroll">
       <div class="message-list">
         <template v-for="item in props.messages" :key="item.uid">
@@ -383,7 +432,7 @@
             v-if="item.is_customer == 1"
             :data-msg_type="item.msg_type"
           >
-            <div class="itme-left">
+            <div class="itme-left" v-if="props.showAvatar">
               <img class="user-avatar" :src="item.avatar" />
             </div>
             <div class="itme-right">
@@ -407,7 +456,7 @@
           </div>
           <!-- 机器人的消息 -->
           <div class="message-item robot-message" :id="'msg-' + item.uid" v-else>
-            <div class="itme-left">
+            <div class="itme-left" v-if="props.showAvatar">
               <a-spin size="small" :spinning="item.loading">
                 <img class="robot-avatar" :src="item.robot_avatar" />
               </a-spin>
@@ -678,8 +727,28 @@ const props = defineProps({
   robotInfo: {
     type: Object,
     default: () => {}
+  },
+  showAvatar: {
+    type: Boolean,
+    default: true
+  },
+  messageAlign: {
+    type: String,
+    default: 'default',
+    validator: (value) => ['default', 'split'].includes(value)
+  },
+  bubbleStyle: {
+    type: Object,
+    default: () => ({})
   }
 })
+
+const bubbleStyleVariables = computed(() => ({
+  '--user-bubble-background-color': props.bubbleStyle.user?.backgroundColor || 'transparent',
+  '--user-bubble-color': props.bubbleStyle.user?.color || '#3a4559',
+  '--robot-bubble-background-color': props.bubbleStyle.robot?.backgroundColor || '#fff',
+  '--robot-bubble-color': props.bubbleStyle.robot?.color || '#3a4559'
+}))
 
 const toggleReasonProcess = (item) => {
   item.show_reasoning = !item.show_reasoning

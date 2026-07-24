@@ -56,7 +56,7 @@
   .message-content {
     position: relative;
     display: inline-block;
-    padding: 12px;
+    padding: 12px 12px 12px 12px;
     margin-right: 50px;
     border-radius: 4px 16px 16px 16px;
     background-color: #fff;
@@ -80,17 +80,12 @@
     }
   }
 
-  &.agent-process-message {
+  &.process-message-item {
     .message-content {
-      padding: 16px 12px;
+      padding: 0 12px 16px 12px;
       white-space: normal;
       word-break: break-word;
-    }
-
-    .agent-process-divider {
-      height: 1px;
-      margin: 16px 0;
-      background: #f0f2f5;
+      width: 100%;
     }
 
     .text-message {
@@ -453,29 +448,6 @@
   background: #e4e6eb;
   margin-bottom: 8px;
 }
-.thinking-content {
-  position: relative;
-  line-height: 22px;
-  padding-bottom: 0;
-  padding-left: 16px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 400;
-  color: #8c8c8c;
-  border-bottom: 1px solid #edeff2;
-  // 4px竖线
-  &::before {
-    display: block;
-    position: absolute;
-    content: '';
-    left: 0;
-    top: 4px;
-    bottom: 20px;
-    width: 4px;
-    background-color: #d9d9d9;
-  }
-}
-
 .reply-list {
   display: flex;
   flex-direction: column;
@@ -676,16 +648,10 @@
         </div>
       </template>
       <!-- 检索知识库 -->
-      <div class="label-flex-block" v-if="props.msg.is_stopped">
+      <div class="label-flex-block" v-if="props.msg.is_stopped && !shouldShowProcessTimeline(props.msg)">
         <div class="stopped-label">已停止</div>
       </div>
-      <div class="label-flex-block" v-else>
-        <div class="thinking-label-wrapper" v-if="tips_before_answer_switch && props.msg.startLoading && !props.msg.reasoning_content">
-          <div class="thinking-label">
-            <van-loading class="loading" color="#262626" size="16px" type="spinner" />
-            <span class="label-text">{{ tips_before_answer_content }}</span>
-          </div>
-        </div>
+      <div class="label-flex-block" v-else-if="!props.msg.is_stopped">
         <div
           class="thinking-label-wrapper"
           :class="{ reasoning_open: props.msg.show_quote_file }"
@@ -704,32 +670,6 @@
               name="down-arrow"
               class="down-arrow"
               v-if="props.msg.quote_file.length"
-            ></svg-icon>
-          </div>
-        </div>
-        <!-- 思考过程label -->
-        <div
-          class="thinking-label-wrapper"
-          :class="{ reasoning_open: props.msg.show_reasoning }"
-          v-if="!hasProcessSteps(props.msg) && props.msg.reasoning_content && props.msg.reasoning_content.length > 0"
-        >
-          <div class="thinking-label" @click="toggleReasonProcess()">
-            <van-loading
-              class="loading"
-              color="#262626"
-              size="16px"
-              type="spinner"
-              v-if="props.msg.reasoning_status"
-            />
-            <svg-icon class="think-icon" name="think" v-else></svg-icon>
-            <span class="label-text">{{
-              props.msg.reasoning_status ? t('deep_thinking') : t('deep_thinking_completed')
-            }}</span>
-
-            <svg-icon
-              name="down-arrow"
-              class="down-arrow"
-              v-if="!props.msg.reasoning_status"
             ></svg-icon>
           </div>
         </div>
@@ -754,14 +694,12 @@
             </span>
           </div>
         </div>
-        <ProcessTimeline v-if="hasProcessSteps(props.msg)" :item="props.msg" />
-        <div
-          class="agent-process-divider"
-          v-if="hasProcessSteps(props.msg) && props.msg.content !== ''"
-        ></div>
-        <div class="thinking-content" v-if="props.msg.show_reasoning && !hasProcessSteps(props.msg)">
-          <cherry-markdown :content="props.msg.reasoning_content" />
-        </div>
+        <ProcessTimeline
+          v-if="shouldShowProcessTimeline(props.msg)"
+          :item="props.msg"
+          :running-label="processRunningLabel"
+          :quote-loading-visible="isShowQuoteFileProgress && props.msg.quote_loading"
+        />
         <template v-if="props.msg.msg_type == 1">
           <div class="text-message" v-if="props.msg.content !== ''" v-viewer>
             <template v-if="props.msg.is_customer == 1">
@@ -773,7 +711,6 @@
             </template>
             <cherry-markdown :content="props.msg.content" v-else />
           </div>
-          <div v-else class="text-message">{{ textMessage }}</div>
           <div
             class="question-list"
             v-if="props.msg.menu_json && props.msg.menu_json.question.length"
@@ -902,7 +839,7 @@
 
         <template v-else-if="props.msg.msg_type == 2">
           <!-- 欢迎语使用 Markdown 渲染 -->
-          <cherry-markdown class="markdown-content" :content="props.msg.menu_json.content" v-if="props.msg.isWelcome" />
+          <cherry-markdown class="markdown-content" :class="{'is-question-title': props.msg.menu_json && props.msg.menu_json.question.length }" :content="props.msg.menu_json.content" v-if="props.msg.isWelcome" />
           <div class="text-message" v-html="escapeHTML(props.msg.menu_json.content)" v-else></div>
           <div
             class="question-list"
@@ -952,7 +889,7 @@
 
 <script setup lang="ts">
 import { useI18n } from '@/hooks/web/useI18n'
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref } from 'vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import type { Message } from '@/stores/modules/chat'
 import { useChatStore } from '@/stores/modules/chat'
@@ -973,16 +910,14 @@ interface praiseParams {
 }
 
 const { toClipboard } = useClipboard()
-const emit = defineEmits(['sendTextMessage', 'toggleReasonProcess', 'toggleQuoteFiel'])
+const emit = defineEmits(['sendTextMessage', 'toggleQuoteFiel'])
 const chatStore = useChatStore()
 const { robot, onAddFeedback, onDelFeedback, externalConfigH5 } = chatStore
 const { t } = useI18n('views.chat.components.messages.message-item')
-const textMessage = ref('.')
 const feedbackContent = ref('')
 const ai_message_id = ref('')
 const customer_message_id = ref<any>('')
 const operationRef = ref<HTMLElement | null>(null)
-let interval: number
 
 const props = defineProps({
   msg: {
@@ -1118,6 +1053,12 @@ const isCustomerMessage = computed(() => props.msg.is_customer == 1)
 
 const tips_before_answer_content = computed(() => robot.tips_before_answer_content)
 const tips_before_answer_switch = computed(() => robot.tips_before_answer_switch)
+const processRunningLabel = computed(() => {
+  if (!tips_before_answer_switch.value) {
+    return ''
+  }
+  return tips_before_answer_content.value?.trim() || ''
+})
 
 // 是否显示引用
 const isShowQuoteFileProgress = computed(() => {
@@ -1136,18 +1077,9 @@ const messageItemClasses = computed(() => ({
   'user-message-item': isCustomerMessage.value === true,
   'robot-message-item': isCustomerMessage.value === false,
   'welcome-message-item': props.msg.menu_json && props.msg.menu_json.question,
-  'agent-process-message': hasProcessSteps(props.msg),
+  'process-message-item': shouldShowProcessTimeline(props.msg),
   'hide-avatar-message-item': !isShowAvatar.value
 }))
-
-const startLoadingAnimation = () => {
-  const dots = ['.', '..', '...']
-  let dotIndex = 0
-  interval = window.setInterval(() => {
-    dotIndex = (dotIndex + 1) % dots.length
-    textMessage.value = dots[dotIndex]
-  }, 500)
-}
 
 const sendTextMessage = (text: string) => {
   emit('sendTextMessage', text)
@@ -1165,10 +1097,6 @@ const handleToLink = (item: any) => {
       answer_source_data: item.answer_source_data ? JSON.parse(item.answer_source_data) : null
     })
   } 
-}
-
-const toggleReasonProcess = () => {
-  emit('toggleReasonProcess', msgId.value)
 }
 
 const toggleQuoteFiel = () => {
@@ -1194,11 +1122,18 @@ const hasProcessSteps = (item: any) => {
     if (step?.hidden === true) {
       return false
     }
-    if (step?.type === 'tool') {
-      return !!step.title || !!step.resultText || step.status === 'running'
+    if (step?.type === 'tool' || step?.type === 'skill') {
+      return !!step.title || !!step.paramsText || !!step.resultText || step.status === 'running'
     }
     return !!step.contentText || !!step.resultText || step.status === 'running'
   })
+}
+
+const shouldShowProcessTimeline = (item: any) => {
+  const isRobotTextMessage = item?.is_customer != 1 && item?.msg_type == 1
+  return isRobotTextMessage && (
+    hasProcessSteps(item) || (!!item?.startLoading && !item?.is_stopped)
+  )
 }
 
 type SmartMenuLine =
@@ -1239,7 +1174,7 @@ function onClickSmartMenuKeyword(text: string) {
 }
 
 const isShowMessageBody = (item: any) => {
-  if (hasProcessSteps(item)) {
+  if (shouldShowProcessTimeline(item)) {
     return true
   }
   if(parseReplyList(item.reply_content_list).length && item.content == ''){
@@ -1248,11 +1183,4 @@ const isShowMessageBody = (item: any) => {
   return true
 }
 
-onMounted(() => {
-  startLoadingAnimation()
-})
-
-onUnmounted(() => {
-  clearInterval(interval)
-})
 </script>

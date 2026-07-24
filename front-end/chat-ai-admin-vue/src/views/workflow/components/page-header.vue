@@ -190,7 +190,7 @@
       <template v-if="currentVersion == '' && isEditing">
         <div class="last-save-time" v-if="robotInfo.draft_save_time && robotInfo.draft_save_time != 0">
           {{ formatTime(robotInfo.draft_save_time, 'MM/DD HH:mm:ss') }} {{ robotInfo.draft_save_type == 'handle' ? t('save_type_manual') : t('save_type_auto') }}{{ t('save_draft') }}
-          <span v-if="isEditing && !isLockedByOther && (!autoSaveEnabled || !isLeader)" class="auto-save-hint">{{ t('msg_auto_save_stopped') }}</span>
+          <span v-if="isEditing && !isLockedByOther && !autoSaveEnabled" class="auto-save-hint">{{ t('msg_auto_save_stopped') }}</span>
         </div>
         <template v-if="!isLockedByOther">
           <a-button class="save-draft" @click="handleSave('handle')">{{ t('save_draft') }}</a-button>
@@ -211,55 +211,6 @@
       <a-tooltip :title="t('tooltip_history_details')">
         <a-button @click="getVersionRecord()"><ClockCircleOutlined /></a-button>
       </a-tooltip>
-      <!-- 管理员显示锁定图标 -->
-      <a-popover
-        v-if="isAdmin"
-        trigger="click"
-        placement="bottomRight"
-        v-model:open="lockPopoverOpen"
-        :overlay-style="{
-          width: '372px',
-          padding: '16px'
-        }"
-        overlay-class-name="popover-material"
-        @onOpenChange="visibleChange"
-      >
-        <template #title>
-          <div style="display:flex;align-items:center;gap:8px;" >
-            <svg-icon
-              class="lock-icon"
-              name="lock-icon"
-              style="font-size: 14px; color: #262626"
-            ></svg-icon>
-            <span style="color: #262626;">{{ t('title_lock_settings') }}</span>
-            <span style="color:#8c8c8c; font-weight: normal;">{{ t('desc_lock_restriction') }}</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="lock-config">
-            <span style="color: #595959;">{{ t('label_lock_after_edit') }}</span>
-            <a-input-number
-              v-model:value="lockMinutes"
-              :min="10"
-              :max="60"
-              :precision="0"
-              style="margin:0 4px;width:86px"
-            />
-            <span style="color: #595959;">{{ t('label_minutes_before_edit') }}</span>
-          </div>
-          <div style="margin-top: 24px;text-align:right;">
-            <a-button class="ml8" @click="lockPopoverOpen=false">{{ t('btn_cancel') }}</a-button>
-            <a-button type="primary" class="ml8" :loading="lockLoading" @click="saveLockConfig">{{ t('btn_save') }}</a-button>
-          </div>
-        </template>
-        <a-button class="" @click="lockPopoverOpen=true" style="padding:5px 9px;">
-          <svg-icon
-            class="lock-icon"
-            name="lock-icon"
-            style="font-size: 14px;"
-          ></svg-icon>
-        </a-button>
-      </a-popover>
     </div>
     <div class="lock-tip" v-if="isLockedByOther">
       <div>{{ t('msg_locked_by_other') }}</div>
@@ -271,14 +222,12 @@
 
 <script setup>
 import { ExclamationCircleFilled, CheckCircleFilled, ClockCircleOutlined, EditOutlined } from '@ant-design/icons-vue'
-import { computed, ref, onMounted, h } from 'vue'
+import { computed, ref, h } from 'vue'
 import dayjs from 'dayjs'
 // front-end\chat-ai-admin-vue\src\views\robot\robot-config\components\top-header.vue
 import TopHeader from '@/views/robot/robot-config/components/top-header.vue'
 import RunTest from './run-test/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
-import { useUserStore } from '@/stores/modules/user'
-import { saveDraftExTime, getAdminConfig } from '@/api/robot/index'
 import { message, Modal } from 'ant-design-vue'
 import { useEventBus } from '@/hooks/event/useEventBus.js'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -317,49 +266,9 @@ const props = defineProps({
   lockRemoteAddr: { default: '', type: String },
   lockUserAgent: { default: '', type: String },
   loginUserName: { default: '', type: String },
-  autoSaveEnabled: { default: true, type: Boolean },
-  isLeader: { default: true, type: Boolean }
+  autoSaveEnabled: { default: true, type: Boolean }
 })
 const runTestRef = ref(null)
-// 锁定设置仅超管/管理员显示
-const userStore = useUserStore()
-const isAdmin = computed(() => {
-  const role = userStore.userInfo?.role_type
-  // 约定：1=超级管理员，2=管理员（若后端不同可调整）
-  return role == 1 || role == 2
-})
-
-// 编辑锁设置弹层
-const lockPopoverOpen = ref(false)
-const lockMinutes = ref(10)
-const lockLoading = ref(false)
-
-const saveLockConfig = async () => {
-  lockLoading.value = true
-  try {
-    await saveDraftExTime({ draft_exptime: lockMinutes.value })
-    message.success(t('msg_lock_settings_saved'))
-    lockPopoverOpen.value = false
-  } catch (e) {
-    message.error(t('msg_save_failed'))
-  } finally {
-    lockLoading.value = false
-  }
-}
-
-onMounted(async () => {
-  try {
-    const res = await getAdminConfig()
-    const mins = +res?.data?.draft_exptime
-    if (typeof mins === 'number') {
-      lockMinutes.value = Math.max(10, Math.min(60, Math.round(mins)))
-    }
-  } catch (e) {
-    // console.warn('getAdminConfig failed', e)
-  }
-})
-
-const visibleChange = () => {}
 
 // const onBack = () => {
 //   router.push('/')

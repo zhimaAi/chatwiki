@@ -26,6 +26,7 @@
     "loop": "Loop",
     "batchExecution": "Batch Execution",
     "knowledgeBase": "Knowledge Retrieval",
+    "goodsSearch": "Goods Library Search",
     "importLibrary": "Import Knowledge",
     "questionClassification": "Question Category",
     "judgeBranch": "Branch",

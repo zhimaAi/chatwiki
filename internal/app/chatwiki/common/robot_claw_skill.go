@@ -376,32 +376,15 @@ func SaveUserClawbotSkill(p SaveUserClawbotSkillParam) (_ *ClawbotUserSkillItem,
 	return &out, ``, nil
 }
 
+// ReadClawbotSkillZipMeta reads only the root SKILL.md. Generated-task completion
+// must not apply the package size limits that belong to skill installation.
 func ReadClawbotSkillZipMeta(srcZipPath string) (skillName, description string, err error) {
 	reader, err := zip.OpenReader(srcZipPath)
 	if err != nil {
 		return ``, ``, errors.New(`invalid skill zip file`)
 	}
 	defer func() { _ = reader.Close() }()
-
-	tmpDir, err := os.MkdirTemp(``, `clawbot_skill_meta_`)
-	if err != nil {
-		return ``, ``, err
-	}
-	defer func() { _ = os.RemoveAll(tmpDir) }()
-	if errKey, unzipErr := unzipSkillTo(reader, tmpDir); unzipErr != nil {
-		return ``, ``, unzipErr
-	} else if errKey != `` {
-		return ``, ``, errors.New(errKey)
-	}
-	skillRoot, err := resolveSkillRoot(tmpDir)
-	if err != nil {
-		return ``, ``, errors.New(`SKILL.md is missing from generated skill zip`)
-	}
-	skillMdPath, errKey := normalizeSkillMdFile(skillRoot)
-	if errKey != `` {
-		return ``, ``, errors.New(errKey)
-	}
-	content, err := tool.ReadFile(skillMdPath)
+	content, err := readSkillMarkdownFromZip(reader)
 	if err != nil {
 		return ``, ``, err
 	}
@@ -425,6 +408,9 @@ func InstallUserClawbotSkillZip(adminUserId int, originFileName, srcZipPath, exp
 	}
 	if fileInfo.IsDir() || fileInfo.Size() <= 0 {
 		return nil, `clawbot_skill_zip_invalid`, nil
+	}
+	if fileInfo.Size() > int64(define.MaxSkillZipSize) {
+		return nil, `clawbot_skill_zip_too_big`, nil
 	}
 	if !define.SkillNameRegexp.MatchString(expectedSkillName) || expectedSkillName == define.SkillReservedName {
 		return nil, `clawbot_skill_name_invalid`, nil
@@ -582,11 +568,67 @@ func ReadUserSkillUploadMeta(adminUserId int, uploadKey string) (_ *ClawbotSkill
 	return &meta, tmpDir, ``
 }
 
-// path traversal + zip bomb protection
+func readSkillMarkdownFromZip(reader *zip.ReadCloser) (string, error) {
+	topDirs := make(map[string]struct{})
+	topFiles := make([]string, 0)
+	skillFiles := make(map[string]*zip.File)
+	for _, file := range reader.File {
+		cleanName := filepath.ToSlash(filepath.Clean(file.Name))
+		if cleanName == `.` || cleanName == `` || filepath.IsAbs(file.Name) || strings.HasPrefix(cleanName, `/`) || strings.HasPrefix(cleanName, `../`) {
+			continue
+		}
+		parts := strings.Split(cleanName, `/`)
+		if len(parts) == 0 || parts[0] == `__MACOSX` || strings.HasPrefix(parts[0], `.`) {
+			continue
+		}
+		if len(parts) == 1 {
+			if file.FileInfo().IsDir() {
+				topDirs[parts[0]] = struct{}{}
+			} else {
+				topFiles = append(topFiles, parts[0])
+			}
+		} else {
+			topDirs[parts[0]] = struct{}{}
+		}
+		if !file.FileInfo().IsDir() && strings.EqualFold(parts[len(parts)-1], define.SkillMdFileName) {
+			skillFiles[cleanName] = file
+		}
+	}
+
+	expectedPath := define.SkillMdFileName
+	if len(topDirs) == 1 && len(topFiles) == 0 {
+		for root := range topDirs {
+			expectedPath = root + `/` + define.SkillMdFileName
+		}
+	}
+	var skillFile *zip.File
+	for name, file := range skillFiles {
+		if !strings.EqualFold(name, expectedPath) {
+			continue
+		}
+		if skillFile != nil {
+			return ``, errors.New(`multiple SKILL.md files found at generated skill root`)
+		}
+		skillFile = file
+	}
+	if skillFile == nil {
+		return ``, errors.New(`SKILL.md is missing from generated skill zip`)
+	}
+	fileReader, err := skillFile.Open()
+	if err != nil {
+		return ``, err
+	}
+	defer func() { _ = fileReader.Close() }()
+	content, err := io.ReadAll(fileReader)
+	if err != nil {
+		return ``, err
+	}
+	return string(content), nil
+}
+
+// installation-time zip extraction guards
 func unzipSkillTo(reader *zip.ReadCloser, dest string) (errKey string, err error) {
 	cleanDest := filepath.Clean(dest)
-	var totalSize int64
-	var entries int
 	for _, f := range reader.File {
 		cleanName := filepath.Clean(f.Name)
 		if cleanName == `__MACOSX` || strings.HasPrefix(cleanName, `__MACOSX`+string(os.PathSeparator)) {
@@ -594,10 +636,6 @@ func unzipSkillTo(reader *zip.ReadCloser, dest string) (errKey string, err error
 		}
 		if cleanName == `.` || cleanName == `` || strings.HasPrefix(cleanName, `/`) || filepath.IsAbs(cleanName) {
 			continue
-		}
-		entries++
-		if entries > define.MaxSkillZipEntries {
-			return `clawbot_skill_zip_invalid`, nil
 		}
 		fpath := filepath.Join(dest, cleanName)
 		// path traversal guard
@@ -626,16 +664,11 @@ func unzipSkillTo(reader *zip.ReadCloser, dest string) (errKey string, err error
 			_ = rc.Close()
 			return ``, oerr
 		}
-		remaining := int64(define.MaxSkillUnzipSize) - totalSize
-		written, cerr := io.Copy(outFile, io.LimitReader(rc, remaining+1))
+		_, cerr := io.Copy(outFile, rc)
 		_ = outFile.Close()
 		_ = rc.Close()
 		if cerr != nil {
 			return ``, cerr
-		}
-		totalSize += written
-		if totalSize > define.MaxSkillUnzipSize {
-			return `clawbot_skill_zip_invalid`, nil
 		}
 	}
 	return ``, nil
@@ -1125,22 +1158,4 @@ func copyDir(src, dest string) error {
 		}
 		return copyFile(path, target)
 	})
-}
-
-func copyFile(src, dest string) error {
-	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return err
-	}
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = in.Close() }()
-	out, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = out.Close() }()
-	_, err = io.Copy(out, in)
-	return err
 }

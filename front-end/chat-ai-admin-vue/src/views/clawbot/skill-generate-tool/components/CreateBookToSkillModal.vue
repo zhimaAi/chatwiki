@@ -9,11 +9,11 @@
     @cancel="handleCancel"
   >
     <a-form class="create-form" layout="vertical">
-      <a-form-item required :label="t('label_skill_name')">
-        <a-input
-          v-model:value="formState.skill_name"
-          :maxlength="20"
-          :placeholder="t('placeholder_skill_name')"
+      <a-form-item :label="t('label_custom_prompt')">
+        <a-textarea
+          v-model:value="formState.custom_prompt"
+          :auto-size="{ minRows: 3, maxRows: 6 }"
+          :placeholder="t('placeholder_custom_prompt')"
           :disabled="submitLoading"
         />
       </a-form-item>
@@ -26,6 +26,25 @@
           :placeholder="t('placeholder_select_model')"
         />
       </a-form-item>
+
+      <a-form-item required :label="t('label_temperature')">
+        <a-input-number
+          v-model:value="formState.temperature"
+          :min="0"
+          :max="2"
+          :step="0.1"
+          :disabled="submitLoading"
+        />
+      </a-form-item>
+
+      <a-form-item required :label="t('label_max_token')">
+        <a-input-number
+          v-model:value="formState.max_token"
+          :min="1"
+          :precision="0"
+          :disabled="submitLoading"
+        />
+      </a-form-item>
     </a-form>
 
     <a-upload-dragger
@@ -34,7 +53,7 @@
       :show-upload-list="false"
       :multiple="true"
       :max-count="20"
-      accept=".txt,.docx,.md"
+      accept=".txt,.docx,.md,.pdf"
       :disabled="submitLoading"
       :beforeUpload="handleBeforeUpload"
     >
@@ -86,21 +105,17 @@ import {
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import { createBookToSkillTask } from '@/api/clawbot'
+import { createDocToSkillTask } from '@/api/clawbot'
 
 const MAX_FILE_COUNT = 20
 const MAX_FILE_SIZE = 100 * 1024 * 1024
-const ACCEPT_EXTS = ['txt', 'docx', 'md']
+const ACCEPT_EXTS = ['txt', 'docx', 'md', 'pdf']
 const { t } = useI18n('views.clawbot.skill-generate-tool.index')
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false
-  },
-  robotId: {
-    type: [String, Number],
-    default: ''
   }
 })
 
@@ -109,9 +124,11 @@ const emit = defineEmits(['update:visible', 'confirm'])
 const fileList = ref([])
 const submitLoading = ref(false)
 const formState = reactive({
-  skill_name: '',
+  custom_prompt: '',
   model_config_id: '',
-  use_model: ''
+  use_model: '',
+  temperature: 1,
+  max_token: 32768
 })
 
 watch(
@@ -124,9 +141,11 @@ watch(
 )
 
 const resetForm = () => {
-  formState.skill_name = ''
+  formState.custom_prompt = ''
   formState.model_config_id = ''
   formState.use_model = ''
+  formState.temperature = 1
+  formState.max_token = 32768
   fileList.value = []
   submitLoading.value = false
 }
@@ -144,6 +163,11 @@ const validateFile = (file) => {
 
   if (file.size > MAX_FILE_SIZE) {
     message.error(t('msg_file_too_large'))
+    return false
+  }
+
+  if (file.size <= 0) {
+    message.error(t('msg_empty_file'))
     return false
   }
 
@@ -171,24 +195,22 @@ const handleRemoveFile = (file) => {
 }
 
 const validateForm = () => {
-  if (!props.robotId) {
-    message.error(t('msg_missing_robot_id'))
-    return false
-  }
-  if (!formState.skill_name.trim()) {
-    message.error(t('msg_enter_skill_name'))
-    return false
-  }
-  if (formState.skill_name.trim().length > 20) {
-    message.error(t('msg_skill_name_too_long'))
-    return false
-  }
   if (!formState.model_config_id || !formState.use_model) {
     message.error(t('msg_select_model'))
     return false
   }
   if (!fileList.value.length) {
     message.error(t('msg_upload_document'))
+    return false
+  }
+  const temperature = Number(formState.temperature)
+  if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
+    message.error(t('msg_invalid_temperature'))
+    return false
+  }
+  const maxToken = Number(formState.max_token)
+  if (!Number.isInteger(maxToken) || maxToken <= 0) {
+    message.error(t('msg_invalid_doc_max_token'))
     return false
   }
   return true
@@ -202,15 +224,16 @@ const handleConfirm = async () => {
   submitLoading.value = true
   try {
     const formData = new FormData()
-    formData.append('robot_id', props.robotId)
-    formData.append('skill_name', formState.skill_name.trim())
+    formData.append('custom_prompt', formState.custom_prompt.trim())
     formData.append('model_config_id', formState.model_config_id)
     formData.append('use_model', formState.use_model)
+    formData.append('temperature', String(formState.temperature))
+    formData.append('max_token', String(formState.max_token))
     fileList.value.forEach((file) => {
       formData.append('files', file)
     })
 
-    const res = await createBookToSkillTask(formData)
+    const res = await createDocToSkillTask(formData)
     if (res && (res.res === 0 || res.code === 0)) {
       message.success(t('msg_task_created'))
       emit('confirm', res.data)
@@ -252,8 +275,13 @@ const handleCancel = () => {
   }
 
   :deep(.ant-input),
+  :deep(.ant-input-number),
   :deep(.ant-select-selector) {
     border-radius: 6px;
+  }
+
+  :deep(.ant-input-number) {
+    width: 100%;
   }
 }
 

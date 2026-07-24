@@ -22,14 +22,14 @@ import (
 	"github.com/zhimaAi/llm_adaptor/adaptor"
 )
 
-func BuildChatContextPair(openid string, robotId, dialogueId, curMsgId, contextPair int) []map[string]string {
+func BuildChatContextPair(openid string, robotId, dialogueId, sessionId, curMsgId, contextPair int) []map[string]string {
 	contextList := make([]map[string]string, 0)
-	if len(openid) == 0 || dialogueId <= 0 || contextPair <= 0 {
+	if len(openid) == 0 || dialogueId <= 0 || sessionId <= 0 || contextPair <= 0 {
 		return contextList //no context required
 	}
 	m := msql.Model(`chat_ai_message`, define.Postgres).Where(`openid`, openid).
 		Where(`robot_id`, cast.ToString(robotId)).Where(`dialogue_id`, cast.ToString(dialogueId)).
-		Where(`is_valid_function_call = false`)
+		Where(`session_id`, cast.ToString(sessionId)).Where(`is_valid_function_call = false`)
 	if curMsgId > 0 { // Compatible with debug mode to get context
 		m.Where(`id`, `<`, cast.ToString(curMsgId))
 	}
@@ -102,7 +102,7 @@ func BuildLibraryChatRequestMessage(params *define.ChatRequestParam, curMsgId in
 	}
 
 	contextList := BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
-		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
+		dialogueId, sessionId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 
 	//question optimize
 	var questionopTime int64
@@ -199,7 +199,7 @@ func BuildDirectChatRequestMessage(params *define.ChatRequestParam, curMsgId int
 	}
 	//part2:context_qa
 	contextList := BuildChatContextPair(params.Openid, cast.ToInt(params.Robot[`id`]),
-		dialogueId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
+		dialogueId, sessionId, int(curMsgId), cast.ToInt(params.Robot[`context_pair`]))
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})

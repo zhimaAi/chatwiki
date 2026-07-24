@@ -308,6 +308,7 @@ func SaveNodes(c *gin.Context) {
 	lastUpdateTime := strings.TrimSpace(c.PostForm(`draft_save_time`))
 	reCoverSave := strings.TrimSpace(c.PostForm(`re_cover_save`))
 	uniIdentifier := strings.TrimSpace(c.PostForm(`uni_identifier`))
+	leaseToken := strings.TrimSpace(c.PostForm(`lease_token`))
 	realUserAgent := strings.TrimSpace(c.PostForm(`user_agent`))
 	if !common.CheckRobotKey(robotKey) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
@@ -325,36 +326,10 @@ func SaveNodes(c *gin.Context) {
 		return
 	}
 
-	// Get edit lock content
-	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
-	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
-
-	filtered := make(map[string]any)
-	filtered["login_user_id"] = getLoginUserId(c)
-	filtered["robot_key"] = robotKey
-	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["uni_identifier"] = uniIdentifier
-	lockValue, _ := tool.JsonEncode(filtered)
-
-	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
-	if lockRes != "" && lockRes != lockValue { // Has edit lock and lock is not own
-		redisValueMap := make(map[string]any)
-		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
-
-		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
-		staffUserName := lib_define.UnknownUser
-		if err == nil && userInfo["user_name"] != "" {
-			staffUserName = userInfo["user_name"]
-		}
-
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`, staffUserName, redisValueMap["remote_addr"]))))
+	lockOwner := buildWorkFlowDraftLockOwner(c, robotKey, uniIdentifier, leaseToken, realUserAgent)
+	if !checkAndRenewWorkFlowDraftLock(c, userId, lockOwner) {
 		return
 	}
-
-	// Reset lock time
-	corpConfig := common.GetAdminConfig(userId)
-	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
-	_, _ = define.Redis.SetEX(context.Background(), lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute).Result()
 
 	if cast.ToInt(reCoverSave) == 0 { // Need verification
 		// Get draft info from database
@@ -759,35 +734,16 @@ func WorkFlowPublishVersion(c *gin.Context) {
 	version := strings.TrimSpace(c.PostForm(`version`))
 	versionDesc := strings.TrimSpace(c.PostForm(`version_desc`))
 	uniIdentifier := strings.TrimSpace(c.PostForm(`uni_identifier`))
+	leaseToken := strings.TrimSpace(c.PostForm(`lease_token`))
 	realUserAgent := strings.TrimSpace(c.PostForm(`user_agent`))
 	if utf8.RuneCountInString(versionDesc) > 500 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `desc`))))
 		return
 	}
 
-	// Get edit lock content
-	lockEditKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
-	filtered := make(map[string]any)
-	filtered["login_user_id"] = getLoginUserId(c)
-	filtered["robot_key"] = robotKey
-	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["uni_identifier"] = uniIdentifier
-	lockValue, _ := tool.JsonEncode(filtered)
-
-	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockEditKey)
-
-	lockRes, err := define.Redis.Get(context.Background(), lockKeyMd5).Result()
-	if lockRes != "" && lockRes != lockValue { // No edit lock
-		redisValueMap := make(map[string]any)
-		_ = tool.JsonDecodeUseNumber(lockRes, &redisValueMap)
-
-		userInfo, err := GetUserInfo(cast.ToString(redisValueMap["login_user_id"]))
-		staffUserName := lib_define.UnknownUser
-		if err == nil && userInfo["user_name"] != "" {
-			staffUserName = userInfo["user_name"]
-		}
-
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_draft_edit_permission`, staffUserName, redisValueMap["remote_addr"]))))
+	lockOwner := buildWorkFlowDraftLockOwner(c, robotKey, uniIdentifier, leaseToken, realUserAgent)
+	if !checkAndRenewWorkFlowDraftLock(c, userId, lockOwner) {
+		return
 	}
 
 	robot, err := common.CheckRobotKey2(robotKey, common.GetLang(c))
@@ -1039,53 +995,25 @@ func GetDraftKey(c *gin.Context) {
 
 	robotKey := strings.TrimSpace(c.Query(`robot_key`))
 	uniIdentifier := strings.TrimSpace(c.Query(`uni_identifier`))
+	leaseToken := strings.TrimSpace(c.Query(`lease_token`))
+	userAgent := strings.TrimSpace(c.Query(`user_agent`))
 	if !common.CheckRobotKey(robotKey) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `robot_key`))))
 		return
 	}
 
-	lockKey := fmt.Sprintf("user_id:%s,robot:%s,", userId, robotKey)
-	lockKeyMd5 := define.LockPreKey + ".draft_lock." + tool.MD5(lockKey)
-
-	filtered := make(map[string]any)
-	filtered["login_user_id"] = getLoginUserId(c)
-	filtered["robot_key"] = robotKey
-	filtered["remote_addr"] = lib_web.GetClientIP(c)
-	filtered["uni_identifier"] = uniIdentifier
-	lockValue, _ := tool.JsonEncode(filtered)
-
-	corpConfig := common.GetAdminConfig(userId)
-	draft_exptime := cast.ToInt(corpConfig["draft_exptime"])
-	lockRes, lockVal, lockTtl := lib_redis.AddValueLock(define.Redis, lockKeyMd5, lockValue, time.Duration(draft_exptime)*time.Minute)
-
-	filtered["lock_res"] = lockRes
-	filtered["lock_ttl"] = lockTtl
-	filtered["lockKey"] = lockKey
-	filtered["lockValue"] = lockValue
-	filtered["lockVal"] = lockVal
-	filtered["Header"] = c.Request.Header
-	filtered["is_self"] = lockVal == lockValue
-
-	// Get lock failed, check who locked it
-	if !lockRes && lockVal != lockValue {
-		lockValueMap := make(map[string]any)
-		err := tool.JsonDecode(lockVal, &lockValueMap)
-		if err == nil {
-			filtered["remote_addr"] = lockValueMap["remote_addr"]
-			filtered["login_user_id"] = lockValueMap["login_user_id"]
-		}
+	owner := buildWorkFlowDraftLockOwner(c, robotKey, uniIdentifier, leaseToken, userAgent)
+	if err := validateWorkFlowDraftLockOwner(owner); err != nil {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `lease_token`))))
+		return
 	}
-
-	// Check who is the last editor of current draft
-	flowInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`robot_key`, robotKey).Find()
-	filtered["user_agent"] = flowInfo["last_edit_user_agent"]
-
-	loginUser, err := GetUserInfo(cast.ToString(filtered["login_user_id"]))
-	if err == nil {
-		filtered["login_user_name"] = loginUser["user_name"]
+	result, err := acquireWorkFlowDraftLock(c.Request.Context(), userId, owner)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
 	}
-
-	c.String(http.StatusOK, lib_web.FmtJson(filtered, nil))
+	c.String(http.StatusOK, lib_web.FmtJson(getWorkFlowDraftLockResultData(result), nil))
 
 }
 

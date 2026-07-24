@@ -6,7 +6,10 @@
   "label_thinking_process": "Thinking process",
   "label_thinking_again": "Thinking again",
   "label_params": "Parameters",
+  "label_input": "Input",
   "label_output": "Output",
+  "label_execute_tool": "Running tool: {name}",
+  "label_execute_skill": "Running skill: {name}",
   "status_running": "Running...",
   "status_done": "Completed"
 }

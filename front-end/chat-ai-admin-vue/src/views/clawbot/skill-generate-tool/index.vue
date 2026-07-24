@@ -33,11 +33,7 @@
         </div>
       </div>
 
-      <BookToSkillTab
-        v-show="activeTemplate === 'book'"
-        :active="activeTemplate === 'book'"
-        :robot-id="currentAssistant?.id"
-      />
+      <BookToSkillTab v-show="activeTemplate === 'book'" :active="activeTemplate === 'book'" />
       <WebToSkillTab v-show="activeTemplate === 'web'" :active="activeTemplate === 'web'" />
     </div>
   </div>
@@ -46,17 +42,13 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
 import { ThunderboltOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import { useClawbotStore } from '@/stores/modules/clawbot'
 import BookToSkillTab from './components/BookToSkillTab.vue'
 import WebToSkillTab from './components/WebToSkillTab.vue'
 
 const route = useRoute()
 const router = useRouter()
-const clawbotStore = useClawbotStore()
-const { currentAssistant } = storeToRefs(clawbotStore)
 const { t } = useI18n('views.clawbot.skill-generate-tool.index')
 
 const titleOptios = computed(() => [

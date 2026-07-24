@@ -158,7 +158,6 @@
                 :msg="item"
                 :prevMsg="messageList[index - 1]"
                 @sendTextMessage="sendTextMessage"
-                @toggleReasonProcess="handleToggleReasonProcess"
                 @toggleQuoteFiel="handleToggleQuoteFiel"
               />
             </template>
@@ -588,17 +587,6 @@ const checkLogin = async () => {
   }
 
   return true
-}
-
-const handleToggleReasonProcess = (msgId: number) => {
-  const msg = messageList.value.find((m) => {
-    let id = m.message_id || m.id
-    return id == msgId
-  })
-
-  if (msg) {
-    msg.show_reasoning = !msg.show_reasoning
-  }
 }
 
 const handleToggleQuoteFiel = (msgId: number) => {

@@ -51,7 +51,6 @@
       :lockUserAgent="lockUserAgent"
       :loginUserName="loginUserName"
       :autoSaveEnabled="autoSaveEnabled"
-      :isLeader="isLeaderFlag"
     />
     <div class="page-body">
       <div class="page-left">
@@ -80,11 +79,21 @@
 
 <script setup>
 import { useWorkflowStore } from '@/stores/modules/workflow'
-import { getNodeList, saveNodes, getDraftKey, workFlowNextVersion, getRobotList } from '@/api/robot/index'
+import {
+  getNodeList,
+  saveNodes as saveNodesRequest,
+  getDraftKey,
+  heartbeatDraftKey,
+  releaseDraftKey,
+  workFlowNextVersion,
+  getRobotList
+} from '@/api/robot/index'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useUserStore } from '@/stores/modules/user'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { generateUniqueId, duplicateRemoval, removeRepeat } from '@/utils/index'
 import { onMounted, ref, onUnmounted, watch, computed, h, provide} from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import PageSidebar from './components/page-sidebar.vue'
@@ -100,6 +109,13 @@ import { getModelOptionsList } from '@/components/model-select/index.js'
 import { useModelStore } from '@/stores/modules/model'
 import {downloadPlugin, openPlugin} from "@/api/plugins/index.js"
 import { useI18n } from '@/hooks/web/useI18n'
+import { PATH_URL } from '@/utils/http/axios/service'
+import {
+  WORKFLOW_AUTO_SAVE_MS,
+  createWorkflowHeartbeatController,
+  createWorkflowLeaseToken,
+  getWorkflowWindowIdentifier
+} from './workflow-edit-lock'
 
 const { t } = useI18n('views.workflow.index')
 
@@ -109,20 +125,11 @@ const route = useRoute()
 const query = route.query
 const robot_key = ref(route.query.robot_key)
 
-// 唯一标识与 user_agent 组装
-const UNI_STORAGE_KEY = 'wf_uni_identifier'
-const getUniIdentifier = () => {
-  try {
-    let id = localStorage.getItem(UNI_STORAGE_KEY)
-    if (!id) {
-      id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-      localStorage.setItem(UNI_STORAGE_KEY, id)
-    }
-    return id
-  } catch (e) {
-    return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-  }
-}
+// sessionStorage 按窗口隔离；lease_token 按页面租约实例隔离。
+const workflowWindowIdentifier = getWorkflowWindowIdentifier()
+const workflowLeaseToken = ref(createWorkflowLeaseToken())
+const getUniIdentifier = () => workflowWindowIdentifier
+const getLeaseToken = () => workflowLeaseToken.value
 const buildUserAgent = () => {
   try {
     const ua = navigator.userAgent || ''
@@ -148,6 +155,8 @@ const buildUserAgent = () => {
     return 'ua=unknown'
   }
 }
+
+const pageUserAgent = buildUserAgent()
 
 const addRobotAlertRef = ref(null)
 const agentAbnormalModalRef = ref(null)
@@ -193,141 +202,91 @@ const INACTIVITY_MS = 5 * 60 * 1000
 const lockRemoteAddr = ref('')
 const lockUserAgent = ref('')
 const loginUserName = ref('')
-// 领导者状态用于 UI 提示
-const isLeaderFlag = ref(false)
-// 跨标签页自动保存协调（仅允许一个标签执行自动保存）
-const TAB_ID = `${Date.now()}_${Math.random()}`
-const LEADER_TTL_MS = 60 * 1000
-const HEARTBEAT_MS = 20 * 1000
-let heartbeatTimer = null
-const LEADER_PREFIX = 'wf_autosave_leader_'
-const getLeaderKey = () => `${LEADER_PREFIX}${robot_key.value}`
-const getOpenTabsKey = () => `wf_open_tabs_${robot_key.value}`
+const ownsEditLock = ref(false)
+const isPageVisible = ref(document.visibilityState === 'visible')
+const userStore = useUserStore()
+const localeStore = useLocaleStoreWithOut()
+let releaseStarted = false
+let visibleLockAttempted = false
+let visibleAcquirePromise = null
+let draftSaveTimeBeforeHidden = 0
 
-function incrementOpenTabs () {
-  try {
-    const n = parseInt(localStorage.getItem(getOpenTabsKey()) || '0', 10) || 0
-    localStorage.setItem(getOpenTabsKey(), String(n + 1))
-  } catch (e) {
-    console.warn('incrementOpenTabs error', e)
-  }
-}
-function decrementOpenTabs () {
-  try {
-    const n = parseInt(localStorage.getItem(getOpenTabsKey()) || '0', 10) || 0
-    const next = Math.max(0, n - 1)
-    if (next <= 0) {
-      setTimeout(() => {
-        localStorage.removeItem(getOpenTabsKey())
-        // 所有同工作流页面关闭时，强制释放领导者键
-        localStorage.removeItem(getLeaderKey())
-      }, 0)
-    } else {
-      localStorage.setItem(getOpenTabsKey(), String(next))
-    }
-  } catch (e) {
-    console.warn('decrementOpenTabs error', e)
-   }
-}
+const getWorkflowLockPayload = (targetRobotKey = robot_key.value, targetLeaseToken = getLeaseToken()) => ({
+  robot_key: targetRobotKey,
+  uni_identifier: getUniIdentifier(),
+  lease_token: targetLeaseToken,
+  user_agent: pageUserAgent
+})
 
-function cleanupExpiredLeaderKeys () {
-  try {
-    const now = Date.now()
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith(LEADER_PREFIX)) {
-        const raw = localStorage.getItem(key)
-        let obj = null
-        try { obj = raw ? JSON.parse(raw) : null } catch (e) { obj = null }
-        if (!obj || typeof obj.ts !== 'number' || now - obj.ts > LEADER_TTL_MS) {
-          localStorage.removeItem(key)
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('cleanupExpiredLeaderKeys error', e)
-   }
-}
-function getLeader () {
-  try {
-    const raw = localStorage.getItem(getLeaderKey())
-    return raw ? JSON.parse(raw) : null
-  } catch (e) {
-    return null
-  }
-}
-function becomeLeader () {
-  localStorage.setItem(getLeaderKey(), JSON.stringify({ tabId: TAB_ID, ts: Date.now() }))
-}
-function isLeader () {
-  const leader = getLeader()
-  if (!leader) {
-    becomeLeader()
-    return true
-  }
-  const expired = Date.now() - leader.ts > LEADER_TTL_MS
-  if (expired) {
-    becomeLeader()
-    return true
-  }
-  return leader.tabId === TAB_ID
-}
-function releaseLeader () {
-  const leader = getLeader()
-  if (leader && leader.tabId === TAB_ID) {
-    localStorage.removeItem(getLeaderKey())
-  }
-}
-function releaseSpecificLeader (key) {
-  try {
-    const raw = localStorage.getItem(key)
-    const obj = raw ? JSON.parse(raw) : null
-    if (obj && obj.tabId === TAB_ID) {
-      localStorage.removeItem(key)
-    }
-  } catch (e) {
-    // console.warn('releaseSpecificLeader parse error', e)
-  }
-}
-function storageHandler (e) {
-  if (e.key === getLeaderKey()) {
-    // 领导者变更时更新自动保存定时器
-    updateAutoSaveTimer()
-    cleanupExpiredLeaderKeys()
-    isLeaderFlag.value = isLeader()
-  }
-}
-function visibilityHandler () {
-  // 页面可见时尝试争取领导权，不可见时交由其他标签页
-  if (document.visibilityState === 'visible') {
-    isLeaderFlag.value = isLeader()
-  }
-  cleanupExpiredLeaderKeys()
+provide('getWorkflowLockPayload', getWorkflowLockPayload)
+
+function applyLockConflict (data = {}) {
+  ownsEditLock.value = false
+  isLockedByOther.value = true
+  isEditing.value = false
+  autoSaveEnabled.value = false
+  lockRemoteAddr.value = data.remote_addr || ''
+  lockUserAgent.value = data.user_agent || ''
+  loginUserName.value = data.login_user_name || ''
+  robotStore.setIsLockedByOther(true)
   updateAutoSaveTimer()
 }
-function startLeaderHeartbeat () {
-  stopLeaderHeartbeat()
-  // 初始化领导者身份
-  cleanupExpiredLeaderKeys()
-  isLeaderFlag.value = isLeader()
-  heartbeatTimer = setInterval(() => {
-    const leaderNow = isLeader()
-    isLeaderFlag.value = leaderNow
-    if (leaderNow) {
-      localStorage.setItem(getLeaderKey(), JSON.stringify({ tabId: TAB_ID, ts: Date.now() }))
-    }
-  }, HEARTBEAT_MS)
-  window.addEventListener('storage', storageHandler)
-  document.addEventListener('visibilitychange', visibilityHandler)
-  window.addEventListener('beforeunload', () => { releaseLeader(); decrementOpenTabs() })
-  window.addEventListener('pagehide', () => { releaseLeader(); decrementOpenTabs() })
+
+function handleLockLost (data = {}) {
+  heartbeatController.stop()
+  applyLockConflict(data)
+  message.warning(t('msg_switched_to_view_mode'))
 }
-function stopLeaderHeartbeat () {
-  heartbeatTimer && clearInterval(heartbeatTimer)
-  heartbeatTimer = null
-  window.removeEventListener('storage', storageHandler)
-  document.removeEventListener('visibilitychange', visibilityHandler)
-  window.removeEventListener('beforeunload', releaseLeader)
+
+const heartbeatController = createWorkflowHeartbeatController({
+  sendHeartbeat: () => heartbeatDraftKey(getWorkflowLockPayload()),
+  onLockLost: handleLockLost
+})
+
+async function saveNodes (payload) {
+  if (!isPageVisible.value && payload?.draft_save_type === 'automatic') return null
+  try {
+    return await saveNodesRequest({ ...payload, ...getWorkflowLockPayload() })
+  } catch (error) {
+    if (error?.data?.lock_conflict == 1) {
+      handleLockLost(error.data)
+    }
+    throw error
+  }
+}
+
+provide('handleWorkflowLockLost', handleLockLost)
+
+function visibilityHandler () {
+  if (document.visibilityState === 'hidden') {
+    isPageVisible.value = false
+    visibleLockAttempted = false
+    draftSaveTimeBeforeHidden = +robotStore.robotInfo.draft_save_time || 0
+    heartbeatController.stop()
+    updateAutoSaveTimer()
+    return
+  }
+
+  isPageVisible.value = true
+  void tryAcquireVisibleLock()
+}
+
+function sendReleaseKeepalive (payload) {
+  const apiBase = String(PATH_URL || '').replace(/\/$/, '')
+  const body = new URLSearchParams(payload)
+  void fetch(`${apiBase}/manage/releaseDraftKey`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      'X-Requested-With': 'XMLHttpRequest',
+      'App-Type': '',
+      lang: localeStore.getCurrentLocale.lang,
+      token: userStore.getToken || ''
+    },
+    body,
+    keepalive: true,
+    credentials: 'same-origin'
+  }).catch(() => {})
 }
 
 function computeCanvasHash () {
@@ -345,13 +304,13 @@ function startChangeMonitor () {
   lastChangeHash = computeCanvasHash()
   lastChangeTs = Date.now()
   changeMonitorTimer = setInterval(() => {
-    if (!isEditing.value) return
+    if (!isPageVisible.value || !isEditing.value) return
     const hash = computeCanvasHash()
     if (hash && hash !== lastChangeHash) {
       lastChangeHash = hash
       lastChangeTs = Date.now()
-      // 内容发生变化：若处于非领导者或自动保存已停用，立即恢复
-      ensureLeaderAndAutoSaveOnChange()
+      // 内容发生变化后恢复自动保存；编辑权只由服务端锁决定。
+      ensureAutoSaveOnChange()
     }
   }, 2 * 1000)
 }
@@ -361,29 +320,18 @@ function stopChangeMonitor () {
   changeMonitorTimer = null
 }
 
-// 当检测到内容变更且提示“可能在其他页面编辑”时，立即设为领导者并恢复自动保存
-function ensureLeaderAndAutoSaveOnChange () {
-  try {
-    if (!isEditing.value) return
-    if (isLockedByOther.value) return
-    const needRecover = (!autoSaveEnabled.value || !isLeader())
-    if (needRecover) {
-      becomeLeader()
-      autoSaveEnabled.value = true
-      updateAutoSaveTimer()
-    } else {
-      // 已是领导者且自动保存开启，也确保心跳与定时器正常
-      updateAutoSaveTimer()
-    }
-  } catch (e) {
-    // console.warn('ensureLeaderAndAutoSaveOnChange error', e)
+function ensureAutoSaveOnChange () {
+  if (!isPageVisible.value || !isEditing.value || !ownsEditLock.value) return
+  if (!autoSaveEnabled.value) {
+    autoSaveEnabled.value = true
   }
+  updateAutoSaveTimer()
 }
 
 function startInactivityWatcher () {
   stopInactivityWatcher()
   inactivityTimer = setInterval(() => {
-    if (isEditing.value && autoSaveEnabled.value) {
+    if (isPageVisible.value && isEditing.value && autoSaveEnabled.value) {
       const idle = Date.now() - lastChangeTs
       if (idle >= INACTIVITY_MS) {
         autoSaveEnabled.value = false
@@ -399,57 +347,131 @@ function stopInactivityWatcher () {
   inactivityTimer = null
 }
 
-// 编辑锁，根据规范调用后端接口
-async function checkEditLock () {
+async function acquireEditLock ({ leaseToken = getLeaseToken(), activate = true } = {}) {
   try {
-    const res = await getDraftKey({ robot_key: robot_key.value, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() })
-    // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
-    const data = res?.data || {}
-    // lock_res 表示是否成功获取到编辑锁；is_self 表示是否为自己
-    // 若未获取到锁，则视为他人占用
-    isLockedByOther.value = !data.lock_res
-    lockRemoteAddr.value = data.remote_addr || ''
-    lockUserAgent.value = data.user_agent || ''
-    loginUserName.value = data.login_user_name || ''
-    robotStore.setIsLockedByOther(isLockedByOther.value)
-    updateAutoSaveTimer()
-  } catch (e) {
-    // 接口异常时默认不锁定，避免阻断编辑
-    isLockedByOther.value = false
-    robotStore.setIsLockedByOther(isLockedByOther.value)
-  }
-}
-
-async function acquireEditLock () {
-  try {
-    const res = await getDraftKey({ robot_key: robot_key.value, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() })
-    // const res = {"msg":"success","res":0,"data":{"is_self":true,"lock_res":true,"lock_ttl":955,"remote_addr":"171.83.17.34","robot_key":"yw5BnxX80G","staff_id":3432,"user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/142.0.0.0 Safari\/537.36"}}
+    const res = await getDraftKey(getWorkflowLockPayload(robot_key.value, leaseToken))
     const data = res?.data || {}
     if (data.lock_res) {
+      workflowLeaseToken.value = leaseToken
+      ownsEditLock.value = true
+      releaseStarted = false
       isLockedByOther.value = false
+      isEditing.value = activate
+      autoSaveEnabled.value = activate
       lockRemoteAddr.value = ''
       lockUserAgent.value = ''
       loginUserName.value = ''
-      robotStore.setIsLockedByOther(isLockedByOther.value)
-      return true
+      robotStore.setIsLockedByOther(false)
+      if (activate) {
+        heartbeatController.start(data)
+      }
+      updateAutoSaveTimer()
+      return data
     }
-    // 他人占用
-    isLockedByOther.value = !data.lock_res
-    lockRemoteAddr.value = data.remote_addr || ''
-    lockUserAgent.value = data.user_agent || ''
-    loginUserName.value = data.login_user_name || ''
-    robotStore.setIsLockedByOther(isLockedByOther.value)
-    return false
+    applyLockConflict(data)
+    return null
   } catch (e) {
-    // 异常时默认允许进入编辑（可根据需要改为严格模式）
-    isLockedByOther.value = false
-    robotStore.setIsLockedByOther(isLockedByOther.value)
-    return true
+    // 获取锁失败必须保持只读，不能让无法确认所有权的窗口继续编辑。
+    applyLockConflict(e?.data || {})
+    return null
   }
 }
 
-function releaseEditLock () {
-  // 规范未提供释放接口，此处占位以便未来对接后端释放
+async function tryAcquireVisibleLock () {
+  if (!isPageVisible.value) return null
+  if (visibleAcquirePromise) {
+    visibleLockAttempted = true
+    return visibleAcquirePromise
+  }
+  if (visibleLockAttempted) return visibleAcquirePromise
+
+  visibleLockAttempted = true
+  const acquirePromise = (async () => {
+    const knownDraftSaveTime = draftSaveTimeBeforeHidden
+    const nextLeaseToken = createWorkflowLeaseToken()
+    isEditing.value = false
+    autoSaveEnabled.value = false
+    heartbeatController.stop()
+    updateAutoSaveTimer()
+
+    const lockData = await acquireEditLock({ leaseToken: nextLeaseToken, activate: false })
+    if (!lockData) {
+      message.warning(t('msg_switched_to_view_mode'))
+      return null
+    }
+    if (!isPageVisible.value) {
+      return lockData
+    }
+
+    heartbeatController.start(lockData)
+    try {
+      const robotRes = await robotStore.getRobot(route.query.id)
+      if (!robotRes) {
+        throw new Error('refresh workflow draft time failed')
+      }
+      const latestDraftSaveTime = +robotStore.robotInfo.draft_save_time || 0
+      if (latestDraftSaveTime > knownDraftSaveTime) {
+        await loadDraftNodes()
+      }
+      if (!isPageVisible.value) {
+        return lockData
+      }
+
+      isEditing.value = true
+      autoSaveEnabled.value = true
+      robotStore.setIsLockedByOther(false)
+      lastChangeHash = computeCanvasHash()
+      lastChangeTs = Date.now()
+      updateAutoSaveTimer()
+      return lockData
+    } catch (e) {
+      heartbeatController.stop()
+      await releaseEditLock({ targetLeaseToken: nextLeaseToken })
+      applyLockConflict({})
+      message.warning(t('msg_switched_to_view_mode'))
+      return null
+    }
+  })()
+
+  visibleAcquirePromise = acquirePromise
+  try {
+    return await acquirePromise
+  } finally {
+    if (visibleAcquirePromise === acquirePromise) {
+      visibleAcquirePromise = null
+    }
+  }
+}
+
+async function releaseEditLock ({ keepalive = false, targetRobotKey = robot_key.value, targetLeaseToken = getLeaseToken() } = {}) {
+  if (!ownsEditLock.value || releaseStarted) return
+  const payload = getWorkflowLockPayload(targetRobotKey, targetLeaseToken)
+  releaseStarted = true
+  ownsEditLock.value = false
+  heartbeatController.stop()
+  updateAutoSaveTimer()
+  if (keepalive) {
+    sendReleaseKeepalive(payload)
+    return
+  }
+  try {
+    await releaseDraftKey(payload)
+  } catch (e) {
+    // 主动释放失败时由 Redis TTL 兜底。
+  }
+}
+
+function handlePageExit () {
+  visibleLockAttempted = false
+  draftSaveTimeBeforeHidden = +robotStore.robotInfo.draft_save_time || 0
+  if (!ownsEditLock.value) return
+  void releaseEditLock({ keepalive: true })
+}
+
+async function handlePageShow (event) {
+  if (!event.persisted) return
+  isPageVisible.value = true
+  await tryAcquireVisibleLock()
 }
 
 function getNode (list) {
@@ -717,7 +739,8 @@ const getCanvasData = () => {
 }
 
 const handleSave = async (type) => {
-  if (isLockedByOther.value) {
+  if (!isPageVisible.value && type === 'automatic') return
+  if (!ownsEditLock.value || isLockedByOther.value) {
     // 手动保存时给出提示，自动保存静默跳过
     if (type === 'handle') {
       message.warning(t('msg_save_locked_by_other'))
@@ -747,7 +770,8 @@ const handleSave = async (type) => {
       draft_save_time: clientDraftTs,
       re_cover_save: 0,
       uni_identifier: getUniIdentifier(),
-      user_agent: buildUserAgent()
+      lease_token: getLeaseToken(),
+      user_agent: pageUserAgent
     }
 
     const result = await confirmOverrideAndSave(basePayload, false)
@@ -769,7 +793,8 @@ const handleSave = async (type) => {
       draft_save_type: 'automatic',
       draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
       uni_identifier: getUniIdentifier(),
-      user_agent: buildUserAgent()
+      lease_token: getLeaseToken(),
+      user_agent: pageUserAgent
     })
     await robotStore.getRobot(query.id)
     const ts = +robotStore.robotInfo.draft_save_time || dayjs().unix()
@@ -792,7 +817,7 @@ const BEHIND_MODAL_TEXT = computed(() => t('msg_confirm_override_draft'))
 
 async function confirmOverrideAndSave (basePayload, isAuto) {
   try {
-     const payload = { ...basePayload, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
+    const payload = { ...basePayload, ...getWorkflowLockPayload() }
     const res = await saveNodes(payload)
     const behind = res?.data?.behind_draft == 1 || res?.behind_draft == 1
     if (!behind) {
@@ -828,7 +853,7 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
         okText: t('btn_confirm'),
         cancelText: t('btn_cancel'),
         async onOk () {
-          const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
+          const forcePayload = { ...basePayload, re_cover_save: 1, ...getWorkflowLockPayload() }
           const res2 = await saveNodes(forcePayload)
           if (res2 && res2.res == 0 || !res2?.data?.behind_draft) {
             await robotStore.getRobot(query.id)
@@ -882,7 +907,7 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
         okText: t('btn_confirm'),
         cancelText: t('btn_cancel'),
         async onOk () {
-          const forcePayload = { ...basePayload, re_cover_save: 1, uni_identifier: getUniIdentifier(), user_agent: buildUserAgent() }
+          const forcePayload = { ...basePayload, re_cover_save: 1, ...getWorkflowLockPayload() }
           const res2 = await saveNodes(forcePayload)
           if (res2 && res2.res == 0 || !res2?.data?.behind_draft) {
             await robotStore.getRobot(query.id)
@@ -917,7 +942,8 @@ async function confirmOverrideAndSave (basePayload, isAuto) {
 
 // 自动保存（含版本落后弹窗确认）
 async function handleAutoSaveWithConflictCheck () {
-  if (isLockedByOther.value) return
+  if (!isPageVisible.value) return
+  if (!ownsEditLock.value || isLockedByOther.value) return
   if (!isEditing.value) return
   if (!autoSaveEnabled.value) return
 
@@ -930,30 +956,35 @@ async function handleAutoSaveWithConflictCheck () {
     draft_save_type: 'automatic',
     draft_save_time: clientDraftTs,
     re_cover_save: 0,
-    uni_identifier: getUniIdentifier()
+    uni_identifier: getUniIdentifier(),
+    lease_token: getLeaseToken(),
+    user_agent: pageUserAgent
   }
   await confirmOverrideAndSave(basePayload, true)
 }
 function updateAutoSaveTimer () {
   timer && clearInterval(timer)
   timer = null
-  // 同步领导者状态以便 UI 及时展示
-  isLeaderFlag.value = isLeader()
-  if (import.meta.env.PROD && isEditing.value && autoSaveEnabled.value && !isLockedByOther.value && isLeader()) {
+  if (import.meta.env.PROD && isPageVisible.value && ownsEditLock.value && isEditing.value && autoSaveEnabled.value && !isLockedByOther.value) {
     timer = setInterval(() => {
       handleAutoSaveWithConflictCheck()
-    }, 1 * 60 * 1000)
+    }, WORKFLOW_AUTO_SAVE_MS)
   }
 }
 
 onUnmounted(() => {
+  window.removeEventListener('pagehide', handlePageExit)
+  window.removeEventListener('pageshow', handlePageShow)
+  document.removeEventListener('visibilitychange', visibilityHandler)
   timer && clearInterval(timer)
   stopInactivityWatcher()
   stopChangeMonitor()
-  stopLeaderHeartbeat()
-  releaseEditLock()
-  releaseLeader()
-  decrementOpenTabs()
+  heartbeatController.stop()
+  void releaseEditLock()
+})
+
+onBeforeRouteLeave(async () => {
+  await releaseEditLock()
 })
 
 
@@ -966,7 +997,7 @@ const openVersionModel = (node_list) => {
 }
 // 发布机器人
 const handleRelease = async () => {
-  if (isLockedByOther.value) {
+  if (!ownsEditLock.value || isLockedByOther.value) {
     message.warning(t('msg_publish_locked_by_other'))
     return
   }
@@ -1016,7 +1047,8 @@ const handleRelease = async () => {
       draft_save_type: 'handle',
       draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
       uni_identifier: getUniIdentifier(),
-      user_agent: buildUserAgent()
+      lease_token: getLeaseToken(),
+      user_agent: pageUserAgent
     })
     // 保存后刷新服务端草稿时间戳
     await robotStore.getRobot(query.id)
@@ -1053,14 +1085,14 @@ const handleSelectedNode = (data) => {
   }
 
   // 内容发生变更（节点选择通常伴随编辑行为），尝试恢复自动保存并设置为领导者
-  ensureLeaderAndAutoSaveOnChange()
+  ensureAutoSaveOnChange()
 
 }
 
 // 删除节点
 const onDeleteNode = () => {
   // 删除节点属于内容变更，立即恢复自动保存并设置为领导者
-  ensureLeaderAndAutoSaveOnChange()
+  ensureAutoSaveOnChange()
 }
 
 const getModelList = async () => {
@@ -1094,7 +1126,7 @@ const getVersionRecord = () => {
 }
 
 const setVersion = (data) => {
-  if (isLockedByOther.value) {
+  if (!ownsEditLock.value || isLockedByOther.value) {
     message.warning(t('msg_restore_locked_by_other'))
     return
   }
@@ -1107,7 +1139,8 @@ const setVersion = (data) => {
     draft_save_type: 'handle',
     draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
     uni_identifier: getUniIdentifier(),
-    user_agent: buildUserAgent()
+    lease_token: getLeaseToken(),
+    user_agent: pageUserAgent
   }).then(() => {
     // 刷新草稿时间戳
     robotStore.getRobot(query.id).then(() => {
@@ -1130,7 +1163,7 @@ const setVersion = (data) => {
 
 const handlePreviewVersion = async (data, version) => {
   // 在发布详情中切换/预览前，先保存当前草稿，避免丢失
-  if (!isLockedByOther.value) {
+  if (ownsEditLock.value && !isLockedByOther.value) {
     const currentDraft = getCanvasData()
     try {
       await saveNodes({
@@ -1140,7 +1173,8 @@ const handlePreviewVersion = async (data, version) => {
         draft_save_type: 'automatic',
         draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
         uni_identifier: getUniIdentifier(),
-        user_agent: buildUserAgent()
+        lease_token: getLeaseToken(),
+        user_agent: pageUserAgent
       })
       // 更新本地草稿时间，保持发布详情“最近保存于”显示
       await robotStore.getRobot(query.id)
@@ -1159,7 +1193,7 @@ const handlePreviewVersion = async (data, version) => {
 }
 // 运行测试
 const handleRunTest = async () => {
-  if (isLockedByOther.value) {
+  if (!ownsEditLock.value || isLockedByOther.value) {
     message.warning(t('msg_save_locked_by_other'))
     return
   }
@@ -1174,7 +1208,8 @@ const handleRunTest = async () => {
     draft_save_type: 'automatic',
     draft_save_time: +robotStore.robotInfo.draft_save_time || 0,
     uni_identifier: getUniIdentifier(),
-    user_agent: buildUserAgent()
+    lease_token: getLeaseToken(),
+    user_agent: pageUserAgent
   })
   await robotStore.getRobot(query.id)
   workFlowNextVersion({
@@ -1257,13 +1292,7 @@ const checkNodePluginStatus = (nds) => {
   }
 }
 
-const init = async () => {
-  await getModelList()
-  await workflowStore.getTriggerList(robot_key.value);
-  workflowStore.getTriggerOfficialMsg(robot_key.value)
-  await modelStore.getAllmodelList()
-  workflowStore.getAllLibraryList();
-
+const loadDraftNodes = async ({ checkPluginStatus = false } = {}) => {
   const res = await getNodeList({
     robot_key: robot_key.value,
     data_type: 1
@@ -1271,7 +1300,19 @@ const init = async () => {
 
   const nodeList = await checkAgentAbnormalNodes(res.data)
   getNode(nodeList)
-  checkNodePluginStatus(nodeList)
+  if (checkPluginStatus) {
+    checkNodePluginStatus(nodeList)
+  }
+}
+
+const init = async () => {
+  await getModelList()
+  await workflowStore.getTriggerList(robot_key.value);
+  workflowStore.getTriggerOfficialMsg(robot_key.value)
+  await modelStore.getAllmodelList()
+  workflowStore.getAllLibraryList();
+
+  await loadDraftNodes({ checkPluginStatus: true })
 }
 
 const handleAutoSaveDraft = async (type = 'automatic') => {
@@ -1285,48 +1326,43 @@ const handleOpenErrorNode = (data) => {
 }
 
 onMounted(async () => {
-  // 记录当前工作流的打开页面计数
-  incrementOpenTabs()
+  window.addEventListener('pagehide', handlePageExit)
+  window.addEventListener('pageshow', handlePageShow)
+  document.addEventListener('visibilitychange', visibilityHandler)
 
   await init()
 
-  // 初次进入：若存在草稿记录则默认查看模式，需要点击编辑按钮进入编辑
-  await checkEditLock()
-  if (isLockedByOther.value) {
+  // 初次进入仅在页面可见时抢锁；后续每次回到前台再尝试一次。
+  if (isPageVisible.value) {
+    visibleLockAttempted = true
+    const acquired = await acquireEditLock()
+    if (!acquired) {
+      message.warning(t('msg_switched_to_view_mode'))
+    }
+  } else {
     isEditing.value = false
     autoSaveEnabled.value = false
-    message.warning(t('msg_switched_to_view_mode'))
-  } else {
-    // 无他人占用，直接进入编辑模式（无需手动点击编辑）
-    const ok = await acquireEditLock()
-    if (ok) {
-      isEditing.value = true
-      autoSaveEnabled.value = true
-    } else {
-      isEditing.value = false
-      autoSaveEnabled.value = false
-    }
   }
-  // 启动领导者协调与心跳，仅允许一个标签页自动保存
-  startLeaderHeartbeat()
   updateAutoSaveTimer()
 
-  // 监听路由中 robot_key 变化，切换工作流时释放旧领导者并重启心跳
-  let currentLeaderKey = getLeaderKey()
-  watch(() => route.query.robot_key, (newKey) => {
+  // 复用当前组件切换工作流时，先释放旧锁，再用新租约抢占新工作流。
+  watch(() => route.query.robot_key, async (newKey) => {
     if (!newKey || newKey === robot_key.value) return
-    // 释放旧工作流的领导者占用（仅当本标签页是旧键的领导者时）
-    releaseSpecificLeader(currentLeaderKey)
-    // 更新旧工作流的打开页面计数
-    decrementOpenTabs()
-    // 切换到新的工作流键
+    const oldRobotKey = robot_key.value
+    const oldLeaseToken = getLeaseToken()
+    await releaseEditLock({ targetRobotKey: oldRobotKey, targetLeaseToken: oldLeaseToken })
     robot_key.value = newKey
-    currentLeaderKey = getLeaderKey()
-    // 新工作流计数+1
-    incrementOpenTabs()
-    // 重新争取领导者并重启自动保存评估
-    startLeaderHeartbeat()
-    updateAutoSaveTimer()
+    workflowLeaseToken.value = createWorkflowLeaseToken()
+    releaseStarted = false
+    applyLockConflict({})
+    await init()
+    visibleLockAttempted = isPageVisible.value
+    if (isPageVisible.value) {
+      const nextAcquired = await acquireEditLock()
+      if (!nextAcquired) {
+        message.warning(t('msg_switched_to_view_mode'))
+      }
+    }
   })
 
   // 活动监听与5分钟无操作停止

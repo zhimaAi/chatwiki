@@ -155,6 +155,14 @@ func FindKeyIsUse(nodeList []WorkFlowNode, findKey string) bool {
 					return true
 				}
 			}
+		case NodeTypeGoodsSearch:
+			for _, group := range node.NodeParams.GoodsSearch.ConditionGroups {
+				for _, cond := range group.Conditions {
+					if strings.Contains(cond.Value, findKey) {
+						return true
+					}
+				}
+			}
 		case NodeTypeCodeRun:
 			for _, param := range node.NodeParams.CodeRun.Params {
 				if param.Variable == findKey {

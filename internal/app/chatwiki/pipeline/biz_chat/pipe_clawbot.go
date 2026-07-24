@@ -215,7 +215,7 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 			if in.e2bShell != nil {
 				return nil // E2B sandbox not check command
 			}
-			return llm_runner.ValidateCommand(common.StripCdPrefix(command))
+			return llm_runner.ValidateCommand(command)
 		},
 		ExecuteCommand: func(command string) (*filesystem.ExecuteResponse, error) {
 			if in.e2bShell != nil {
@@ -295,7 +295,7 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	out.debugLog = append(out.debugLog, map[string]string{`type`: `prompt`, `content`: `【prompt】`})
 	var history []*schema.Message
 	contextList := common.BuildChatContextPair(in.params.Openid, cast.ToInt(in.params.Robot[`id`]),
-		in.dialogueId, int(out.cMsgId), cast.ToInt(in.params.Robot[`context_pair`]))
+		in.dialogueId, in.sessionId, int(out.cMsgId), cast.ToInt(in.params.Robot[`context_pair`]))
 	for i := range contextList {
 		history = append(history, schema.UserMessage(contextList[i][`question`]))
 		history = append(history, schema.AssistantMessage(contextList[i][`answer`], nil))

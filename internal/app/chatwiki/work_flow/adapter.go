@@ -66,6 +66,7 @@ const (
 	NodeTypeImmediatelyReply = 42 // Immediate reply
 	NodeTypeQuestion         = 43 // Question
 	NodeTypeHttpTool         = 45 // HTTP tool
+	NodeTypeGoodsSearch      = 50 // Goods library search
 	NodeTypeAgent            = 52 // Agent (clawbot as a workflow node)
 )
 
@@ -116,6 +117,7 @@ var NodeTypes = [...]int{
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
 	NodeTypeQuestion,
+	NodeTypeGoodsSearch,
 	NodeTypeAgent,
 }
 
@@ -180,6 +182,8 @@ func GetNodeByKey(flow *WorkFlow, robotId uint, nodeKey string) (NodeAdapter, ms
 		return &FormUpdateNode{params: nodeParams.FormUpdate, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeFormSelect:
 		return &FormSelectNode{params: nodeParams.FormSelect, nextNodeKey: info[`next_node_key`]}, info, nil
+	case NodeTypeGoodsSearch:
+		return &GoodsSearchNode{params: nodeParams.GoodsSearch, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeCodeRun:
 		return &CodeRunNode{params: nodeParams.CodeRun, nextNodeKey: info[`next_node_key`]}, info, nil
 	case NodeTypeMcp:
@@ -241,6 +245,22 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	}
 	if flow.params.Draft.IsDraft { // Draft debugging scenario
 		flow.params.Robot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
+		if flow.params.IsDialogMode {
+			if field, ok := flow.global[`question`]; (!ok || cast.ToString(field.GetVal(common.TypString)) == ``) && strings.TrimSpace(flow.params.Question) != "" {
+				question := strings.TrimSpace(flow.params.Question)
+				if questionMultiple, ok := common.ParseInputQuestion(question); ok {
+					var qm any
+					_ = tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(common.QuestionMultipleAppendImageDomain(questionMultiple)), &qm)
+					flow.global[`question_multiple`] = common.SimpleField{Key: `question_multiple`, Typ: common.TypArrObject}.SetVals(qm)
+					flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(common.GetQuestionByQuestionMultiple(questionMultiple))
+				} else {
+					flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(question)
+				}
+			}
+			if field, ok := flow.global[`openid`]; (!ok || cast.ToString(field.GetVal(common.TypString)) == ``) && strings.TrimSpace(flow.params.Openid) != "" {
+				flow.global[`openid`] = common.SimpleField{Key: `openid`, Typ: common.TypString}.SetVals(flow.params.Openid)
+			}
+		}
 	} else {
 		if flow.params.IsFromWorkflow { // Workflow calling workflow scenario, temporarily no processing
 
@@ -331,7 +351,7 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	//part2:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
@@ -679,7 +699,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	//part2:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
@@ -955,7 +975,7 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
@@ -1055,7 +1075,7 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
 	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.CurMsgId, n.params.ContextPair.Int())
+		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `user`, Content: contextList[i][`question`]})
 		messages = append(messages, adaptor.ZhimaChatCompletionMessage{Role: `assistant`, Content: contextList[i][`answer`]})
@@ -1335,6 +1355,147 @@ func (n *FormSelectNode) Running(flow *WorkFlow) (output common.SimpleFields, ne
 }
 
 func (n *FormSelectNode) Params() any {
+	return n.params
+}
+
+type GoodsSearchNode struct {
+	params      GoodsSearchNodeParams
+	nextNodeKey string
+}
+
+// goodsSearchMatchOp maps numeric match types to SQL operators
+var goodsSearchMatchOp = map[uint]string{
+	GoodsSearchMatchGt:  `>`,
+	GoodsSearchMatchLt:  `<`,
+	GoodsSearchMatchEq:  `=`,
+	GoodsSearchMatchGte: `>=`,
+	GoodsSearchMatchLte: `<=`,
+}
+
+// goodsSearchEscapeLike escapes special characters for ILIKE pattern matching
+func goodsSearchEscapeLike(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	return strings.ReplaceAll(value, `_`, `\_`)
+}
+
+func (n *GoodsSearchNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
+	flow.Logs(`Executing goods library search logic...`)
+	// build parameterized where clause: groups are OR'd, conditions within a group are AND/OR per IsOr
+	whereSql, args, err := n.buildConditionSql(flow)
+	if err != nil {
+		return
+	}
+	const limit = 100
+	m := msql.Model(define.TableGoodsLibLibrary, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
+		Where(`switch_status`, cast.ToString(define.GoodsLibSwitchOn))
+	if len(whereSql) > 0 {
+		m.WhereRaw(whereSql, args...)
+	}
+	list, err := m.Order(`id desc`).Limit(limit).
+		Field(`id,group_id,goods_id,goods_name,category,brand,price,stock,link,images,description,qa,custom_info,switch_status,create_time,update_time`).
+		Select()
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+		return
+	}
+	// assemble output results, each item contains all goods library columns
+	vals := make([]common.Val, 0, len(list))
+	for _, item := range list {
+		images := make([]string, 0)
+		if len(item[`images`]) > 0 {
+			_ = tool.JsonDecode(item[`images`], &images)
+		}
+		obj := map[string]any{
+			`id`:            cast.ToInt64(item[`id`]),
+			`group_id`:      cast.ToInt64(item[`group_id`]),
+			`goods_id`:      item[`goods_id`],
+			`goods_name`:    item[`goods_name`],
+			`category`:      item[`category`],
+			`brand`:         item[`brand`],
+			`price`:         cast.ToFloat64(item[`price`]),
+			`stock`:         cast.ToInt64(item[`stock`]),
+			`link`:          item[`link`],
+			`images`:        images,
+			`description`:   item[`description`],
+			`qa`:            item[`qa`],
+			`custom_info`:   item[`custom_info`],
+			`switch_status`: cast.ToInt(item[`switch_status`]),
+			`create_time`:   cast.ToInt(item[`create_time`]),
+			`update_time`:   cast.ToInt(item[`update_time`]),
+		}
+		vals = append(vals, common.Val{Object: obj})
+	}
+	total := len(vals)
+	output = common.SimpleFields{
+		`output_list`: common.SimpleField{Key: `output_list`, Typ: common.TypArrObject, Vals: vals},
+		`row_num`:     common.SimpleField{Key: `row_num`, Typ: common.TypNumber, Vals: []common.Val{{Number: &total}}},
+	}
+	nextNodeKey = n.nextNodeKey
+	return
+}
+
+// buildConditionSql builds a parameterized WHERE clause from condition groups.
+// Groups are OR'd together; within a group, conditions are joined by AND or OR per IsOr.
+func (n *GoodsSearchNode) buildConditionSql(flow *WorkFlow) (whereSql string, args []any, err error) {
+	args = make([]any, 0)
+	groupSqls := make([]string, 0)
+	for _, group := range n.params.ConditionGroups {
+		condSqls := make([]string, 0)
+		for _, cond := range group.Conditions {
+			value := flow.VariableReplace(cond.Value)
+			if len(value) == 0 {
+				continue
+			}
+			pIdx := len(args) + 1
+			var sql string
+			switch cond.Match {
+			case GoodsSearchMatchExact:
+				sql = fmt.Sprintf(`%s = $%d`, cond.Field, pIdx)
+				args = append(args, value)
+			case GoodsSearchMatchFuzzy:
+				sql = fmt.Sprintf(`%s ILIKE $%d ESCAPE '\'`, cond.Field, pIdx)
+				args = append(args, `%`+goodsSearchEscapeLike(value)+`%`)
+			default:
+				op, ok := goodsSearchMatchOp[cond.Match]
+				if !ok {
+					continue
+				}
+				if cond.Field == `price` {
+					if _, e := cast.ToFloat64E(value); e != nil {
+						err = errors.New(i18n.Show(flow.params.Lang, `goods_search_value_not_number`, value))
+						return
+					}
+					sql = fmt.Sprintf(`%s %s $%d::numeric`, cond.Field, op, pIdx)
+				} else { // stock
+					if _, e := cast.ToInt64E(value); e != nil {
+						err = errors.New(i18n.Show(flow.params.Lang, `goods_search_value_not_number`, value))
+						return
+					}
+					sql = fmt.Sprintf(`%s %s $%d::bigint`, cond.Field, op, pIdx)
+				}
+				args = append(args, value)
+			}
+			condSqls = append(condSqls, sql)
+		}
+		if len(condSqls) == 0 {
+			continue
+		}
+		joiner := ` AND `
+		if group.IsOr {
+			joiner = ` OR `
+		}
+		groupSqls = append(groupSqls, `(`+strings.Join(condSqls, joiner)+`)`)
+	}
+	if len(groupSqls) == 0 {
+		return ``, args, nil
+	}
+	whereSql = `(` + strings.Join(groupSqls, ` OR `) + `)`
+	return whereSql, args, nil
+}
+
+func (n *GoodsSearchNode) Params() any {
 	return n.params
 }
 

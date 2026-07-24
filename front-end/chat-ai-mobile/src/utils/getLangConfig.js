@@ -14,12 +14,14 @@ export function getLang() {
 
 export function getCurrentConfig(multi_lang_configs) {
   let lang = getLang()
-  let list = []
+  let list = Array.isArray(multi_lang_configs) ? multi_lang_configs : []
 
-  try {
-    list = multi_lang_configs ? JSON.parse(multi_lang_configs) : []
-  } catch (error) {
-    list = []
+  if (typeof multi_lang_configs === 'string') {
+    try {
+      list = multi_lang_configs ? JSON.parse(multi_lang_configs) : []
+    } catch (error) {
+      list = []
+    }
   }
 
   if (!Array.isArray(list)) {

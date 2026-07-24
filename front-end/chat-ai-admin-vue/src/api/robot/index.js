@@ -1,4 +1,7 @@
 import request from '@/utils/http/axios'
+import SSE from '@/utils/http/sse'
+
+const baseURL = import.meta.env.VITE_BASE_API_URL
 
 export const getRobotList = (params = {}) => {
   return request.get({
@@ -371,6 +374,13 @@ export const callWorkFlow = (data = {}) => {
     data: data
   })
 }
+
+export const callWorkFlowDialog = (data = {}) => {
+  return new SSE({
+    url: baseURL + '/chat/callWorkFlowDialog',
+    data: data
+  })
+}
 export const workFlowNextVersion = (data = {}) => {
   return request.post({
     url: '/manage/workFlowNextVersion',
@@ -403,6 +413,20 @@ export const getDraftKey = (params = {}) => {
   return request.get({
     url: '/manage/getDraftKey',
     params: params
+  })
+}
+
+export const heartbeatDraftKey = (data = {}) => {
+  return request.post({
+    url: '/manage/heartbeatDraftKey',
+    data: data
+  })
+}
+
+export const releaseDraftKey = (data = {}) => {
+  return request.post({
+    url: '/manage/releaseDraftKey',
+    data: data
   })
 }
 

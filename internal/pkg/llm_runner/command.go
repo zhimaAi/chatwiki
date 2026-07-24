@@ -14,6 +14,7 @@ var deniedArgsByCommand = map[string][]string{
 }
 
 func ValidateCommand(command string) error {
+	command = StripCdPrefix(command)
 	args := strings.Fields(command)
 	if len(args) < 2 {
 		return nil
@@ -30,6 +31,21 @@ func ValidateCommand(command string) error {
 		}
 	}
 	return nil
+}
+
+// StripCdPrefix removes a leading cd command because llm_runner already controls the working directory.
+func StripCdPrefix(command string) string {
+	command = strings.TrimSpace(command)
+	if strings.HasPrefix(command, `cd `) {
+		rest := command[3:]
+		if index := strings.Index(rest, `&&`); index >= 0 {
+			return strings.TrimSpace(rest[index+2:])
+		}
+		if index := strings.Index(rest, `;`); index >= 0 {
+			return strings.TrimSpace(rest[index+1:])
+		}
+	}
+	return command
 }
 
 func normalizeCommandArg(arg string) string {

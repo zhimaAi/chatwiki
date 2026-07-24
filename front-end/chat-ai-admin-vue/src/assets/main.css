@@ -87,14 +87,17 @@ strong {
 }
 
 
-.no-padding-modal .ant-modal .ant-modal-content{
-  padding-right: 0;
+.ant-modal-content-no-padding .ant-modal .ant-modal-content{
+  padding: 0 !important;
 }
 
 .no-padding-modal .ant-modal .ant-modal-footer{
   padding-right: 24px;
 }
 
+.no-padding-modal .ant-modal .ant-modal-body{
+  padding: 0;
+}
 .zm-line {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -133,6 +136,10 @@ strong {
 
 .remove-model-padding .ant-modal .ant-modal-content {
   padding: 0;
+}
+
+.remove-model-padding .ant-modal-header{
+  padding: 16px 24px;
 }
 
 .cursor-pointer,

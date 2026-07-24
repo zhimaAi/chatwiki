@@ -390,6 +390,41 @@ type FormSelectNodeParams struct {
 	Limit  common.MixedInt              `json:"limit"`
 }
 
+// match types for goods library search conditions
+const (
+	GoodsSearchMatchExact = 1 // exact match (=) for string fields
+	GoodsSearchMatchFuzzy = 2 // fuzzy match (ILIKE) for string fields
+	GoodsSearchMatchGt    = 3 // greater than for numeric fields
+	GoodsSearchMatchLt    = 4 // less than for numeric fields
+	GoodsSearchMatchEq    = 5 // equal (=) for numeric fields
+	GoodsSearchMatchGte   = 6 // greater than or equal for numeric fields
+	GoodsSearchMatchLte   = 7 // less than or equal for numeric fields
+)
+
+// GoodsSearchFields is the full list of queryable goods library fields
+var GoodsSearchFields = []string{`goods_id`, `goods_name`, `category`, `brand`, `price`, `stock`}
+
+// GoodsSearchStringFields support exact/fuzzy match
+var GoodsSearchStringFields = []string{`goods_id`, `goods_name`, `category`, `brand`}
+
+// GoodsSearchNumericFields support comparison match
+var GoodsSearchNumericFields = []string{`price`, `stock`}
+
+type GoodsSearchCondition struct {
+	Field string `json:"field"` // one of GoodsSearchFields
+	Match uint   `json:"match"` // one of GoodsSearchMatch* constants
+	Value string `json:"value"` // value, supports 【variable】 placeholder
+}
+
+type GoodsSearchConditionGroup struct {
+	IsOr       bool                   `json:"is_or"` // relation within group: false=and, true=or
+	Conditions []GoodsSearchCondition `json:"conditions"`
+}
+
+type GoodsSearchNodeParams struct {
+	ConditionGroups []GoodsSearchConditionGroup `json:"condition_groups"`
+}
+
 /************************************/
 
 type CodeRunParams struct {
@@ -606,6 +641,7 @@ var LoopAllowNodeTypes = []int{
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
 	NodeTypeQuestion,
+	NodeTypeGoodsSearch,
 }
 
 var BatchAllowNodeTypes = []int{
@@ -638,6 +674,7 @@ var BatchAllowNodeTypes = []int{
 	NodeTypeWorkflow,
 	NodeTypeImmediatelyReply,
 	NodeTypeQuestion,
+	NodeTypeGoodsSearch,
 }
 
 type ExportLibrary struct {
@@ -685,6 +722,7 @@ type NodeParams struct {
 	FormDelete       FormDeleteNodeParams       `json:"form_delete"`
 	FormUpdate       FormUpdateNodeParams       `json:"form_update"`
 	FormSelect       FormSelectNodeParams       `json:"form_select"`
+	GoodsSearch      GoodsSearchNodeParams      `json:"goods_search"`
 	CodeRun          CodeRunNodeParams          `json:"code_run"`
 	Mcp              McpNodeParams              `json:"mcp"`
 	Loop             LoopNodeParams             `json:"loop"`
@@ -829,6 +867,9 @@ func DisposeNodeParams(nodeType int, nodeParams, lang string) NodeParams {
 	if params.Plugin.Output == nil {
 		params.Plugin.Output = make(common.RecurveFields, 0)
 	}
+	if params.GoodsSearch.ConditionGroups == nil {
+		params.GoodsSearch.ConditionGroups = make([]GoodsSearchConditionGroup, 0)
+	}
 
 	return params
 }
@@ -871,6 +912,13 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 			}
 		}
 	case NodeTypeFormSelect:
+		for _, variable := range []string{`output_list`, `row_num`} {
+			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
+			if len(last) > 0 && last[0] { //previous node, compatible with old data
+				variables = append(variables, variable)
+			}
+		}
+	case NodeTypeGoodsSearch:
 		for _, variable := range []string{`output_list`, `row_num`} {
 			variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, variable))
 			if len(last) > 0 && last[0] { //previous node, compatible with old data
@@ -1360,6 +1408,15 @@ func verifyNode(adminUserId int, node WorkFlowNode, fromNodes FromNodes, nodeLis
 				return
 			}
 		}
+	case NodeTypeGoodsSearch:
+		for _, group := range node.NodeParams.GoodsSearch.ConditionGroups {
+			for _, cond := range group.Conditions {
+				if variable, ok := CheckVariablePlaceholder(cond.Value, variables); !ok {
+					err = errors.New(i18n.Show(lang, `workflow_node_insert_variable_not_exist`, node.NodeName, variable))
+					return
+				}
+			}
+		}
 	case NodeTypeCodeRun:
 		for _, param := range node.NodeParams.CodeRun.Params {
 			if !tool.InArrayString(param.Variable, variables) {
@@ -1621,6 +1678,8 @@ func (node *WorkFlowNode) Verify(adminUserId int, lang string) error {
 		err = node.NodeParams.FormUpdate.Verify(adminUserId, lang)
 	case NodeTypeFormSelect:
 		err = node.NodeParams.FormSelect.Verify(adminUserId, lang)
+	case NodeTypeGoodsSearch:
+		err = node.NodeParams.GoodsSearch.Verify(lang)
 	case NodeTypeCodeRun:
 		err = node.NodeParams.CodeRun.Verify(lang)
 	case NodeTypeMcp:
@@ -2063,6 +2122,35 @@ func (params *FormSelectNodeParams) Verify(adminUserId int, lang string) error {
 	}
 	if params.Limit <= 0 || params.Limit > 1000 {
 		return errors.New(i18n.Show(lang, `query_quantity_range`))
+	}
+	return nil
+}
+
+func (params *GoodsSearchNodeParams) Verify(lang string) error {
+	if len(params.ConditionGroups) == 0 {
+		return errors.New(i18n.Show(lang, `config_params_cannot_be_empty`))
+	}
+	for gi, group := range params.ConditionGroups {
+		if len(group.Conditions) == 0 {
+			return errors.New(i18n.Show(lang, `goods_search_group_empty`, gi+1))
+		}
+		for ci, cond := range group.Conditions {
+			if !tool.InArrayString(cond.Field, GoodsSearchFields) {
+				return errors.New(i18n.Show(lang, `goods_search_field_invalid`, gi+1, ci+1))
+			}
+			if tool.InArrayString(cond.Field, GoodsSearchStringFields) {
+				if !tool.InArrayInt(int(cond.Match), []int{GoodsSearchMatchExact, GoodsSearchMatchFuzzy}) {
+					return errors.New(i18n.Show(lang, `goods_search_match_invalid`, gi+1, ci+1))
+				}
+			} else {
+				if !tool.InArrayInt(int(cond.Match), []int{GoodsSearchMatchGt, GoodsSearchMatchLt, GoodsSearchMatchEq, GoodsSearchMatchGte, GoodsSearchMatchLte}) {
+					return errors.New(i18n.Show(lang, `goods_search_match_invalid`, gi+1, ci+1))
+				}
+			}
+			if len(cond.Value) == 0 {
+				return errors.New(i18n.Show(lang, `goods_search_value_empty`, gi+1, ci+1))
+			}
+		}
 	}
 	return nil
 }
