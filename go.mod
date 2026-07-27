@@ -52,7 +52,7 @@ require (
 	github.com/larksuite/oapi-sdk-go/v3 v3.5.2
 	github.com/lib/pq v1.12.3
 	github.com/mark3labs/mcp-go v0.42.0
-	github.com/matiasinsaurralde/go-e2b v0.0.0-20260620004025-b87d7066e221
+	github.com/matiasinsaurralde/go-e2b v0.1.0
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/pkoukk/tiktoken-go v0.1.7
