@@ -4,6 +4,7 @@ package custom_eino
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -51,8 +52,17 @@ func (s *E2BShell) Execute(command string) (*filesystem.ExecuteResponse, error) 
 		return nil, err
 	}
 
-	result, err := sb.Commands.RunWithContext(s.ctx, "bash", []string{"-lc", command}, s.runOptions...)
+	// Run executes the command through a login shell (/bin/bash -l -c) inside the
+	// sandbox, matching the previous "bash -lc <command>" invocation.
+	result, err := sb.Commands.Run(s.ctx, command, s.runOptions...)
 	if err != nil {
+		// A non-zero exit is reported as *CommandExitError with the result still
+		// attached; that is a normal command outcome, not a transport failure, so
+		// format it like any other result instead of surfacing it as an error.
+		var exitErr *e2b.CommandExitError
+		if errors.As(err, &exitErr) {
+			return commandExecuteResponse(exitErr.Stdout, exitErr.Stderr, exitErr.ExitCode), nil
+		}
 		return nil, err
 	}
 

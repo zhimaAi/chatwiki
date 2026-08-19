@@ -600,8 +600,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mark3labs/mcp-go v0.42.0 h1:gk/8nYJh8t3yroCAOBhNbYsM9TCKvkM13I5t5Hfu6Ls=
 github.com/mark3labs/mcp-go v0.42.0/go.mod h1:YnJfOL382MIWDx1kMY+2zsRHU/q78dBg9aFb8W6Thdw=
-github.com/matiasinsaurralde/go-e2b v0.0.0-20260620004025-b87d7066e221 h1:wKm3utkGcJh5krF1RHqeiw+X3bTcLbLpcFGEyIL1E1Y=
-github.com/matiasinsaurralde/go-e2b v0.0.0-20260620004025-b87d7066e221/go.mod h1:JTycrO2WcWcZeUNZH6XIk10sV7UixdsGKOt4HQXZiiQ=
+github.com/matiasinsaurralde/go-e2b v0.1.0 h1:xifEeonkNJUkyRAtYSkMJk45jwiIKkQMuDb6i72UdZM=
+github.com/matiasinsaurralde/go-e2b v0.1.0/go.mod h1:JTycrO2WcWcZeUNZH6XIk10sV7UixdsGKOt4HQXZiiQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.4/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
 github.com/mattn/go-colorable v0.1.6/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
