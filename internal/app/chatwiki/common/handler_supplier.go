@@ -39,6 +39,17 @@ func GetOpenRouterSupplierHandle(_ ModelInfo, config msql.Params) (*SupplierHand
 	return newSupplierHandler(config, clientConfig)
 }
 
+func GetOrcaRouterSupplierHandle(_ ModelInfo, config msql.Params) (*SupplierHandler, error) {
+	clientConfig := llm.ClientConfig{
+		Provider: llm.ProviderOpenAI,
+		BaseURL:  ResolveOrcaRouterEndpoint(),
+		Credentials: llm.CredentialConfig{
+			APIKeys: config[`api_key`],
+		},
+	}
+	return newSupplierHandler(config, clientConfig)
+}
+
 func GetDeepseekSupplierHandle(_ ModelInfo, config msql.Params) (*SupplierHandler, error) {
 	clientConfig := llm.ClientConfig{
 		Provider: llm.ProviderDeepSeek,

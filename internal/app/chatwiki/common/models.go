@@ -168,9 +168,11 @@ const (
 	ModelSiliconFlow     = "siliconflow"
 	Model302Ai           = "302ai"
 	ModelOpenRouter      = "openrouter"
+	ModelOrcaRouter      = "orcarouter"
 )
 
 const DefaultOpenRouterEndpoint = `https://openrouter.ai/api`
+const DefaultOrcaRouterEndpoint = `https://api.orcarouter.ai`
 
 const (
 	Llm           = `LLM`
@@ -306,6 +308,20 @@ func getModelConfigList(lang string) []ModelInfo {
 			CallHandlerFunc:         GetOpenRouterHandle,
 			CallSupplierhandlerFunc: GetOpenRouterSupplierHandle,
 			ApiEndPoint:             DefaultOpenRouterEndpoint,
+		},
+		{
+			ModelDefine:             ModelOrcaRouter,
+			ModelName:               `OrcaRouter`,
+			ModelIconUrl:            define.LocalUploadPrefix + `model_icon/` + ModelOrcaRouter + `.png`,
+			Introduce:               i18n.Show(lang, `model_orcarouter_introduce`),
+			SupportList:             []string{Llm},
+			SupportedType:           []string{Llm},
+			ConfigParams:            []string{`api_key`},
+			HistoryConfigParams:     []string{},
+			HelpLinks:               `https://www.orcarouter.ai`,
+			CallHandlerFunc:         GetOrcaRouterHandle,
+			CallSupplierhandlerFunc: GetOrcaRouterSupplierHandle,
+			ApiEndPoint:             DefaultOrcaRouterEndpoint,
 		},
 		{
 			ModelDefine:             ModelDeepseek,
