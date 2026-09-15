@@ -68,7 +68,7 @@ require (
 	github.com/tealeg/xlsx v1.0.5
 	github.com/tmc/langchaingo v0.1.13
 	github.com/wk8/go-ordered-map/v2 v2.1.8
-	github.com/xuri/excelize/v2 v2.10.1
+	github.com/xuri/excelize/v2 v2.11.0
 	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20260612072211-1b1647da5f18
 	github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20260831034936-6c2d3615e819
