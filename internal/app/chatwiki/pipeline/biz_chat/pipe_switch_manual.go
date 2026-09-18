@@ -30,7 +30,7 @@ func CheckIntentionSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.Pip
 	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
 		return pipeline.PipeContinue // wechat and other apps, skip intention switch for non-text messages
 	}
-	if msg, ok := IsIntentionSwitchManual(in.params, in.sessionId, in.dialogueId, in.monitor, in.chanStream); ok {
+	if msg, ok := IsIntentionSwitchManual(in.params, in.sessionId, in.dialogueId, out.cMsgId, in.monitor, in.chanStream); ok {
 		out.AiMessage = msg
 		return pipeline.PipeStop
 	}

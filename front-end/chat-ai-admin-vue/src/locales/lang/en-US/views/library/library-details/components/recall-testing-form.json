@@ -1,5 +1,9 @@
 {
-  "alert_tip": "When a user asks a question, the retrieved document segments will be passed to the AI model, which will answer the user's question based on the passed segments. You can use recall testing to enter a question and view the matched document segments and similarity",
+  "alert_tip": "When a user asks a question, retrieved document segments are passed to the AI model to generate an answer. Enter a question to see the matching segments and similarity scores.",
+  "title_retrieval_config": "Retrieval Settings",
+  "label_test_question": "Test Question",
+  "hint_semantic": "More emphasis on semantics",
+  "hint_keyword": "More emphasis on keyword matching",
   "ph_test_question": "Please enter test question",
   "btn_test": "Test",
   "label_retrieval_mode": "Retrieval Mode",

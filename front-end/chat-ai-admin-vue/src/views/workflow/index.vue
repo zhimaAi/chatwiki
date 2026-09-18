@@ -1277,7 +1277,6 @@ const checkNodePluginStatus = (nds) => {
         if (updateNds.length) {
           tasks.push(downloadPlugin({
             download_data: JSON.stringify(updateNds.map(i => ({
-              url: i.latest_version_detail_url,
               version_id: i.latest_version_detail_id
             })))
           }))

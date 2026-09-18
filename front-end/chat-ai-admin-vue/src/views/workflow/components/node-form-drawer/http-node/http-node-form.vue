@@ -230,7 +230,7 @@
                   :precision="0"
                   v-model:value="formState.timeout"
                   :min="0"
-                  :max="3000"
+                  :max="300"
                 />
                 {{ t('label_second') }}
               </div>

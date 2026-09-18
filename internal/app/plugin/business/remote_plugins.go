@@ -98,8 +98,7 @@ func DownloadRemotePlugin(c *gin.Context) {
 	}
 
 	var DownloadPlugin []struct {
-		URL       string `form:"url" binding:"required"`
-		VersionId int    `form:"version_id" binding:"required"`
+		VersionId any `form:"version_id" json:"version_id"`
 	}
 	err := tool.JsonDecodeUseNumber(req.DownloadData, &DownloadPlugin)
 	if err != nil {
@@ -122,10 +121,26 @@ func DownloadRemotePlugin(c *gin.Context) {
 	}(tmpDir) // 清理临时目录
 
 	for _, node := range DownloadPlugin {
+		// 获取版本信息
+		resp, err := requestXiaokefu(`kf/ChatWiki/commonGetPluginVersionInfo`, map[string]any{`version_id`: node.VersionId})
+		if err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
+			return
+		}
+		var downloadUrl string
+		if respData, ok := resp.Data.(map[string]any); ok && len(respData) > 0 && respData[`download_url`] != nil {
+			downloadUrl = strings.TrimSpace(cast.ToString(respData[`download_url`]))
+		}
+		if len(downloadUrl) == 0 {
+			logs.Warning(`获取插件download_url失败 version_id:%v`, node.VersionId)
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(`获取插件download_url失败`)))
+			return
+		}
 
 		// 下载压缩包
 		zipPath := filepath.Join(tmpDir, "plugin.zip")
-		if err := downloadFile(node.URL, zipPath); err != nil {
+		if err := downloadFile(downloadUrl, zipPath); err != nil {
 			logs.Error(fmt.Sprintf("下载插件失败: %v", err))
 			c.String(http.StatusOK, lib_web.FmtJson(nil, fmt.Errorf("下载插件失败: %w", err)))
 			return
@@ -182,7 +197,7 @@ func DownloadRemotePlugin(c *gin.Context) {
 		}
 
 		// 增加安装次数
-		if err := increaseInstallCount(node.VersionId); err != nil {
+		if err := increaseInstallCount(cast.ToInt(node.VersionId)); err != nil {
 			logs.Error(fmt.Sprintf("增加安装次数失败: %v", err))
 			c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 			return

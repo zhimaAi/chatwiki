@@ -137,6 +137,19 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/09/18**
+
+1.[STD] Cloud version human handoff settings: User intent-based handoff now supports custom recognition criteria<br/>
+2.[STD] Added credit usage statistics to the cloud version<br/>
+3.[STD] Fixed an issue where the trigger count in human handoff keyword statistics did not change based on the selected
+time range<br/>
+4.[STD] Cloud version VIP system: Added the Flagship Edition<br/>
+5.System security optimization: Plugin download URLs are now retrieved from the server<br/>
+6.[STD] Limited the number of workflow calls in the free cloud version<br/>
+7.Workflow HTTP request node: Adjusted the timeout duration<br/>
+8.[STD] Fixed incorrect model names being stored for custom model statistics<br/>
+9.Knowledge base retrieval test: The browser now remembers entered content, and the page has been optimized<br/>
+
 **2026/09/04**
 
 1.[STD]Q&A knowledge base recycle bin: Added one-click emptying<br/>
@@ -153,14 +166,6 @@ returned correctly<br/>
 4.[STD] Fixed an issue where clicking the account in the upper-right corner of the admin panel displayed a "No available
 SSO configuration found" message<br/>
 5.Refactored large language model service calls<br/>
-
-**2026/08/14**
-
-1.[STD] Cloud version custom models support time-based pricing (compatible with DeepSeek's new pricing policy)<br/>
-2.BookToSkill: Optimized functionality, added update logic, and added online OCR support (via Alibaba Cloud API)<br/>
-3.Bot prompts: Added support for inserting the current time system variable<br/>
-4.[STD] Added the Agent official website (https://chatwikiagent.xiaokefu.com.cn)<br/>
-5.Thinking is disabled by default for all models with optional thinking unless explicitly enabled by the user<br/>
 
 ## License
 
