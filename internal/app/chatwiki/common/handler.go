@@ -66,6 +66,17 @@ func GetOpenRouterHandle(modelInfo ModelInfo, config msql.Params, useModel strin
 	return newModelCallHandler(modelInfo, config, useModel, clientConfig)
 }
 
+func GetOrcaRouterHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
+	clientConfig := llm.ClientConfig{
+		Provider: llm.ProviderOpenAI,
+		BaseURL:  ResolveOrcaRouterEndpoint(),
+		Credentials: llm.CredentialConfig{
+			APIKeys: config[`api_key`],
+		},
+	}
+	return newModelCallHandler(modelInfo, config, useModel, clientConfig)
+}
+
 func GetDeepseekHandle(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error) {
 	clientConfig := llm.ClientConfig{
 		Provider: llm.ProviderDeepSeek,
@@ -292,4 +303,11 @@ func GetMinimaxHandle(modelInfo ModelInfo, config msql.Params, useModel string) 
 
 func ResolveOpenRouterEndpoint() string {
 	return ``
+}
+
+func ResolveOrcaRouterEndpoint() string {
+	// OrcaRouter exposes an OpenAI-compatible gateway at the /v1 namespace.
+	// Returning the full endpoint here keeps the provider self-contained so the
+	// OpenAI-compatible client does not need any provider-specific default.
+	return DefaultOrcaRouterEndpoint + `/v1`
 }
