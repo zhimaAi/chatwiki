@@ -22,7 +22,7 @@ func IsKeywordSwitchManual(params *define.ChatRequestParam, sessionId, dialogueI
 	return nil, false
 }
 
-func IsIntentionSwitchManual(params *define.ChatRequestParam, sessionId, dialogueId int, monitor *common.Monitor, chanStream chan sse.Event) (msql.Params, bool) {
+func IsIntentionSwitchManual(params *define.ChatRequestParam, sessionId, dialogueId int, curMsgId int64, monitor *common.Monitor, chanStream chan sse.Event) (msql.Params, bool) {
 	return nil, false
 }
 

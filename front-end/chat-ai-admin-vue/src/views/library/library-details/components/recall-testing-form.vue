@@ -1,272 +1,149 @@
-<style lang="less" scoped>
-.recall-settings-box {
-  padding: 0 16px;
-  .alert-box {
-    padding: 9px 16px;
-    border: 1px solid #99bffd;
-    background: #e9f1fe;
-    border-radius: 2px;
-    color: #3a4559;
-    font-size: 14px;
-    line-height: 22px;
-    font-weight: 400;
-    margin-bottom: 16px;
-  }
-  .form-box {
-    .form-item {
-      margin-bottom: 24px;
-    }
-
-    .form-item-label {
-      line-height: 22px;
-      margin-bottom: 4px;
-      font-size: 14px;
-      color: #262626;
-
-      .question-icon {
-        color: #8c8c8c;
-      }
-    }
-    .hover-label{
-      padding: 0 8px;
-      width: fit-content;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      &:hover{
-        background: var(--07, #E4E6EB);
-      }
-    }
-
-    .is-required {
-      .form-item-label::before {
-        content: '*';
-        padding-right: 2px;
-        font-size: 14px;
-        color: #fb363f;
-      }
-    }
-
-    .number-box {
-      display: flex;
-      align-items: center;
-
-      .number-slider-box {
-        flex: 1;
-      }
-
-      .number-input-box {
-        margin-left: 20px;
-      }
-    }
-
-    .retrieval-mode-items {
-      .retrieval-mode-item {
-        position: relative;
-        padding: 16px;
-        margin-top: 8px;
-        border-radius: 2px;
-        border: 1px solid #d9d9d9;
-        cursor: pointer;
-      }
-
-      .retrieval-mode-title {
-        display: flex;
-        align-items: center;
-        line-height: 22px;
-        margin-bottom: 4px;
-        color: #262626;
-
-        .title-icon {
-          margin-right: 4px;
-          font-size: 16px;
-        }
-
-        .title-text {
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .recommendation-icon {
-          margin-left: 4px;
-        }
-      }
-
-      .retrieval-mode-desc {
-        min-height: 44px;
-        line-height: 22px;
-        font-size: 14px;
-        color: #595959;
-      }
-
-      .check-arrow {
-        display: none;
-      }
-    }
-
-    .retrieval-mode-item.active {
-      border: 2px solid #2475fc;
-
-      .check-arrow {
-        position: absolute;
-        display: block;
-        right: -1px;
-        bottom: -1px;
-        width: 24px;
-        height: 24px;
-        font-size: 24px;
-        color: #fff;
-      }
-
-      .retrieval-mode-title {
-        color: #2475fc;
-      }
-    }
-  }
-}
-
-.model-icon {
-  height: 18px;
-}
-</style>
-
 <template>
   <div class="recall-settings-box">
-    <div class="alert-box">
-      {{ t('alert_tip') }}
+    <div class="form-heading">
+      <img src="@/assets/img/library/detail/recall-settings.svg" alt="" />
+      <span>{{ t('title_retrieval_config') }}</span>
     </div>
-    <div class="form-box">
-      <div class="form-item">
-        <div class="form-item-body">
-          <a-textarea
-            style="height: 76px"
-            v-model:value="formState.question"
-            :placeholder="t('ph_test_question')"
+
+    <div class="form-item question-item">
+      <div class="form-item-label">{{ t('label_test_question') }}</div>
+      <div class="question-entry">
+        <a-textarea
+          v-model:value="formState.question"
+          class="question-textarea"
+          :placeholder="t('ph_test_question')"
+          :auto-size="{ minRows: 2, maxRows: 8 }"
+        />
+        <div class="question-actions">
+          <a-button type="primary" :loading="loading" @click="handleRecallTest">
+            {{ t('btn_test') }}
+            <span v-if="!loading" class="send-icon">
+              <img src="@/assets/img/library/detail/recall-test-arrow.svg" alt="" />
+            </span>
+          </a-button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-item retrieval-item">
+      <div class="form-item-label">{{ t('label_retrieval_mode') }}</div>
+      <div class="retrieval-mode-items">
+        <div
+          v-for="item in retrievalModeList"
+          :key="item.value"
+          class="retrieval-mode-item"
+          :class="{ active: formState.search_type == item.value }"
+          role="radio"
+          :aria-checked="formState.search_type == item.value"
+          tabindex="0"
+          @click="handleSelectRetrievalMode(item.value)"
+          @keydown.enter.prevent="handleSelectRetrievalMode(item.value)"
+          @keydown.space.prevent="handleSelectRetrievalMode(item.value)"
+        >
+          <svg-icon :name="item.iconName" class="mode-icon" />
+          <span class="mode-title">{{ item.title }}</span>
+          <SvgTextTag
+            v-if="item.isRecommendation"
+            class="recommendation-tag"
+            :text="tCommon('recommendation')"
+            :width="36"
+            :height="21"
+            :border-radius="6"
+            background-color="#fb363f"
+            text-color="#fff"
+            :font-size="12"
           />
+          <span class="selection-dot">
+            <CheckOutlined v-if="formState.search_type == item.value" />
+          </span>
         </div>
       </div>
-      <div class="form-item">
-        <a-button :loading="loading" @click="handleRecallTest" type="primary" block>{{ t('btn_test') }}</a-button>
+      <div class="retrieval-mode-desc">
+        {{ selectedRetrievalMode?.desc }}
       </div>
-      <div class="form-item">
-        <div class="form-item-label">
-          <div class="hover-label" @click="isHide = !isHide">
-            {{ t('label_retrieval_mode') }}
-            <DownOutlined v-if="isHide" />
-            <UpOutlined v-else />
+    </div>
+
+    <div v-if="formState.search_type == 1" class="form-item weight-item">
+      <div class="weight-slider-box" :style="weightCssVars">
+        <div class="form-label-block">
+          <div class="label-title">
+            {{ tWeight('label_weight') }}
+            <a-tooltip>
+              <template #title>
+                {{ tWeight('tooltip_weight') }}
+              </template>
+              <QuestionCircleOutlined />
+            </a-tooltip>
           </div>
-        </div>
-        <div class="form-item-body">
-          <div class="retrieval-mode-items">
-            <div
-              class="retrieval-mode-item"
-              :class="{ active: formState.search_type == item.value }"
-              v-for="item in showRetrievalModeList"
-              :key="item.value"
-              @click="handleSelectRetrievalMode(item.value)"
-            >
-              <svg-icon
-                class="check-arrow"
-                name="check-arrow-filled"
-                v-if="formState.search_type == item.value"
-              ></svg-icon>
-
-              <div class="retrieval-mode-title">
-                <svg-icon :name="item.iconName" class="title-icon"></svg-icon>
-                <span class="title-text">{{ item.title }}</span>
-                <SvgTextTag class="recommendation-icon" :text="tCommon('recommendation')" v-if="item.isRecommendation" />
-              </div>
-
-              <div class="retrieval-mode-desc">
-                {{ item.desc }}
-              </div>
+          <div class="item-list-box">
+            <div class="list-item vector">
+              <span class="dot"></span>
+              <span class="text">{{ tWeight('label_vector') }}：{{ weightFormatter(formState.rrf_weight.vector) }}</span>
+            </div>
+            <div class="list-item fulltext">
+              <span class="dot"></span>
+              <span class="text">{{ tWeight('label_fulltext') }}：{{ weightFormatter(formState.rrf_weight.search) }}</span>
             </div>
           </div>
         </div>
+        <a-slider v-model:value="weightValue" :tip-formatter="weightFormatter" @change="handleWeightChange" />
       </div>
-
-      <div class="form-item" v-if="formState.search_type == 1">
-        <WeightSelect v-model:rrf_weight="formState.rrf_weight" />
+      <div class="weight-hints">
+        <span>{{ t('hint_semantic') }}</span>
+        <span>{{ t('hint_keyword') }}</span>
       </div>
+    </div>
 
+    <div class="range-fields">
       <div class="form-item">
         <div class="form-item-label">
-          <span>{{ t('label_top_k') }}&nbsp;</span>
+          <span>{{ t('label_top_k') }}</span>
           <a-tooltip>
-            <template #title
-              >{{ t('tooltip_top_k') }}</template
-            >
+            <template #title>{{ t('tooltip_top_k') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
-        <div class="form-item-body">
-          <div class="number-box">
-            <div class="number-slider-box">
-              <a-slider class="custom-slider" v-model:value="formState.size" :min="1" :max="500" />
-            </div>
-            <div class="number-input-box">
-              <a-input-number v-model:value="formState.size" :min="1" :max="500" />
-            </div>
-          </div>
+        <div class="number-box">
+          <a-slider v-model:value="formState.size" :min="1" :max="500" />
+          <a-input-number v-model:value="formState.size" :min="1" :max="500" />
         </div>
       </div>
-
-      <div class="form-item" v-if="formState.search_type <= 2">
+      <div v-if="formState.search_type <= 2" class="form-item">
         <div class="form-item-label">
-          <span>{{ t('label_similarity_threshold') }}&nbsp;</span>
+          <span>{{ t('label_similarity_threshold') }}</span>
           <a-tooltip>
             <template #title>{{ t('tooltip_similarity_threshold') }}</template>
             <QuestionCircleOutlined class="question-icon" />
           </a-tooltip>
         </div>
-        <div class="form-item-body">
-          <div class="number-box">
-            <div class="number-slider-box">
-              <a-slider
-                class="custom-slider"
-                v-model:value="formState.similarity"
-                :min="0"
-                :max="1"
-                :step="0.01"
-              />
-            </div>
-            <div class="number-input-box">
-              <a-input-number v-model:value="formState.similarity" :min="0" :max="1" :step="0.01" />
-            </div>
-          </div>
+        <div class="number-box">
+          <a-slider v-model:value="formState.similarity" :min="0" :max="1" :step="0.01" />
+          <a-input-number v-model:value="formState.similarity" :min="0" :max="1" :step="0.01" />
         </div>
       </div>
+    </div>
 
-      <div class="form-item" v-if="formState.search_type == 1 || formState.search_type == 3">
-        <div class="form-item-label">
-          {{ t('label_full_text_search_mode') }}
-        </div>
-        <div class="form-item-body">
-          <a-radio-group v-model:value="formState.library_search_type">
-            <a-radio value="fullTextSearch">{{ t('full_text_search') }}</a-radio>
-            <a-radio value="keywordSearch">{{ t('keyword_match') }}</a-radio>
-          </a-radio-group>
-        </div>
-      </div>
+    <div v-if="formState.search_type == 1 || formState.search_type == 3" class="form-item fulltext-item">
+      <div class="form-item-label">{{ t('label_full_text_search_mode') }}</div>
+      <a-radio-group v-model:value="formState.library_search_type">
+        <a-radio value="fullTextSearch">{{ t('full_text_search') }}</a-radio>
+        <a-radio value="keywordSearch">{{ t('keyword_match') }}</a-radio>
+      </a-radio-group>
+    </div>
 
-      <div class="form-item">
-        <div class="form-item-label">
-          <span>{{ t('label_rerank_model') }}</span>
-          &nbsp;
-          <a-switch
-            :checkedValue="1"
-            :unCheckedValue="0"
-            v-model:checked="formState.rerank_status"
-          />
-        </div>
-        <div class="form-item-body">
+    <div class="form-item rerank-item">
+      <div class="form-item-label">{{ t('label_rerank_model') }}</div>
+      <div class="rerank-controls">
+        <a-switch
+          v-model:checked="formState.rerank_status"
+          :checkedValue="1"
+          :unCheckedValue="0"
+        />
+        <div class="rerank-model">
           <ModelSelect
-            modelType="RERANK"
             v-model:modeName="formState.rerank_use_model"
             v-model:modeId="formState.rerank_model_config_id"
-            style="width: 320px"
+            modelType="RERANK"
             :placeholder="t('ph_select_rerank_model')"
           />
         </div>
@@ -276,28 +153,29 @@
 </template>
 
 <script setup>
-import { reactive, ref, toRaw, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/hooks/web/useI18n'
-import { QuestionCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
+import { useStorage } from '@/hooks/web/useStorage'
+import { QuestionCircleOutlined, CheckOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { libraryRecallTest, getDefaultRrfWeight } from '@/api/library'
-import WeightSelect from '@/components/weight-select/index.vue'
 import SvgTextTag from '@/components/icons/SvgTextTag.vue'
 
 const { t } = useI18n('views.library.library-details.components.recall-testing-form')
 const { t: tCommon } = useI18n('common')
+// 复用公共权重选择组件的文案命名空间，保证中英文案一致
+const { t: tWeight } = useI18n('components.weight-select.index')
 
 const route = useRoute()
 const loading = ref(false)
+const { getStorage, setStorage } = useStorage('localStorage')
+const storageKey = `libraryRecallTest:${route.query.id ?? 'default'}`
+const emit = defineEmits(['save', 'load', 'error'])
 
-const emit = defineEmits(['save', 'load'])
-
-const isHide = ref(true)
-
-const retrievalModeList = ref([
-{
+const retrievalModeList = computed(() => [
+  {
     iconName: 'mix-icon',
     title: t('mode_mix_title'),
     value: 1,
@@ -311,20 +189,12 @@ const retrievalModeList = ref([
     desc: t('mode_vector_desc')
   },
   {
-    iconName: 'graph-icon',
-    title: t('mode_graph_title'),
-    value: 4,
-    desc: t('mode_graph_desc')
-  },
-  {
     iconName: 'search-check-icon',
     title: t('mode_fulltext_title'),
     value: 3,
     desc: t('mode_fulltext_desc')
-  },
+  }
 ])
-
-
 
 const formState = reactive({
   rerank_status: 0,
@@ -337,48 +207,128 @@ const formState = reactive({
   id: route.query.id,
   rrf_weight: {
     vector: 0,
-    search: 0,
-    graph: 0,
+    search: 100,
+    graph: 0
   },
   library_search_type: 'fullTextSearch'
 })
 
-const showRetrievalModeList = computed(()=>{
-  if(isHide.value){
-    return retrievalModeList.value.filter(item => item.value == formState.search_type )
-  }else{
-    return retrievalModeList.value
+const selectedRetrievalMode = computed(() =>
+  retrievalModeList.value.find((mode) => mode.value === formState.search_type)
+)
+
+const persistedFields = [
+  'question',
+  'search_type',
+  'size',
+  'similarity',
+  'rrf_weight',
+  'library_search_type',
+  'rerank_status',
+  'rerank_use_model',
+  'rerank_model_config_id'
+]
+let hasResolvedRrfWeight = false
+
+// 产品要求：召回测试不展示图谱权重，graph 固定为 0，全文权重 = 100 - 向量权重
+const normalizeRrfWeight = (weight) => {
+  const vector = Number(weight?.vector) || 0
+  return { vector, search: 100 - vector, graph: 0 }
+}
+
+// 本页面内联两段权重滑块（向量/全文），不复用公共 WeightSelect，避免改动影响其他页面
+const weightValue = ref(0)
+
+const handleWeightChange = () => {
+  formState.rrf_weight = normalizeRrfWeight({ vector: weightValue.value })
+}
+
+watch(
+  () => formState.rrf_weight,
+  (val) => {
+    weightValue.value = Number(val?.vector) || 0
+  },
+  { immediate: true, deep: true }
+)
+
+const weightCssVars = computed(() => ({
+  '--background-liner': `linear-gradient(to right, #2475fc ${weightValue.value}%, #03B615 ${100 - weightValue.value}%)`
+}))
+
+function weightFormatter(value) {
+  if (value <= 0) {
+    return 0
   }
-})
-
-const handleChangeRerankModel = (val, option) => {
-  formState.rerank_model_config_id = option.rerank_model_config_id
+  if (value >= 100) {
+    return 1
+  }
+  return (value / 100).toFixed(2)
 }
 
-const handleSelectRetrievalMode = (val) => {
-  formState.search_type = val
-}
-
-const checkRerank = () => {
-  if (formState.rerank_status == 1 && !formState.rerank_model_config_id) {
-    return true
+const restoreFormState = () => {
+  let storedState
+  try {
+    storedState = getStorage(storageKey)
+  } catch {
+    return false
+  }
+  if (!storedState || typeof storedState !== 'object' || Array.isArray(storedState)) {
+    return false
   }
 
-  return false
-}
+  const hasStoredRrfWeight = Boolean(
+    storedState.rrf_weight &&
+    typeof storedState.rrf_weight === 'object' &&
+    ['vector', 'search', 'graph'].every((key) => typeof storedState.rrf_weight[key] === 'number')
+  )
 
-const handleSave = () => {
-  if (checkRerank()) {
-    return message.error(t('msg_select_rerank_model'))
+  persistedFields.forEach((field) => {
+    const canRestore = field !== 'rrf_weight' || hasStoredRrfWeight
+    if (canRestore && Object.prototype.hasOwnProperty.call(storedState, field)) {
+      formState[field] = storedState[field]
+    }
+  })
+
+  if (hasStoredRrfWeight) {
+    formState.rrf_weight = normalizeRrfWeight(formState.rrf_weight)
   }
 
-  show.value = false
-  triggerChange()
+  // 旧缓存可能包含已移除的知识图谱模式，回退到当前可见的默认模式。
+  if (!retrievalModeList.value.some((mode) => mode.value === formState.search_type)) {
+    formState.search_type = 1
+  }
+
+  hasResolvedRrfWeight = hasStoredRrfWeight
+  return hasStoredRrfWeight
 }
 
-const triggerChange = () => {
-  emit('change', toRaw(formState))
+const saveFormState = () => {
+  const storedState = {}
+  persistedFields.forEach((field) => {
+    if (field !== 'rrf_weight' || hasResolvedRrfWeight) {
+      storedState[field] = formState[field]
+    }
+  })
+  try {
+    setStorage(storageKey, storedState)
+  } catch {
+    // 浏览器禁用本地存储时，保留当前表单供本次测试使用。
+  }
 }
+
+watch(
+  () => formState.rrf_weight,
+  () => {
+    hasResolvedRrfWeight = true
+  },
+  { deep: true }
+)
+watch(formState, saveFormState, { deep: true })
+
+const handleSelectRetrievalMode = (value) => {
+  formState.search_type = value
+}
+
 const handleRecallTest = () => {
   if (!formState.similarity) {
     return message.error(t('msg_input_similarity'))
@@ -389,7 +339,7 @@ const handleRecallTest = () => {
   if (!formState.question) {
     return message.error(t('msg_input_question'))
   }
-  let parmas = {
+  const params = {
     id: formState.id,
     question: formState.question,
     size: formState.size,
@@ -399,33 +349,358 @@ const handleRecallTest = () => {
     library_search_type: formState.library_search_type
   }
   if (formState.rerank_status == 1) {
-    parmas.rerank_model_config_id = formState.rerank_model_config_id
-    parmas.rerank_use_model = formState.rerank_use_model
+    params.rerank_model_config_id = formState.rerank_model_config_id
+    params.rerank_use_model = formState.rerank_use_model
   }
   loading.value = true
-  emit('load');
-  libraryRecallTest(parmas)
+  emit('load')
+  libraryRecallTest(params)
     .then((res) => {
       emit('save', res.data)
     })
     .catch(() => {
-      emit('save', [])
+      emit('error')
     })
     .finally(() => {
       loading.value = false
     })
 }
 
-onMounted(() => {
-  getDefaultRrfWeight().then((res) => {
-    formState.rrf_weight = res.data || {
-      vector: 0,
-      search: 0,
-      graph: 0
-    }
-  })
-})
 defineExpose({
-  open
+  retry: handleRecallTest
+})
+
+onMounted(() => {
+  const hasStoredRrfWeight = restoreFormState()
+  if (!hasStoredRrfWeight) {
+    getDefaultRrfWeight().then((res) => {
+      if (hasResolvedRrfWeight) return
+      hasResolvedRrfWeight = true
+      formState.rrf_weight = normalizeRrfWeight(res.data || {
+        vector: 0,
+        search: 0,
+        graph: 0
+      })
+    })
+  }
 })
 </script>
+
+<style lang="less" scoped>
+.recall-settings-box {
+  height: 100%;
+  overflow-y: auto;
+  padding: 0 24px 32px;
+  color: #262626;
+  scrollbar-width: thin;
+  scrollbar-color: #c5cedb transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: #c5cedb;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #9eacc0;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .form-heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+
+    img {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .form-item-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .question-icon {
+    color: #8c8c8c;
+  }
+
+  .question-item {
+    margin-bottom: 40px;
+  }
+
+  .question-entry {
+    min-height: 100px;
+    padding: 10px 10px 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 8%);
+
+    :deep(.question-textarea) {
+      padding: 0;
+      resize: none;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+      font-size: 14px;
+    }
+
+    .question-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 2px;
+    }
+
+    :deep(.ant-btn) {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 68px;
+      height: 28px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 6px;
+      background: #3157e2;
+      box-shadow: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 22px;
+    }
+
+    .send-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 16px;
+      height: 16px;
+      overflow: hidden;
+    }
+
+    .send-icon img {
+      width: 9.33px;
+      height: 11.33px;
+      transform: rotate(-90deg) scaleX(-1);
+    }
+  }
+
+  .retrieval-item {
+    margin-bottom: 24px;
+  }
+
+  .retrieval-mode-items {
+    display: flex;
+    gap: 8px;
+  }
+
+  .retrieval-mode-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    color: #595959;
+    cursor: pointer;
+
+    &.active {
+      border-color: #3157e2;
+      background: #f5f9ff;
+      color: #3157e2;
+      font-weight: 600;
+    }
+
+    .mode-icon {
+      flex: none;
+      font-size: 16px;
+    }
+
+    .mode-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+
+    .recommendation-tag {
+      flex: none;
+    }
+
+    .selection-dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 16px;
+      height: 16px;
+      margin-left: auto;
+      border: 1px solid #d9d9d9;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 10px;
+    }
+
+    &.active .selection-dot {
+      border-color: #3157e2;
+      background: #3157e2;
+    }
+  }
+
+  .retrieval-mode-desc {
+    margin-top: 10px;
+    color: #8c8c8c;
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  .weight-item {
+    margin-bottom: 24px;
+
+    .weight-slider-box {
+      .form-label-block {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 24px;
+
+        .label-title {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          margin-right: 8px;
+        }
+
+        .item-list-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+
+          .list-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 6px;
+            border-radius: 5px;
+            background: #f3f7ff;
+            font-size: 12px;
+            line-height: 18px;
+
+            & + .list-item {
+              background: #f0f9f3;
+            }
+
+            .dot {
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+            }
+
+            &.vector {
+              color: #2475fc;
+
+              .dot {
+                background: #2475fc;
+              }
+            }
+
+            &.fulltext {
+              color: #03b615;
+
+              .dot {
+                background: #03b615;
+              }
+            }
+          }
+        }
+      }
+
+      :deep(.ant-slider) {
+        margin: 8px 0 4px;
+
+        .ant-slider-rail {
+          background: var(--background-liner);
+        }
+
+        .ant-slider-track {
+          background: #2475fc;
+        }
+      }
+    }
+  }
+
+  .weight-hints {
+    display: flex;
+    justify-content: space-between;
+    color: #8c8c8c;
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  .range-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .number-box {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+
+    :deep(.ant-slider) {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+
+    :deep(.ant-input-number) {
+      flex: none;
+      width: 80px;
+    }
+  }
+
+  .fulltext-item {
+    margin-bottom: 24px;
+  }
+
+  .rerank-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .rerank-model {
+      width: 220px;
+      max-width: calc(100% - 60px);
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .recall-settings-box {
+    height: auto;
+    overflow: visible;
+  }
+}
+</style>

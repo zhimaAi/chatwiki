@@ -65,7 +65,6 @@ function install() {
   installing.value = true
   downloadPlugin({
     download_data: JSON.stringify([{
-      url: version.value.download_url,
       version_id: version.value.id
     }])
   }).then(() => {

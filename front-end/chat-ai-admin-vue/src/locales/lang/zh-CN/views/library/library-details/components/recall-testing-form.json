@@ -1,6 +1,10 @@
 {
-  "alert_tip": "用户提问时，会将召回的文档分段传递给大模型，大模型会根据传递的分段回答用户提问。您可以通过召回测试，输入问题查看匹配的文档分段和相似度",
-  "ph_test_question": "请输入测试问题",
+  "alert_tip": "用户提问时，召回的文档分段将传递给大模型，用于生成回答。你可以输入问题，查看匹配的文档分段和相似度。",
+  "title_retrieval_config": "检索配置",
+  "label_test_question": "测试问题",
+  "ph_test_question": "请输入问题",
+  "hint_semantic": "更关注语义理解",
+  "hint_keyword": "更关注关键词匹配",
   "btn_test": "测试",
   "label_retrieval_mode": "检索模式",
   "mode_mix_title": "混合检索",

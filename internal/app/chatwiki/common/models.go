@@ -44,6 +44,7 @@ type ModelCallHandler struct {
 	modelInfo           *ModelInfo
 	Client              *llm.Client
 	Model               string
+	LogModel            string
 	EmbeddingDimensions *int
 	ChoosableThinking   bool
 	config              msql.Params
@@ -670,6 +671,7 @@ func GetModelCallHandler(lang string, adminUserId, modelConfigId int, useModel s
 	}
 	handler.modelInfo = &modelInfo //save quote
 	handler.CurModelMap = curModelMap
+	handler.LogModel = useModel
 	return handler, nil
 }
 
@@ -829,7 +831,7 @@ func (h *ModelCallHandler) GetVector2000(ctx context.Context, lang string, admin
 	}
 	res.Data[0].Embedding = embedding.FloatEmbedding(values)
 	//go func() {
-	err = LlmLogRequest(lang, TextEmbedding, adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.Model, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, req, res)
+	err = LlmLogRequest(lang, TextEmbedding, adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.LogModel, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, req, res)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -847,7 +849,7 @@ func (h *ModelCallHandler) RequestRerank(ctx context.Context, lang string, admin
 	}
 	inputToken, outputToken := rerankTokens(res)
 	//go func() {
-	err = LlmLogRequest(lang, Rerank, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Model, inputToken, outputToken, req, res)
+	err = LlmLogRequest(lang, Rerank, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, inputToken, outputToken, req, res)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1023,7 +1025,7 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Model, totalResponse.Usage.PromptTokens, totalResponse.Usage.CompletionTokens, req, providerResponse)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.PromptTokens, totalResponse.Usage.CompletionTokens, req, providerResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1127,7 +1129,7 @@ func (h *ModelCallHandler) RequestChat(
 		resp.IsValidFunctionCall = true
 	}
 	//go func() {
-	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.Model, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, req, providerResponse)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, req, providerResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1258,8 +1260,7 @@ func (h *ModelCallHandler) RequestImageGenerate(ctx context.Context, lang string
 	if err := persistImageResponse(adminUserId, res); err != nil {
 		return res, err
 	}
-	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, msql.Params{}, h.config, appType,
-		msql.Params{}, h.Model, res.Usage.InputTokens, res.Usage.OutputTokens, imageRequestLog(params, files), res)
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, res.Usage.InputTokens, res.Usage.OutputTokens, imageRequestLog(params, files), res)
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1338,7 +1339,7 @@ func (h *ModelCallHandler) RequestImageGenerateStream(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.Model, totalResponse.Usage.InputTokens, totalResponse.Usage.OutputTokens, imageRequestLog(params, files), totalResponse)
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.InputTokens, totalResponse.Usage.OutputTokens, imageRequestLog(params, files), totalResponse)
 	if err != nil {
 		logs.Error(err.Error())
 	}

@@ -1849,7 +1849,7 @@ func (params *CurlNodeParams) Verify(lang string) error {
 			return errors.New(i18n.Show(lang, `body_param_type_error`))
 		}
 	}
-	if params.Timeout > 60 {
+	if params.Timeout > 300 {
 		return errors.New(i18n.Show(lang, `request_timeout_max_value`))
 	}
 	//Output field validation
