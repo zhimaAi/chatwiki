@@ -950,7 +950,8 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 	enableThinking ThinkingSwitch,
 ) (ChatResponse, int64, bool, ModelErrStage, error) {
 	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
-		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
+		messages = ConvertQuestionMultiple(append([]chat.Message(nil), messages...)) // Convert to multimodal input structure
+		messages = convertUnsupportedQuestionParts(messages, h.CurModelMap[Llm].ModelInputSupport)
 	}
 	req := h.chatRequest(messages, functionTools, temperature, maxToken, enableThinking)
 	streamRequest := &chat.StreamRequest{CreateRequest: *req}
@@ -1109,7 +1110,8 @@ func (h *ModelCallHandler) RequestChat(
 	enableThinking ThinkingSwitch,
 ) (ChatResponse, int64, error) {
 	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
-		messages = ConvertQuestionMultiple(messages) // Convert to multimodal input structure
+		messages = ConvertQuestionMultiple(append([]chat.Message(nil), messages...)) // Convert to multimodal input structure
+		messages = convertUnsupportedQuestionParts(messages, h.CurModelMap[Llm].ModelInputSupport)
 	}
 	req := h.chatRequest(messages, functionTools, temperature, maxToken, enableThinking)
 	var functionToolCall chat.ToolCall

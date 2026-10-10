@@ -38,25 +38,55 @@
         </div>
       </div>
 
-      <div class="prompt-content-box" :class="{ editing }">
-        <a-textarea
-          v-if="editing"
-          v-model:value="draftPrompt"
-          class="prompt-textarea"
-          :disabled="props.loading"
-        />
-        <div v-else class="prompt-content">{{ displayPrompt }}</div>
+      <div v-if="editing" class="prompt-insert-tip">{{ promptWordsT('msg_var_insert_tip_custom') }}</div>
+      <div class="prompt-content-box" :class="{ editing, 'is-disabled': !editing || props.loading }">
+        <AtInput
+          ref="atInputRef"
+          class="prompt-at-input"
+          type="textarea"
+          :defaultValue="draftPrompt"
+          :placeholder="editing ? '' : t('msg_no_prompt')"
+          :options="variableOptions"
+          :cardOptions="miniCardOptions"
+          :enableCardInsert="true"
+          :checkAnyLevel="true"
+          @change="handlePromptChange"
+        >
+          <template #dropdown="{ options, select, cardOptions, selectCard, close }">
+            <SlashPopupPanel
+              :options="options"
+              :cardOptions="cardOptions"
+              :select="select"
+              :selectCard="selectCard"
+              :close="close"
+              @add-tag="handleAddVariable"
+              @add-card="handleAddMiniCard"
+              @edit-card="handleEditMiniCard"
+            />
+          </template>
+        </AtInput>
       </div>
     </div>
+    <AddVariableModal ref="addVariableModalRef" :robotKey="props.robotKey" @ok="loadChatVariables" />
+    <MiniCardFormModal ref="miniCardFormModalRef" @ok="() => miniCardStore.fetchCardList(true)" />
   </a-drawer>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
+import { getChatVariables } from '@/api/robot/index'
+import { useClawbotChatStore } from '@/stores/modules/clawbot-chat'
+import { useMiniCardStore } from '@/stores/modules/mini-card'
+import AtInput from '@/views/robot/robot-config/basic-config/components/at-input/index.vue'
+import SlashPopupPanel from '@/views/robot/robot-config/basic-config/components/slash-popup-panel.vue'
+import AddVariableModal from '@/views/robot/robot-config/basic-config/components/variable-setting/add-variable-modal.vue'
+import MiniCardFormModal from '@/components/mini-card/mini-card-form-modal.vue'
 
 const { t } = useI18n('views.clawbot.chat.components.prompt-drawer')
+const { t: promptWordsT } = useI18n('views.robot.robot-config.basic-config.components.system-prompt-words')
 const emit = defineEmits(['close', 'save'])
 
 const props = defineProps({
@@ -68,6 +98,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  robotKey: {
+    type: String,
+    default: ''
+  },
   loading: {
     type: Boolean,
     default: false
@@ -76,20 +110,75 @@ const props = defineProps({
 
 const editing = ref(false)
 const draftPrompt = ref('')
+const atInputRef = ref(null)
+const addVariableModalRef = ref(null)
+const miniCardFormModalRef = ref(null)
+const chatStore = useClawbotChatStore()
+const miniCardStore = useMiniCardStore()
+const chatVariables = ref([])
+let variableRequestVersion = 0
 
-const displayPrompt = computed(() => {
-  return props.prompt || t('msg_no_prompt')
-})
+const systemVariables = [
+  { id: 'system_current_time', label: '当前时间-系统变量', value: '【system_var:current_time】', typ: '系统变量' },
+  { id: 'system_current_date', label: '当前日期-系统变量', value: '【system_var:current_date】', typ: '系统变量' }
+]
+
+const variableOptions = computed(() => [
+  ...systemVariables,
+  ...chatVariables.value.map((item) => ({
+    ...item,
+    label: `${item.variable_key}（${item.variable_name}）`,
+    value: `【chat_variable:${item.variable_key}】`
+  }))
+])
+
+const miniCardOptions = computed(() => miniCardStore.cardList.map((item) => ({
+  ...item,
+  label: `小程序卡片：${item.title}`,
+  value: `【mini_card:${item.id}】`
+})))
+
+const loadChatVariables = async () => {
+  const robotKey = props.robotKey
+  const requestVersion = ++variableRequestVersion
+  chatVariables.value = []
+  if (!robotKey) return
+  try {
+    const res = await getChatVariables({ robot_key: robotKey })
+    if (requestVersion === variableRequestVersion && robotKey === props.robotKey) {
+      const list = res.data || []
+      chatVariables.value = list
+      if (chatStore.robot.robot_key === robotKey) {
+        const fillVariables = chatStore.chat_variables.fill_variables || []
+        chatStore.chat_variables.wait_variables = list
+        chatStore.chat_variables.need_fill_variable = list.length > 0 && fillVariables.length === 0
+      }
+    }
+  } catch {
+    if (requestVersion === variableRequestVersion) chatVariables.value = []
+  }
+}
 
 watch(
-  () => props.open,
-  (open) => {
+  () => [props.open, props.robotKey],
+  ([open]) => {
+    variableRequestVersion++
+    chatVariables.value = []
     if (open) {
       editing.value = false
       draftPrompt.value = props.prompt || ''
+      loadChatVariables()
+      miniCardStore.fetchCardList()
     }
   }
 )
+
+watch([variableOptions, miniCardOptions], () => {
+  nextTick(() => {
+    if (editing.value) atInputRef.value?.updateValue()
+    atInputRef.value?.refresh()
+  })
+})
 
 watch(
   () => props.prompt,
@@ -112,7 +201,23 @@ const handleClose = () => {
 const handleStartEdit = () => {
   draftPrompt.value = props.prompt || ''
   editing.value = true
+  nextTick(() => atInputRef.value?.refresh())
 }
+
+const handlePromptChange = (text) => {
+  if (editing.value && !props.loading) draftPrompt.value = text
+}
+
+const handleAddVariable = () => {
+  if (!props.robotKey) return
+  if (chatVariables.value.length >= 10) {
+    return message.error(promptWordsT('msg_max_variables'))
+  }
+  addVariableModalRef.value?.show()
+}
+
+const handleAddMiniCard = () => miniCardFormModalRef.value?.show()
+const handleEditMiniCard = (card) => miniCardFormModalRef.value?.edit(card)
 
 const handleCancelEdit = () => {
   if (props.loading) {
@@ -123,6 +228,7 @@ const handleCancelEdit = () => {
 }
 
 const handleSave = () => {
+  atInputRef.value?.updateValue()
   emit('save', draftPrompt.value)
 }
 </script>
@@ -220,13 +326,44 @@ const handleSave = () => {
 .prompt-content-box {
   flex: 1;
   margin: 0 16px 16px;
-  
+  position: relative;
   border-radius: 8px;
   background: #f2f4f7;
   overflow: hidden;
   &.editing {
     padding: 0;
   }
+  &.is-disabled::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .prompt-at-input {
+    height: 100%;
+  }
+  :deep(.mention-input-warpper) {
+    height: 100%;
+    border: none;
+    padding: 12px 16px;
+    background: #f2f4f7;
+  }
+  :deep(.j-mention.type-textarea) {
+    min-height: 216px;
+    height: 100%;
+    overflow-y: auto;
+    background: transparent;
+    font-size: 16px;
+    line-height: 24px;
+    color: #262626;
+  }
+}
+
+.prompt-insert-tip {
+  margin: 0 16px 8px;
+  color: #8c8c8c;
+  font-size: 12px;
 }
 
 .prompt-content {

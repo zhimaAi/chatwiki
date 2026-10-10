@@ -366,6 +366,9 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	out.content = out.chatResp.Result()
 	var appendContent string
 	out.content, appendContent = common.AppendGoodsWechatCardTags(out.content, out.goodsWechatCards)
+	if content, ok := common.ReplaceMiniCardMarkersForRobotPromptReply(in.params.AdminUserId, out.content); ok {
+		out.content = content
+	}
 	out.chatResp.SetResult(out.content)
 	if appendContent != `` {
 		in.Stream(sse.Event{Event: `stream_message`, Data: schema.AssistantMessage(appendContent, nil)})
@@ -380,6 +383,7 @@ func buildSystemPrompt(system string, in *ChatInParam, out *ChatOutParam) string
 		common.ReplaceSystemVariables(in.params.Lang, &prompt, &promptStruct) // inject built-in system variables (e.g. current time)
 		in.params.Prompt = prompt
 	}
+	in.params.Prompt = common.ReplaceMiniCardShortMarkersForRobotPrompt(in.params.AdminUserId, in.params.Prompt)
 	system = `` // TODO: clear the default prompt words of the eino framework
 	result := fmt.Sprintf("%s\n%s\n%s", in.params.Prompt, system, buildFileOperationPrompt(in.params.Robot, in.e2bShell != nil))
 	replacePromptPlaceholder(result, out)

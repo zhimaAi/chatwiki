@@ -770,7 +770,7 @@ func SaveRobot(c *gin.Context) {
 	if id == 0 && cast.ToInt(c.PostForm(`application_type`)) == define.ApplicationTypeClaw {
 		promptForMiniCard = i18n.Show(common.GetLang(c), `clawbot_default_prompt`)
 	}
-	promptMiniCardIDs := common.ExtractAdminMiniCardIDsFromPrompt(promptForMiniCard)
+	promptMiniCardIDs := common.ExtractMiniCardIDsFromShortPrompt(promptForMiniCard)
 	ok, err := common.ValidateAdminMiniCards(userId, promptMiniCardIDs)
 	if err != nil {
 		logs.Error(err.Error())

@@ -150,13 +150,15 @@ const handleSelectAssistant = (id) => {
     return
   }
 
-  router.replace({
+  const targetRoute = router.resolve({
     path: route.path,
     query: {
       ...route.query,
       ...buildAssistantQuery(assistant)
     }
   })
+  window.history.replaceState(window.history.state, '', targetRoute.href)
+  window.location.reload()
 }
 
 const onAgentCreated = (data) => {
@@ -341,6 +343,7 @@ const onAgentCreated = (data) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
   font-size: 14px;
   line-height: 20px;
 }

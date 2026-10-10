@@ -843,15 +843,21 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
   }
 
   const handleEditVariables = (data) => {
+    const requestRobotKey = robot.value.robot_key
+    const requestOpenid = robot.value.openid
+    const requestDialogueId = dialogue_id.value
+    const requestSessionId = chat_variables.value.session_id
     return editVariables({
-      robot_key: robot.value.robot_key,
-      openid: robot.value.openid,
-      dialogue_id: dialogue_id.value,
+      robot_key: requestRobotKey,
+      openid: requestOpenid,
+      dialogue_id: requestDialogueId,
       chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
-      session_id: chat_variables.value.session_id
+      session_id: requestSessionId
     }).then(res => {
+      if (robot.value.robot_key !== requestRobotKey || dialogue_id.value !== requestDialogueId ||
+        chat_variables.value.session_id !== requestSessionId) return res
       chat_variables.value.fill_variables = data.chat_prompt_variables
-      let variables_key = `chat_prompt_variables_${robot.value.robot_key}`
+      let variables_key = `chat_prompt_variables_${requestRobotKey}`
       localStorage.removeItem(variables_key)
       return res
     })

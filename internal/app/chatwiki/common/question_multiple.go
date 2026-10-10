@@ -83,7 +83,7 @@ func ContentPartsAppendImageDomain(parts []chat.ContentPart) []chat.ContentPart 
 	return questionPartsAppendImageDomain(parts)
 }
 
-// ConvertQuestionMultiple is the only request-side location that writes Content.Parts.
+// ConvertQuestionMultiple converts encoded user questions into request content parts.
 func ConvertQuestionMultiple(messages []chat.Message) []chat.Message {
 	for index, message := range messages {
 		if message.Role != chat.RoleUser || message.Content.Text == nil || message.Content.Parts != nil {
@@ -95,6 +95,32 @@ func ConvertQuestionMultiple(messages []chat.Message) []chat.Message {
 		}
 		messages[index].Content.Parts = questionPartsAppendImageDomain(parts)
 		messages[index].Content.Text = nil
+	}
+	return messages
+}
+
+// convertUnsupportedQuestionParts replaces unsupported media with its JSON object text.
+func convertUnsupportedQuestionParts(messages []chat.Message, support ModelInputSupport) []chat.Message {
+	for index, message := range messages {
+		if message.Role != chat.RoleUser || len(message.Content.Parts) == 0 {
+			continue
+		}
+		parts := append([]chat.ContentPart(nil), message.Content.Parts...)
+		for partIndex, part := range parts {
+			var unsupported bool
+			switch part.Type {
+			case chat.ContentPartImageURL:
+				unsupported = support.InputImage == 0
+			case chat.ContentPartInputAudio:
+				unsupported = support.InputVoice == 0
+			case chat.ContentPartVideoURL:
+				unsupported = support.InputVideo == 0
+			}
+			if unsupported {
+				parts[partIndex] = chat.ContentPart{Type: chat.ContentPartText, Text: tool.JsonEncodeNoError(part)}
+			}
+		}
+		messages[index].Content.Parts = parts
 	}
 	return messages
 }
