@@ -30,13 +30,17 @@ func AddRobotApikey(c *gin.Context) {
 		common.FmtError(c, `param_invalid`, `robot_key`)
 		return
 	}
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		return
+	}
 	robot, err := common.GetRobotInfo(req.RobotKey)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
 		return
 	}
-	if len(robot) == 0 {
+	if len(robot) == 0 || cast.ToInt(robot[`admin_user_id`]) != adminUserId {
 		common.FmtError(c, `no_data`)
 		return
 	}
@@ -46,7 +50,7 @@ func AddRobotApikey(c *gin.Context) {
 		return
 	}
 	insertData := msql.Datas{
-		"admin_user_id": GetAdminUserId(c),
+		"admin_user_id": adminUserId,
 		"key":           token,
 		"robot_key":     req.RobotKey,
 		"create_time":   time.Now().Unix(),
@@ -72,7 +76,21 @@ func DeleteRobotApikey(c *gin.Context) {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
-	id, err := msql.Model(define.TableChatAiRobotApikey, define.Postgres).Where("id", cast.ToString(req.Id)).Where("admin_user_id", cast.ToString(GetAdminUserId(c))).Delete()
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		return
+	}
+	robot, err := common.GetRobotInfo(req.RobotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(robot) == 0 || cast.ToInt(robot[`admin_user_id`]) != adminUserId {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	id, err := msql.Model(define.TableChatAiRobotApikey, define.Postgres).Where("id", cast.ToString(req.Id)).Where("robot_key", req.RobotKey).Delete()
 	if err != nil {
 		common.FmtError(c, `sys_err`)
 		return
@@ -93,6 +111,20 @@ func ListRobotApikey(c *gin.Context) {
 	}
 	if !common.CheckRobotKey(req.RobotKey) {
 		common.FmtError(c, `param_invalid`, `robot_key`)
+		return
+	}
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		return
+	}
+	robot, err := common.GetRobotInfo(req.RobotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(robot) == 0 || cast.ToInt(robot[`admin_user_id`]) != adminUserId {
+		common.FmtError(c, `no_data`)
 		return
 	}
 	data, err := common.GetRobotApikeyInfo(req.RobotKey)
@@ -118,8 +150,22 @@ func UpdateRobotApikey(c *gin.Context) {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
 	}
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		return
+	}
+	robot, err := common.GetRobotInfo(req.RobotKey)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(robot) == 0 || cast.ToInt(robot[`admin_user_id`]) != adminUserId {
+		common.FmtError(c, `no_data`)
+		return
+	}
 	sqlRaw := fmt.Sprintf("status = 1-status,update_time=%v", time.Now().Unix())
-	id, err := msql.Model(define.TableChatAiRobotApikey, define.Postgres).Where("id", cast.ToString(req.Id)).Where("admin_user_id", cast.ToString(GetAdminUserId(c))).Update2(sqlRaw)
+	id, err := msql.Model(define.TableChatAiRobotApikey, define.Postgres).Where("id", cast.ToString(req.Id)).Where("robot_key", req.RobotKey).Update2(sqlRaw)
 	if err != nil {
 		common.FmtError(c, `sys_err`)
 		return

@@ -155,12 +155,12 @@ func ParseAdminMiniCardIDs(raw string) ([]int, error) {
 	return ids, nil
 }
 
-// ExtractAdminMiniCardIDsFromPrompt extracts mini card IDs from full-width prompt tags.
+// ExtractAdminMiniCardIDsFromPrompt extracts card IDs returned by the model.
 func ExtractAdminMiniCardIDsFromPrompt(prompt string) []int {
 	return extractMiniCardIDsFromPromptByRegexp(adminMiniCardPromptRegexp, prompt)
 }
 
-// ExtractMiniCardIDsFromShortPrompt extracts mini card IDs from short prompt tags.
+// ExtractMiniCardIDsFromShortPrompt extracts card IDs configured in a robot prompt.
 func ExtractMiniCardIDsFromShortPrompt(prompt string) []int {
 	return extractMiniCardIDsFromPromptByRegexp(miniCardPromptShortRegexp, prompt)
 }

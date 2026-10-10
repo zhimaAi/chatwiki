@@ -137,6 +137,16 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/10/10**
+
+1.Agent bot: Persona supports inserting variables<br/>
+2.[STD] Added support for creating multiple Agents: 3 for the Enterprise Edition and 10 for the Flagship Edition<br/>
+3.[STD] Fixed a known issue where applications could not be selected in the Xiaohongshu trigger<br/>
+4.[STD] Custom models: Added Tencent Hunyuan as a new model provider<br/>
+5.[STD] Added a workflow call limit for free-version accounts that have not consumed credits for three days<br/>
+6.Fixed a known authentication issue in bot API key management<br/>
+7.LLM calls: Fall back to text for multimodal input types unsupported by the model<br/>
+
 **2026/09/18**
 
 1.[STD] Cloud version human handoff settings: User intent-based handoff now supports custom recognition criteria<br/>
@@ -156,16 +166,6 @@ time range<br/>
 2.External Service: Updated the page design for PC and H5 based on Alibaba Cloud<br/>
 3.Increased the sensitive word limit to 20,000<br/>
 4.Fixed an issue where Context was not passed in some embedding scenarios<br/>
-
-**2026/08/28**
-
-1.Product library: Added support for adding and replying with product cards<br/>
-2.Updated the default output description to remove mini-program card instructions<br/>
-3.Fixed an issue where mini-program cards in the WeChat Customer Service application knowledge base could not be
-returned correctly<br/>
-4.[STD] Fixed an issue where clicking the account in the upper-right corner of the admin panel displayed a "No available
-SSO configuration found" message<br/>
-5.Refactored large language model service calls<br/>
 
 ## License
 

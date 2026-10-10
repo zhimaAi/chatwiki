@@ -136,13 +136,20 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.variable-setting.add-variable-modal')
 
-const query = useRoute().query
+const route = useRoute()
+const props = defineProps({
+  robotKey: {
+    type: String,
+    default: ''
+  }
+})
+const currentRobotKey = computed(() => props.robotKey || route.query.robot_key || '')
 const open = ref(false)
 
 const emit = defineEmits(['ok'])
 
 const form = reactive({
-  robot_key: query.robot_key,
+  robot_key: '',
   id: '',
   variable_type: 'input_string',
   variable_key: '',
@@ -158,6 +165,7 @@ const filtersOptions = computed(() => {
 })
 
 const show = (data = {}) => {
+  form.robot_key = currentRobotKey.value
   form.id = data.id || ''
   form.variable_type = data.variable_type || 'input_string'
   form.variable_key = data.variable_key || ''

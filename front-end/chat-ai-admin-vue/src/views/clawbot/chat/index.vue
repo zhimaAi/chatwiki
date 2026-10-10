@@ -72,6 +72,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative;
   overflow: hidden;
   background: #fff;
 
@@ -83,10 +84,50 @@
       flex: none;
     }
 
+    .form-banner-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+    }
+
     .chat-input-area {
       width: min(100%, 660px);
       margin: 48px auto 110px;
       padding: 0;
+    }
+  }
+}
+
+.form-banner-top {
+  align-self: stretch;
+  flex: none;
+  height: 56px;
+  margin: 12px 16px 0;
+  padding: 16px;
+  border-radius: 12px;
+  border: 2px solid var(--10, #fff);
+  background: linear-gradient(180deg, #ebf2ff 0%, #fff 22.78%);
+  box-shadow: 0 4px 24px 0 #00000014;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  .title {
+    font-weight: 600;
+    color: #000;
+    font-size: 16px;
+  }
+  .edit-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #2475fc;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 1px 8px;
+    &:hover {
+      background: var(--07, #e4e6eb);
+      border-radius: 6px;
     }
   }
 }
@@ -207,6 +248,12 @@
 
       <!-- 中间对话区 -->
       <div class="chat-main" :class="{ 'is-empty': showEmptyState }">
+        <div class="form-banner-top" v-if="isShowFromHeader">
+          <div class="title">{{ robotTestT('title_form_info') }}</div>
+          <div class="edit-block" @click="handleEditVariableForm">
+            <EditOutlined />{{ robotTestT('btn_edit') }}
+          </div>
+        </div>
         <!-- 无消息时展示 Hero -->
         <div class="chat-empty-state" v-if="showEmptyState">
           <div class="chat-empty-content">
@@ -284,10 +331,12 @@
       <PromptDrawer
         :open="promptDrawerOpen"
         :prompt="robotInfo.prompt || ''"
+        :robotKey="currentAssistant?.robot_key || ''"
         :loading="savePromptLoading"
         @close="onClosePromptDrawer"
         @save="onSavePrompt"
       />
+      <VariableModal ref="variableModalRef" :robotKey="currentAssistant?.robot_key || ''" />
   </div>
 </template>
 
@@ -300,7 +349,7 @@ import { useClawbotChatStore } from '@/stores/modules/clawbot-chat'
 import { useUserStore } from '@/stores/modules/user'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useLocaleStore } from '@/stores/modules/locale'
-import { PlusOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { message as antMessage } from 'ant-design-vue'
 import { getLibraryList } from '@/api/library'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
@@ -311,10 +360,12 @@ import ChatList from './components/chat-list.vue'
 import ConversationBar from './components/conversation-bar.vue'
 import MessageInput from './components/message-input.vue'
 import PromptDrawer from './components/prompt-drawer.vue'
+import VariableModal from './components/variable-modal.vue'
 import SkillDrawer from './components/skill-drawer.vue'
 import { checkChatRequestPermission } from '@/api/robot/index'
 
 const { t } = useI18n('views.clawbot.chat.index')
+const { t: robotTestT } = useI18n('views.robot.robot-test.index')
 const chatStore = useClawbotChatStore()
 const clawbotStore = useClawbotStore()
 const localeStore = useLocaleStore()
@@ -342,6 +393,12 @@ const {
 const { messageList, sendLock, myChatList, robot, dialogue_id, lastPushedUserMessageUid } = storeToRefs(chatStore)
 
 const robotInfo = computed(() => robot.value)
+const variableModalRef = ref(null)
+const isShowFromHeader = computed(() =>
+  !chatStore.chat_variables.need_fill_variable &&
+  (chatStore.chat_variables.fill_variables || []).length > 0
+)
+const handleEditVariableForm = () => variableModalRef.value?.handleEdit()
 const emptyTitle = computed(() => {
   return robotInfo.value?.robot_name || currentAssistant.value?.robot_name || ''
 })

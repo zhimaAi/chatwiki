@@ -693,7 +693,7 @@ const handleEditMiniCard = (card) => {
 const addVariableModalRef = ref(null)
 
 const handleOpenModal = () => {
-  if(chatVariables.value.length >= 10){
+  if(robotStore.chatVariables.length >= 10){
     return message.error(t('msg_max_variables'))
   }
   addVariableModalRef.value.show()
