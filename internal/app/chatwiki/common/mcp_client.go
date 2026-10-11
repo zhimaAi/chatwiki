@@ -34,6 +34,7 @@ func DetectMCPTransportType(url string) (int, error) {
 		return 0, err
 	}
 	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("User-Agent", "ChatWiki/0.1.0")
 
 	resp, err := c.Do(req)
 	if err != nil {

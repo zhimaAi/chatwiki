@@ -17,6 +17,10 @@
       <div class="tip-info">{{ t('tip_avatar') }}</div>
     </div>
     <a-form class="form-box" labelAlign="left">
+      <a-form-item v-if="!formState.provider_id" :colon="false">
+        <a-button @click="useParallelSearch">{{ t('btn_parallel_search') }}</a-button>
+        <div class="tip-info">{{ t('tip_parallel_search') }}</div>
+      </a-form-item>
       <a-form-item :label="t('label_mcp_plugin_name')" required :colon="false">
         <a-input v-model:value="formState.name" :placeholder="t('ph_mcp_plugin_name')" :maxlength="20"/>
       </a-form-item>
@@ -105,6 +109,14 @@ function show(info = null) {
 
 function avatarChange(data) {
   avatarData.value = data
+}
+
+function useParallelSearch() {
+  formState.name = 'Parallel Search'
+  formState.description = t('desc_parallel_search')
+  formState.url = 'https://search.parallel.ai/mcp'
+  formState.request_timeout = '30'
+  formState.headers = [{key: 'User-Agent', value: 'ChatWiki/0.1.0'}]
 }
 
 function addHeader() {
