@@ -54,13 +54,14 @@ describe('Parallel Search MCP preset', () => {
     const wrapper = mountForm()
     wrapper.vm.show()
     await flushPromises()
-    expect(wrapper.findAllComponents({ name: 'AInput' }).length).toBeGreaterThan(0)
+    expect(wrapper.findAll('input').map(i => i.element.value)).toEqual(['', '', '30'])
     await presetButton(wrapper).trigger('click')
+    expect(wrapper.findAll('input').map(i => i.element.value)).toEqual([
+      'Parallel Search', 'https://search.parallel.ai/mcp', '30', 'User-Agent', 'ChatWiki/0.1.0'
+    ])
     wrapper.vm.show()
     await flushPromises()
-    const inputs = wrapper.findAll('input')
-    expect(inputs.map(i => i.attributes('value'))).not.toContain('https://search.parallel.ai/mcp')
-    expect(inputs.map(i => i.attributes('value'))).not.toContain('Parallel Search')
+    expect(wrapper.findAll('input').map(i => i.element.value)).toEqual(['', '', '30'])
     wrapper.unmount()
   })
 
