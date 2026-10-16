@@ -318,6 +318,16 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	// events
 	requestStartTime := time.Now()
 	events := runner.Run(ctx, history)
+	defer func() {
+		reason := `finish`
+		if ctx.Err() != nil {
+			reason = `stop`
+		} else if out.Error != nil {
+			reason = `error`
+		}
+		out.debugLog = append(out.debugLog, map[string]string{`type`: `agent_process`, `event`: `finish`, `content`: reason})
+	}()
+	roundIndex := 0
 	var sb strings.Builder
 	for {
 		event, ok := events.Next()
@@ -349,16 +359,31 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		}
 		role := event.Output.MessageOutput.Role
 		if role == schema.Assistant || role == `` {
+			roundIndex++
+			if message.ReasoningContent != `` {
+				out.debugLog = append(out.debugLog, map[string]string{
+					`type`: `agent_process`, `event`: `thinking`, `content`: message.ReasoningContent,
+					`round_index`: cast.ToString(roundIndex),
+				})
+			}
 			for _, call := range message.ToolCalls {
 				in.Stream(sse.Event{Event: `tool_call`, Data: call.Function}) // Deprecated: Get the full content from tool_call_full
 				in.Stream(sse.Event{Event: `tool_call_full`, Data: call})
 				out.debugLog = append(out.debugLog, map[string]string{`type`: `tool_call`, `content`: tool.JsonEncodeNoError(call.Function)})
+				out.debugLog = append(out.debugLog, map[string]string{
+					`type`: `agent_process`, `event`: `tool_call`, `content`: call.Function.Arguments,
+					`tool_call_id`: call.ID, `tool_name`: call.Function.Name, `round_index`: cast.ToString(roundIndex),
+				})
 			}
 			sb.WriteString(message.Content)
 		} else if role == schema.Tool {
 			sb.Reset() // clear the result from the last time
 			in.Stream(sse.Event{Event: `tool_result`, Data: message})
 			out.debugLog = append(out.debugLog, map[string]string{`type`: `tool_result`, `content`: tool.JsonEncodeNoError(message.Content)})
+			out.debugLog = append(out.debugLog, map[string]string{
+				`type`: `agent_process`, `event`: `tool_result`, `content`: message.Content,
+				`tool_call_id`: message.ToolCallID, `tool_name`: message.ToolName, `round_index`: cast.ToString(roundIndex),
+			})
 		}
 	}
 	out.chatResp.SetResult(sb.String())

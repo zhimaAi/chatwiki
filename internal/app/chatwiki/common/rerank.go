@@ -19,13 +19,14 @@ func RerankData(ctx context.Context, lang string, adminUserId int, openid, appTy
 	}
 	request := *req
 	request.Model = handler.Model
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	res, err := handler.RequestRerank(ctx, lang, adminUserId, openid, appType, robot, &request)
 	if err != nil {
 		return nil, err
 	}
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		inputToken, outputToken := rerankTokens(res)
-		handler.modelInfo.TokenUseReport(handler.config, useModel, inputToken, outputToken, robot, 0)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, inputToken, outputToken, robot, 0, usageUUID)
 	}
 	sort.Slice(res.Results, func(i, j int) bool {
 		return res.Results[i].RelevanceScore > res.Results[j].RelevanceScore

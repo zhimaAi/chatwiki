@@ -4,6 +4,7 @@
   "opt_last_60_days": "Last 60 Days",
   "opt_last_90_days": "Last 90 Days",
   "var_user_message": "User Message",
+  "var_exception_log": "Error Log",
   "size_auto_2k": "Auto-fit Ratio (2K)",
   "size_auto_4k": "Auto-fit Ratio (4K)",
   "size_auto_prompt": "prompt adaptation"

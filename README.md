@@ -137,6 +137,15 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/10/16**
+
+1.Added Agent execution logs to the chat, conversation history, and real-time conversation interfaces<br/>
+2.Workflow: Added error log output to exception branches of code execution and HTTP request nodes<br/>
+3.Agent code execution on E2B: Replaced bash commands with direct calls<br/>
+4.Workflow debugging now supports multi-turn conversations<br/>
+5.Added validation for chatbot custom prompts exceeding 10,000 characters<br/>
+6.JWT secret key: Replaced the hardcoded key with one generated dynamically on first startup<br/>
+
 **2026/10/10**
 
 1.Agent bot: Persona supports inserting variables<br/>
@@ -159,13 +168,6 @@ time range<br/>
 7.Workflow HTTP request node: Adjusted the timeout duration<br/>
 8.[STD] Fixed incorrect model names being stored for custom model statistics<br/>
 9.Knowledge base retrieval test: The browser now remembers entered content, and the page has been optimized<br/>
-
-**2026/09/04**
-
-1.[STD]Q&A knowledge base recycle bin: Added one-click emptying<br/>
-2.External Service: Updated the page design for PC and H5 based on Alibaba Cloud<br/>
-3.Increased the sensitive word limit to 20,000<br/>
-4.Fixed an issue where Context was not passed in some embedding scenarios<br/>
 
 ## License
 

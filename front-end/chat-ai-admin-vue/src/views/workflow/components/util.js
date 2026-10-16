@@ -148,9 +148,61 @@ export function getSizeOptions() {
   ]
 }
 
+const exceptionLogKey = 'special.error_log'
+const exceptionOutputNodeTypes = ['code-run-node', 'http-node']
+
+export function getExceptionSourceNodeIds(edges) {
+  const exceptionSourceNodeIds = new Set()
+  const visited = new Set()
+  const pendingEdges = [...edges]
+
+  while (pendingEdges.length > 0) {
+    const edge = pendingEdges.pop()
+    const sourceNode = edge?.sourceNode
+    if (!sourceNode) continue
+
+    const isExceptionEdge = typeof edge.sourceAnchorId === 'string' &&
+      edge.sourceAnchorId.endsWith('-anchor_right_exception')
+
+    // 汇合路径可能先经过普通边，必须在节点去重前识别每条异常边。
+    if (isExceptionEdge && exceptionOutputNodeTypes.includes(sourceNode.type)) {
+      exceptionSourceNodeIds.add(sourceNode.id)
+    }
+
+    if (visited.has(sourceNode.id)) continue
+    visited.add(sourceNode.id)
+    pendingEdges.push(...(sourceNode.incoming?.edges || []))
+  }
+
+  return exceptionSourceNodeIds
+}
+
+export function getNodeOutputWithExceptionLog(node, normalOutput, exceptionSourceNodeIds) {
+  const output = Array.isArray(normalOutput) ? normalOutput.map((field) => ({ ...field })) : []
+  if (!exceptionOutputNodeTypes.includes(node.type) || !exceptionSourceNodeIds.has(node.id)) {
+    return output
+  }
+
+  const { t } = useI18n('views.workflow.components.util')
+  const label = t('var_exception_log')
+
+  // 系统字段只参与本次选项构造，不能写入用户自定义的 output 配置。
+  return [
+    ...output.filter((field) => field.key !== exceptionLogKey),
+    {
+      key: exceptionLogKey,
+      typ: 'string',
+      desc: label,
+      name: label,
+      label: label
+    }
+  ]
+}
+
 export const specialNodeList = [
   'special.lib_paragraph_list',
   'special.llm_reply_content',
+  exceptionLogKey,
   'specify-reply-node',
   'immediately-reply-node'
 ]

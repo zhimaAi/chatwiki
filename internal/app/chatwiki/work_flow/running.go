@@ -33,10 +33,13 @@ type Draft struct {
 
 type WorkFlowParams struct {
 	*define.ChatRequestParam
-	RealRobot          msql.Params
-	CurMsgId           int
-	DialogueId         int
-	SessionId          int
+	RealRobot  msql.Params
+	CurMsgId   int
+	DialogueId int
+	SessionId  int
+	// Dialog-debug mode: multi-turn Q/A history carried by the test page, so
+	// llm-style nodes can build context without persisted dialogue records.
+	DialogContextList  []map[string]string
 	IsDialogMode       bool
 	Draft              Draft
 	IsTestLoopNodeRun  bool
@@ -110,6 +113,25 @@ func (flow *WorkFlow) LlmCallLogs(info LlmCallInfo) {
 		jsonStr, _ := tool.JsonEncodeIndent(info, ``, "\t")
 		logs.Debug(fmt.Sprintf("【%v】llm call:\r\n%s", flow.global[`openid`].GetVal(common.TypString), jsonStr))
 	}
+}
+
+// BuildContextPair returns the historical Q/A pairs for llm-style nodes.
+// Dialog-debug mode carries the multi-turn history in the request (temp
+// dialogue/session ids are not persisted); other modes read chat records.
+func (flow *WorkFlow) BuildContextPair(contextPair int) []map[string]string {
+	if flow.params.IsDialogMode && len(flow.params.DialogContextList) > 0 {
+		if contextPair <= 0 {
+			return []map[string]string{}
+		}
+		list := flow.params.DialogContextList
+		if len(list) > contextPair {
+			list = list[len(list)-contextPair:]
+		}
+		return list
+	}
+	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
+	return common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
+		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, contextPair)
 }
 
 func (flow *WorkFlow) Running() (err error) {

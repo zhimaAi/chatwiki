@@ -454,6 +454,10 @@ func SaveRobot(c *gin.Context) {
 			}
 		}
 	}
+	if utf8.RuneCountInString(prompt) > 10000 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `custom_prompt_too_long`))))
+		return
+	}
 	if promptStruct, err = common.CheckPromptConfig(common.GetLang(c), promptType, promptStruct); err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

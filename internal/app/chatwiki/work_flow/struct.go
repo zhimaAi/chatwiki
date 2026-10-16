@@ -1042,6 +1042,10 @@ func (node *WorkFlowNode) GetVariables(last ...bool) []string {
 		}
 	}
 
+	if node.NodeType == NodeTypeCurl || node.NodeType == NodeTypeHttpTool || node.NodeType == NodeTypeCodeRun {
+		variables = append(variables, fmt.Sprintf(`%s.%s`, node.NodeKey, nodeErrorLogKey))
+	}
+
 	return variables
 }
 

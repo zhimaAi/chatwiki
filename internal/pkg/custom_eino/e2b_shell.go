@@ -4,6 +4,7 @@ package custom_eino
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -51,8 +52,12 @@ func (s *E2BShell) Execute(command string) (*filesystem.ExecuteResponse, error) 
 		return nil, err
 	}
 
-	result, err := sb.Commands.RunWithContext(s.ctx, "bash", []string{"-lc", command}, s.runOptions...)
+	result, err := sb.Commands.Run(s.ctx, command, s.runOptions...)
 	if err != nil {
+		var exitErr *e2b.CommandExitError
+		if errors.As(err, &exitErr) {
+			return commandExecuteResponse(exitErr.Stdout, exitErr.Stderr, exitErr.ExitCode), nil
+		}
 		return nil, err
 	}
 

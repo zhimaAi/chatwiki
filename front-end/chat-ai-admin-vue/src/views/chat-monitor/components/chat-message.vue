@@ -79,9 +79,14 @@
             </template>
           </div>
         </template>
-            <div class="message-bubble" v-if="!(message.msg_type == 1 && message.content == '')">
+            <div class="message-bubble" v-if="!(message.msg_type == 1 && message.content == '') || hasVisibleProcessSteps(message)">
+              <ProcessTimeline
+                v-if="message.is_customer == 0 && message.msg_type == 1 && hasVisibleProcessSteps(message)"
+                class="agent-process-timeline"
+                :item="message"
+              />
               <!-- 文本消息 -->
-              <div v-if="message.msg_type == 1" class="text-content">
+              <div v-if="message.msg_type == 1 && message.content" class="text-content">
                 <cherry-markdown
                   style="text-align: left;"
                   :content="message.content"
@@ -160,6 +165,8 @@
 </template>
 
 <script setup>
+import ProcessTimeline from '@/views/clawbot/chat/components/messages/process-timeline.vue'
+import { hasVisibleProcessSteps } from '@/utils/agent-process'
 import { ref, nextTick, toRaw } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { storeToRefs } from 'pinia'
@@ -367,6 +374,11 @@ defineExpose({
   display: inline-block;
   border-radius: 8px;
   background-color: #fff;
+  .agent-process-timeline {
+    padding: 4px 16px;
+    margin-bottom: 0;
+    text-align: left;
+  }
   .text-content {
     padding: 12px 16px;
     line-height: 22px;

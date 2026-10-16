@@ -1,3 +1,4 @@
+import { restoreAgentProcess } from '@/utils/agent-process'
 import { defineStore } from 'pinia'
 import { getRobotList } from '@/api/robot'
 import { getUuid, formatDisplayChatTime, extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
@@ -101,6 +102,7 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
 
       msg.uid = getUuid(32)
       msg.loading = false
+      restoreAgentProcess(msg, { historical: true })
       // msg.robot_avatar = robot.robot_avatar
 
       if (msg.menu_json && typeof msg.menu_json === 'string') {
@@ -254,6 +256,7 @@ export const useChatMonitorStore = defineStore('chatMonitor', {
               list[i].avatar = list[i].avatar || _robot.robot_avatar
             }
             list[i].uid = getUuid(32)
+            restoreAgentProcess(list[i], { historical: true })
 
             if (list[i].menu_json && typeof list[i].menu_json === 'string') {
               list[i].menu_json = JSON.parse(list[i].menu_json)

@@ -27,6 +27,9 @@ func Initialize() {
 	//initialize config
 	initConfig()
 	logs.Info(`initialize config finish`)
+	//initialize JWT key
+	initJwtKey()
+	logs.Info(`initialize JWT key finish`)
 	//initialize cpu
 	initNumCPU()
 	logs.Info(`initialize cpu finish`)

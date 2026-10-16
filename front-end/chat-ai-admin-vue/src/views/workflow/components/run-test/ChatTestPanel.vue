@@ -220,7 +220,7 @@ const handleSend = (menuText = '', isMultimodal = questionMultipleSwitch.value) 
   }
 
   abortSSE()
-  const shouldContinue = isAwaitingFollowUp.value && dialogue_id.value && session_id.value && testUserId.value
+  const shouldContinue = !!(dialogue_id.value && session_id.value && testUserId.value)
   use_token.value = 0
   use_mills.value = 0
   if (!shouldContinue) {
@@ -230,6 +230,9 @@ const handleSend = (menuText = '', isMultimodal = questionMultipleSwitch.value) 
     session_id.value = ''
     testUserId.value = generateRandomId(16)
     messageList.value = []
+  } else if (!isAwaitingFollowUp.value) {
+    resultList.value = []
+    currentNodeKey.value = ''
   }
   isAwaitingFollowUp.value = false
   hasFinalizedCurrentRun = false
@@ -263,6 +266,7 @@ const handleSend = (menuText = '', isMultimodal = questionMultipleSwitch.value) 
     is_stopped: false,
     voice_content: []
   }
+  const contextList = buildContextList()
   messageList.value.push(userMessage, aiMessage)
   shouldAutoScroll = true
   scheduleMessageScroll(true)
@@ -276,7 +280,8 @@ const handleSend = (menuText = '', isMultimodal = questionMultipleSwitch.value) 
     openid: testUserId.value,
     question,
     dialogue_id: dialogue_id.value,
-    session_id: session_id.value
+    session_id: session_id.value,
+    context_list: JSON.stringify(contextList)
   })
   mySSE = sse
 
@@ -297,17 +302,7 @@ const handleSend = (menuText = '', isMultimodal = questionMultipleSwitch.value) 
     if (mySSE !== sse) {
       return
     }
-    loading.value = false
-    mySSE = null
-    dialogue_id.value = ''
-    session_id.value = ''
-    testUserId.value = ''
-    isAwaitingFollowUp.value = false
-    if (currentAiMessage) {
-      currentAiMessage.loading = false
-    }
-    message.error(t('msg_chat_test_failed'))
-    syncState()
+    failCurrentRun(t('msg_chat_test_failed'))
   }
 }
 
@@ -341,8 +336,62 @@ const buildQuestionItems = (content, selectedFiles) => {
   return list
 }
 
+const extractQuestionText = (content) => {
+  if (typeof content !== 'string' || !content) return ''
+  const text = content.trim()
+  if (!text.startsWith('[') && !text.startsWith('{')) return text
+  try {
+    const items = JSON.parse(text)
+    if (Array.isArray(items)) {
+      // 与后端 GetFirstQuestionByInput 对齐，多模态历史只保留可展示的文本。
+      const textItem = items.find((item) => item?.type === 'text' && typeof item.text === 'string' && item.text)
+      if (textItem) return textItem.text
+      const media = items.find((item) => ['image_url', 'input_audio', 'video_url'].includes(item?.type))
+      if (media) {
+        return `[${media.type === 'image_url' ? '图片' : media.type === 'input_audio' ? '语音' : '视频'}]`
+      }
+    }
+  } catch {
+    // 普通 JSON 文本或不完整 JSON 仍作为原问题保留。
+  }
+  return text
+}
+
+const extractAnswerText = (msg) => {
+  if (msg?.content) return String(msg.content)
+  const list = Array.isArray(msg?.reply_content_list) ? msg.reply_content_list : []
+  for (const item of list) {
+    if (item?.description) return String(item.description)
+    if (item?.title) return String(item.title)
+    if (item?.smart_menu?.menu_description) return String(item.smart_menu.menu_description)
+  }
+  return ''
+}
+
+const buildContextList = () => {
+  const pairs = []
+  let question = ''
+  messageList.value.forEach((msg) => {
+    if (msg.is_customer === 1) {
+      question = extractQuestionText(msg.content)
+      return
+    }
+    if (!question) return
+    const answer = !msg.loading && !msg.error ? extractAnswerText(msg) : ''
+    if (question.trim() && answer.trim()) {
+      pairs.push({ question, answer })
+    }
+    question = ''
+  })
+  return pairs.slice(-50)
+}
+
 const handleSSEMessage = (res) => {
   if (res.event === 'ping') {
+    return
+  }
+  if (res.event === 'error') {
+    failCurrentRun(res.data)
     return
   }
   // 流式文本必须保持原始字符串，避免数字或 JSON 格式文本被错误转换
@@ -410,8 +459,7 @@ const handleSSEMessage = (res) => {
     if (data?.use_mills != null) {
       use_mills.value = Number(data.use_mills || 0)
     }
-    // finish 仅表示当前 SSE 结束，问答节点仍需保留会话标识供下一次回复续跑。
-    finalizeCurrentRun()
+    finalizeCurrentRun(data?.is_paused)
   }
 }
 
@@ -581,20 +629,31 @@ function getNodeLogKey(item) {
   return item?.log_key || item?.node_key || ''
 }
 
-function finalizeCurrentRun() {
+function failCurrentRun(errorMessage) {
+  // 业务 error 后还会收到 finish，必须使旧流失效，避免失败会话被当作暂停续跑。
+  hasFinalizedCurrentRun = true
+  abortSSE()
+  loading.value = false
+  dialogue_id.value = ''
+  session_id.value = ''
+  testUserId.value = ''
+  isAwaitingFollowUp.value = false
+  if (currentAiMessage) {
+    currentAiMessage.loading = false
+  }
+  message.error(errorMessage)
+  syncState()
+}
+
+function finalizeCurrentRun(isPaused) {
   if (hasFinalizedCurrentRun) {
     return
   }
   hasFinalizedCurrentRun = true
   loading.value = false
   const lastNode = resultList.value[resultList.value.length - 1]
-  // 问答节点会暂停流程，保留会话标识供下一次回复继续执行
-  isAwaitingFollowUp.value = lastNode?.node_type === 43
-  if (!isAwaitingFollowUp.value) {
-    dialogue_id.value = ''
-    session_id.value = ''
-    testUserId.value = ''
-  }
+  // 暂停恢复保留本轮日志；正常结束仍复用会话 ID，下一轮由后端从开始节点运行。
+  isAwaitingFollowUp.value = typeof isPaused === 'boolean' ? isPaused : lastNode?.node_type === 43
   if (currentAiMessage) {
     currentAiMessage.loading = false
   }

@@ -349,8 +349,7 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 
 	//part2:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
-	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	contextList := flow.BuildContextPair(n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, chat.Message{Role: chat.RoleUser, Content: chat.MessageContent{Text: tea.String(contextList[i][`question`])}})
 		messages = append(messages, chat.Message{Role: chat.RoleAssistant, Content: chat.MessageContent{Text: tea.String(contextList[i][`answer`])}})
@@ -499,6 +498,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	resp, err := request.String()
 	flow.Logs(`resp:%s,err:%v`, resp, err)
 	if err != nil {
+		output = buildNodeErrorOutput(err)
 		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
 			nextNodeKey = n.params.Exception
 			err = nil
@@ -507,6 +507,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	}
 	response, err := request.Response()
 	if err != nil {
+		output = buildNodeErrorOutput(err)
 		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
 			nextNodeKey = n.params.Exception
 			err = nil
@@ -516,6 +517,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	if response.StatusCode != http.StatusOK {
 		flow.Logs(`StatusCode:%d, unexpected status code`, response.StatusCode)
 		err = errors.New(fmt.Sprintf(`StatusCode:%d`, response.StatusCode))
+		output = buildNodeErrorOutput(err)
 		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
 			nextNodeKey = n.params.Exception
 			err = nil
@@ -525,6 +527,7 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	result := make(map[string]any)
 	err = request.ToJSON(&result)
 	if err != nil {
+		output = buildNodeErrorOutput(err)
 		if len(n.params.Exception) > 0 { // exception handling node configured: switch to exception branch
 			nextNodeKey = n.params.Exception
 			err = nil
@@ -698,8 +701,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	}
 	//part2:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
-	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	contextList := flow.BuildContextPair(n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, chat.Message{Role: chat.RoleUser, Content: chat.MessageContent{Text: tea.String(contextList[i][`question`])}})
 		messages = append(messages, chat.Message{Role: chat.RoleAssistant, Content: chat.MessageContent{Text: tea.String(contextList[i][`answer`])}})
@@ -960,8 +962,7 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
-	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	contextList := flow.BuildContextPair(n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, chat.Message{Role: chat.RoleUser, Content: chat.MessageContent{Text: tea.String(contextList[i][`question`])}})
 		messages = append(messages, chat.Message{Role: chat.RoleAssistant, Content: chat.MessageContent{Text: tea.String(contextList[i][`answer`])}})
@@ -1061,8 +1062,7 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 
 	//part3:context_qa
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
-	contextList := common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
-		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, n.params.ContextPair.Int())
+	contextList := flow.BuildContextPair(n.params.ContextPair.Int())
 	for i := range contextList {
 		messages = append(messages, chat.Message{Role: chat.RoleUser, Content: chat.MessageContent{Text: tea.String(contextList[i][`question`])}})
 		messages = append(messages, chat.Message{Role: chat.RoleAssistant, Content: chat.MessageContent{Text: tea.String(contextList[i][`answer`])}})
@@ -1517,12 +1517,14 @@ func (n *CodeRunNode) Running(flow *WorkFlow) (output common.SimpleFields, nextN
 	jsonStr, err := common.RequestCodeRun(ctx, n.params.Language, data)
 	flow.Logs(`result:%s,err:%v`, jsonStr, err)
 	if err != nil {
+		output = buildNodeErrorOutput(err)
 		nextNodeKey = n.params.Exception
 		return // Code execution exception
 	}
 	result := make(map[string]any)
 	if err = tool.JsonDecodeUseNumber(jsonStr, &result); err != nil {
 		flow.Logs(`Result parsing exception:%s`, err.Error())
+		output = buildNodeErrorOutput(err)
 		nextNodeKey = n.params.Exception
 		return // Result parsing exception
 	}
@@ -2643,4 +2645,16 @@ func (n *AgentNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 
 func (n *AgentNode) Params() any {
 	return n.params
+}
+
+const nodeErrorLogKey = `special.error_log`
+
+func buildNodeErrorOutput(err error) common.SimpleFields {
+	return common.SimpleFields{
+		nodeErrorLogKey: common.SimpleField{
+			Key:  nodeErrorLogKey,
+			Typ:  common.TypString,
+			Vals: []common.Val{{String: tea.String(err.Error())}},
+		},
+	}
 }

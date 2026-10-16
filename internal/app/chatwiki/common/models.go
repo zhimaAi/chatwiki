@@ -22,6 +22,7 @@ import (
 
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/gin-contrib/sse"
+	"github.com/google/uuid"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -33,6 +34,24 @@ import (
 	"github.com/zhimaAi/llm_adaptor/v2/rerank"
 	"github.com/zhimaAi/llm_adaptor/v2/speech"
 )
+
+type modelUsageUUIDKey struct{}
+
+func withModelUsageUUID(ctx context.Context) (context.Context, string) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	usageUUID := uuid.NewString()
+	return context.WithValue(ctx, modelUsageUUIDKey{}, usageUUID), usageUUID
+}
+
+func modelUsageUUID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	usageUUID, _ := ctx.Value(modelUsageUUIDKey{}).(string)
+	return usageUUID
+}
 
 type SupplierHandler struct {
 	modelInfo *ModelInfo
@@ -69,7 +88,7 @@ func ToThinkingSwitch(enableThinking any) ThinkingSwitch {
 type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
 type SupplierHandlerFunc func(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error)
 type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
-type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params, imageNum int)
+type AfterFunc func(config msql.Params, useModel string, promptToken, completionToken int, robot msql.Params, imageNum int, usageUUID string)
 
 type ModelInfo struct {
 	ModelDefine             string              `json:"model_define"`
@@ -680,12 +699,13 @@ func GetVector2000(ctx context.Context, lang string, adminUserId int, openid str
 	if err != nil {
 		return ``, err
 	}
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	res, err := handler.GetVector2000(ctx, lang, adminUserId, openid, robot, library, file, input)
 	if err != nil {
 		return ``, err
 	}
 	if handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, robot, 0)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, robot, 0, usageUUID)
 	}
 	values, err := res.Data[0].Embedding.Float64s()
 	if err != nil {
@@ -699,9 +719,10 @@ func requestChatStreamWithState(ctx context.Context, lang string, adminUserId in
 	if err != nil {
 		return ChatResponse{}, 0, false, precheckErrStage(err), err
 	}
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	chatResp, requestTime, streamed, stage, err := handler.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken, enableThinking)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0, usageUUID)
 	}
 	return chatResp, requestTime, streamed, stage, err
 }
@@ -740,9 +761,10 @@ func RequestSearchStream(ctx context.Context, lang string, adminUserId int, mode
 	if err != nil {
 		return ChatResponse{}, 0, err
 	}
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	chatResp, requestTime, err := handler.RequestChatStream(ctx, lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken, ThinkingDisabled)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, msql.Params{}, 0)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, msql.Params{}, 0, usageUUID)
 	}
 	return chatResp, requestTime, err
 }
@@ -752,9 +774,10 @@ func requestChatWithState(ctx context.Context, lang string, adminUserId int, ope
 	if err != nil {
 		return ChatResponse{}, 0, precheckErrStage(err), err
 	}
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	chatResp, requestTime, err := handler.RequestChat(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken, enableThinking)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0)
+		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0, usageUUID)
 	}
 	if err != nil {
 		return chatResp, requestTime, ModelErrProvider, err
@@ -831,7 +854,7 @@ func (h *ModelCallHandler) GetVector2000(ctx context.Context, lang string, admin
 	}
 	res.Data[0].Embedding = embedding.FloatEmbedding(values)
 	//go func() {
-	err = LlmLogRequest(lang, TextEmbedding, adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.LogModel, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, req, res)
+	err = LlmLogRequest(lang, TextEmbedding, adminUserId, openid, robot, library, h.config, lib_define.AppYunH5, fileInfo, h.LogModel, res.Usage.PromptTokens, res.Usage.TotalTokens-res.Usage.PromptTokens, req, res, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -849,7 +872,7 @@ func (h *ModelCallHandler) RequestRerank(ctx context.Context, lang string, admin
 	}
 	inputToken, outputToken := rerankTokens(res)
 	//go func() {
-	err = LlmLogRequest(lang, Rerank, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, inputToken, outputToken, req, res)
+	err = LlmLogRequest(lang, Rerank, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, inputToken, outputToken, req, res, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1026,7 +1049,7 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.PromptTokens, totalResponse.Usage.CompletionTokens, req, providerResponse)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.PromptTokens, totalResponse.Usage.CompletionTokens, req, providerResponse, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1131,7 +1154,7 @@ func (h *ModelCallHandler) RequestChat(
 		resp.IsValidFunctionCall = true
 	}
 	//go func() {
-	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, req, providerResponse)
+	err = LlmLogRequest(lang, Llm, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, resp.Usage.PromptTokens, resp.Usage.CompletionTokens, req, providerResponse, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1262,7 +1285,7 @@ func (h *ModelCallHandler) RequestImageGenerate(ctx context.Context, lang string
 	if err := persistImageResponse(adminUserId, res); err != nil {
 		return res, err
 	}
-	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, res.Usage.InputTokens, res.Usage.OutputTokens, imageRequestLog(params, files), res)
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, msql.Params{}, h.config, appType, msql.Params{}, h.LogModel, res.Usage.InputTokens, res.Usage.OutputTokens, imageRequestLog(params, files), res, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1341,7 +1364,7 @@ func (h *ModelCallHandler) RequestImageGenerateStream(
 	if appType == "" && openid == "" {
 		library, robot = robot, library
 	}
-	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.InputTokens, totalResponse.Usage.OutputTokens, imageRequestLog(params, files), totalResponse)
+	err = LlmLogRequest(lang, Image, adminUserId, openid, robot, library, h.config, appType, msql.Params{}, h.LogModel, totalResponse.Usage.InputTokens, totalResponse.Usage.OutputTokens, imageRequestLog(params, files), totalResponse, modelUsageUUID(ctx))
 	if err != nil {
 		logs.Error(err.Error())
 	}
@@ -1354,9 +1377,10 @@ func RequestImageGenerate(ctx context.Context, lang string, adminUserId int, ope
 	if err != nil {
 		return &image.GenerateResponse{}, err
 	}
+	ctx, usageUUID := withModelUsageUUID(ctx)
 	res, err := handler.RequestImageGenerate(ctx, lang, adminUserId, openid, appType, robot, params, inputImages)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
-		handler.modelInfo.TokenUseReport(handler.config, useModel, res.Usage.InputTokens, res.Usage.OutputTokens, robot, len(res.Data))
+		handler.modelInfo.TokenUseReport(handler.config, useModel, res.Usage.InputTokens, res.Usage.OutputTokens, robot, len(res.Data), usageUUID)
 	}
 	return res, err
 }

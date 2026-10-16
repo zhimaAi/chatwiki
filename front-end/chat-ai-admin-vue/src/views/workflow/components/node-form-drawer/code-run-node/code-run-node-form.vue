@@ -154,6 +154,10 @@
           <div class="gray-block mt16">
             <div class="gray-block-title">{{ t('label_exception_handling') }}</div>
             <div>{{ t('msg_exception_handling_desc') }}</div>
+            <div class="options-item">
+              <span class="option-label">{{ t('label_exception_log') }}</span>
+              <span class="option-type">string</span>
+            </div>
           </div>
 
           <a-modal v-model:open="open" :title="t('title_edit_code')" :width="746">
