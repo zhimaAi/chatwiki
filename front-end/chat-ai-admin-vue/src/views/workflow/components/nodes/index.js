@@ -1,5 +1,6 @@
 
-import { register } from '@logicflow/vue-node-registry'
+import { register as registerVueNode } from '@logicflow/vue-node-registry'
+import { withEdgeAutoPan } from '../plugins/edge-auto-pan/index.js'
 import sessionTriggerNode from './session-trigger-node/index.js'
 import startNode from './start-node/index.js'
 import questionNode from './question-node/index.js'
@@ -44,6 +45,15 @@ import zmAgentNode from "./zm-agent-node/index.js";
 
 
 export default function registerCustomNodes(lf) {
+  // 统一扩展节点 view，登记锚点实例，供自动平移插件在画布移动时同步临时连线。
+  // 保持下方节点注册调用不变，实际注册仍交给库提供的 registerVueNode。
+  const register = (config, graph) => {
+    registerVueNode({
+      ...config,
+      view: withEdgeAutoPan(config.view, graph.extension.edgeAutoPan)
+    }, graph)
+  }
+
   register(sessionTriggerNode, lf)
   register(startNode, lf)
   register(questionNode, lf)

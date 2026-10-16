@@ -43,6 +43,7 @@ func LlmLogRequest(
 	completionToken int,
 	req interface{},
 	resp interface{},
+	usageUUID string,
 ) error {
 	statsMu.Lock()
 	defer statsMu.Unlock()

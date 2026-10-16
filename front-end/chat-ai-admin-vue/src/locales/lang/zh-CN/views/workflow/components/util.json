@@ -4,6 +4,7 @@
   "opt_last_60_days": "近60天",
   "opt_last_90_days": "近90天",
   "var_user_message": "用户消息",
+  "var_exception_log": "异常日志",
   "size_auto_2k": "自动适配比例(2k)",
   "size_auto_4k": "自动适配比例(4k)",
   "size_auto_prompt": "根据提示词适配"

@@ -1,3 +1,4 @@
+import { restoreAgentProcess } from '@/utils/agent-process'
 import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import {
@@ -718,6 +719,7 @@ export const useChatStore = defineStore('chat', () => {
       list.forEach((item) => {
         item.loading = false
         item.uid = getUuid(32)
+        restoreAgentProcess(item, { historical: true })
 
         item.name = item.name || item.nickname
         if (item.is_customer == 1) {

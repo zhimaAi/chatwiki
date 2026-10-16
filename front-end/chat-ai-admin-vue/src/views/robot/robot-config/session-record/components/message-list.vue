@@ -114,8 +114,12 @@
                 </template>
               </div>
             </template>
-            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '')">
-              <template v-if="item.msg_type == 1">
+            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '') || hasVisibleProcessSteps(item)">
+              <ProcessTimeline
+                v-if="item.is_customer == 0 && item.msg_type == 1 && hasVisibleProcessSteps(item)"
+                :item="item"
+              />
+              <template v-if="item.msg_type == 1 && item.content">
                 <div class="message-content" v-viewer>
                   <cherry-markdown :content="item.content"></cherry-markdown>
                 </div>
@@ -165,6 +169,8 @@
 </template>
 
 <script setup>
+import ProcessTimeline from '@/views/clawbot/chat/components/messages/process-timeline.vue'
+import { hasVisibleProcessSteps } from '@/utils/agent-process'
 import { ref, nextTick, toRaw } from 'vue'
 import { formatDisplayChatTime } from '@/utils/index'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'

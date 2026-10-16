@@ -104,11 +104,12 @@ func buildCallWorkFlowDialogParams(c *gin.Context, chatRequestParam *define.Chat
 		return nil, errors.New(i18n.Show(chatRequestParam.Lang, `param_invalid`, `robot_key`))
 	}
 	workFlowParams := &work_flow.WorkFlowParams{
-		ChatRequestParam: chatRequestParam,
-		DialogueId:       cast.ToInt(c.PostForm(`dialogue_id`)),
-		SessionId:        cast.ToInt(c.PostForm(`session_id`)),
-		IsDialogMode:     true, //workflow test dialog mode
-		Draft:            work_flow.Draft{IsDraft: true, QuestionMultipleSwitch: cast.ToBool(c.PostForm(`question_multiple_switch`))},
+		ChatRequestParam:  chatRequestParam,
+		DialogueId:        cast.ToInt(c.PostForm(`dialogue_id`)),
+		SessionId:         cast.ToInt(c.PostForm(`session_id`)),
+		IsDialogMode:      true, //workflow test dialog mode
+		DialogContextList: parseDialogContextList(c.PostForm(`context_list`)),
+		Draft:             work_flow.Draft{IsDraft: true, QuestionMultipleSwitch: cast.ToBool(c.PostForm(`question_multiple_switch`))},
 	}
 	var err error
 	workFlowParams.Draft.NodeMaps, err = msql.Model(`work_flow_node`, define.Postgres).
@@ -391,4 +392,53 @@ func shouldEmitWorkflowDialogFinish(flow *work_flow.WorkFlow, err error) bool {
 		return false
 	}
 	return !work_flow.IsStoragePaused(flow)
+}
+
+const (
+	// must stay aligned with the node param `context_pair` upper bound
+	maxDialogContextPairs = 50
+	// payload bound for each Q/A content carried by the test page
+	maxDialogContextContentSize = 10000
+)
+
+// parseDialogContextList decodes the multi-turn Q/A history carried by the
+// workflow dialog test page. A broken payload degrades to a single-turn run
+// instead of failing the request.
+func parseDialogContextList(raw string) []map[string]string {
+	raw = strings.TrimSpace(raw)
+	if raw == `` {
+		return nil
+	}
+	var items []map[string]any
+	if err := tool.JsonDecode(raw, &items); err != nil {
+		return nil
+	}
+	contextList := make([]map[string]string, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		question := truncateDialogContextContent(cast.ToString(item[`question`]))
+		answer := truncateDialogContextContent(cast.ToString(item[`answer`]))
+		if question == `` || answer == `` {
+			continue
+		}
+		contextList = append(contextList, map[string]string{`question`: question, `answer`: answer})
+	}
+	if len(contextList) > maxDialogContextPairs {
+		contextList = contextList[len(contextList)-maxDialogContextPairs:]
+	}
+	return contextList
+}
+
+func truncateDialogContextContent(content string) string {
+	content = strings.TrimSpace(content)
+	if len(content) <= maxDialogContextContentSize {
+		return content
+	}
+	runes := []rune(content)
+	if len(runes) <= maxDialogContextContentSize {
+		return content
+	}
+	return string(runes[:maxDialogContextContentSize])
 }

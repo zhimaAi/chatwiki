@@ -2,7 +2,11 @@ import { h as flh } from '@logicflow/core'
 import { dynamicGroup } from '@logicflow/extension'
 import { createApp, h, nextTick } from 'vue'
 import CustomGroupComponent from './index.vue'
-import { allParentVariableNodeWhiteList } from '../../util.js'
+import {
+  allParentVariableNodeWhiteList,
+  getExceptionSourceNodeIds,
+  getNodeOutputWithExceptionLog
+} from '../../util.js'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.workflow.components.nodes.base-node')
@@ -484,9 +488,13 @@ class CustomGroupModel extends dynamicGroup.model {
 
 
     let childernNodes = nodes.filter(item => item.properties.loop_parent_key == this.id)
+    // 分组输出聚合组内节点，异常上下文包含分组上游边与组内入边。
+    const exceptionContextEdges = [...edges]
     childernNodes.forEach(item => {
       parentNodes.push(item)
+      exceptionContextEdges.push(...item.incoming.edges)
     })
+    const exceptionSourceNodeIds = getExceptionSourceNodeIds(exceptionContextEdges)
 
 
     // 取出输出的变量
@@ -667,6 +675,7 @@ class CustomGroupModel extends dynamicGroup.model {
         obj.children = output || []
       }
 
+      obj.children = getNodeOutputWithExceptionLog(node, obj.children, exceptionSourceNodeIds)
       obj.children.forEach((variable) => {
         variable.node_id = node.id
         variable.node_name = node.properties.node_name
@@ -675,7 +684,10 @@ class CustomGroupModel extends dynamicGroup.model {
 
       obj.children = transformArray(obj.children, null)
 
-      variableArr.push(obj)
+      // 空节点会被选择器当作变量叶子，只提供包含实际输出字段的节点。
+      if (obj.children.length > 0) {
+        variableArr.push(obj)
+      }
     }
 
     return variableArr

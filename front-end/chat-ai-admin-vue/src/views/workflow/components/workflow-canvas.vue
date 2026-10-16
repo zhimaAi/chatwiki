@@ -104,6 +104,7 @@ import LogicFlow from '@logicflow/core'
 import { DndPanel, MiniMap, SelectionSelect, DynamicGroup } from '@logicflow/extension'
 import { Elk } from './plugins/elk/elk.js'
 import { GroupAutoResize } from './plugins/group-auto-resize'
+import { EdgeAutoPan } from './plugins/edge-auto-pan/index.js'
 import { register, getTeleport } from '@logicflow/vue-node-registry'
 import { getNodesMap, createTriggerNode } from './node-list'
 import customLineEdge from './edges/custom-line/index.js'
@@ -167,6 +168,7 @@ function initLogicFlow() {
       textEdit: false,
       grid: false,
       stopMoveGraph: false,
+      autoExpand: false, // 拖线平移由 EdgeAutoPan 统一控制，避免原生动画同时运行。
       stopZoomGraph: true,
       adjustEdge: false, // 允许调整边
       adjustEdgeStartAndEnd: false, // 是否允许拖动边的端点来调整连线
@@ -188,6 +190,7 @@ function initLogicFlow() {
         CustomKeyboard, 
         DynamicGroup,
         GroupAutoResize,
+        EdgeAutoPan,
         Elk
       ],
       pluginsOptions: {
@@ -1350,6 +1353,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  lf?.extension.edgeAutoPan?.destroy()
   if (lf && lf.destroy) {
     lf.destroy()
   }

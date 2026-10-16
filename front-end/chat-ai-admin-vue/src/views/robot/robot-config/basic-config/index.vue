@@ -136,7 +136,7 @@ const updateRobotInfo = (val) => {
   }
   Object.assign(formState, newState)
 
-  saveForm()
+  return saveForm()
 }
 const workFlowRobotList = ref([])
 const getWorkFlowRobotList = ()=>{
@@ -185,20 +185,21 @@ const saveForm = () => {
 
   saveLoading.value = true
 
-  saveRobot(formData)
+  return saveRobot(formData)
     .then((res) => {
       if (res.res != 0) {
-        return message.error(res.msg)
+        message.error(res.msg)
+        return false
       }
-
-      saveLoading.value = false
 
       message.success(t('msg_save_success'))
 
       getRobot(formState.id)
       robotStore.getRobotLists()
+      return true
     })
-    .catch(() => {
+    .catch(() => false)
+    .finally(() => {
       saveLoading.value = false
     })
 }

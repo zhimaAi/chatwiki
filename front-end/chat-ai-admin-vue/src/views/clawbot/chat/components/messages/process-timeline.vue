@@ -15,6 +15,8 @@
       <div class="process-step" v-for="step in displaySteps" :key="step.id">
         <div class="process-step-header" @click="toggleStep(step)">
           <LoadingOutlined class="process-step-status is-running" v-if="step.status === 'running'" />
+          <CloseCircleOutlined class="process-step-status is-error" v-else-if="step.status === 'error'" />
+          <PauseCircleOutlined class="process-step-status" v-else-if="step.status === 'stopped'" />
           <CheckCircleOutlined class="process-step-status is-done" v-else />
           <div class="process-step-title">
             <span
@@ -30,6 +32,9 @@
               enable-image-preview
             ></CherryMarkdown>
             <template v-else>{{ getStepTitle(step) }}</template>
+            <span class="process-terminal-status" v-if="step.status === 'stopped' || step.status === 'error'">
+              {{ t(step.status === 'error' ? 'status_error' : 'status_stopped') }}
+            </span>
           </div>
           <svg-icon
             name="arrow-down"
@@ -66,8 +71,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons-vue'
+import { computed, ref, watch } from 'vue'
+import { CheckCircleOutlined, LoadingOutlined, CloseCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import '@/assets/style/markdown/markdown.less'
@@ -115,7 +120,14 @@ const showHeaderLoading = computed(() => {
 })
 const timelineExpanded = ref(props.item?.process_expanded !== false)
 const stepExpandedOverrides = ref({})
+watch(() => props.item?.uid || props.item?.id, () => {
+  timelineExpanded.value = props.item?.process_expanded !== false
+  stepExpandedOverrides.value = {}
+})
 const timelineTitle = computed(() => {
+  if (props.item?.process_finish_reason === 'error') {
+    return t('label_failed')
+  }
   if (props.item?.is_stopped) {
     return t('label_stopped')
   }
@@ -175,6 +187,7 @@ const getStepText = (step) => {
   color: #8c8c8c;
   font-size: 14px;
   line-height: 22px;
+  white-space: normal;
 }
 
 .process-timeline-header {
@@ -235,6 +248,14 @@ const getStepText = (step) => {
   &.is-done {
     color: #8c8c8c;
   }
+
+  &.is-error {
+    color: #ff4d4f;
+  }
+}
+
+.process-terminal-status {
+  margin-left: 8px;
 }
 
 .process-step-title {

@@ -3,6 +3,7 @@
   "label_thinking": "Thinking",
   "label_thinking_completed": "Thought completed",
   "label_stopped": "Stopped",
+  "label_failed": "Execution failed",
   "label_thinking_process": "Thinking process",
   "label_thinking_again": "Thinking again",
   "label_params": "Parameters",
@@ -11,5 +12,7 @@
   "label_execute_tool": "Running tool: {name}",
   "label_execute_skill": "Running skill: {name}",
   "status_running": "Running...",
-  "status_done": "Completed"
+  "status_done": "Completed",
+  "status_stopped": "Stopped",
+  "status_error": "Failed"
 }

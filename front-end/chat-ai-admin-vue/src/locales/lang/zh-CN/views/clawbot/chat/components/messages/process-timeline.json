@@ -3,6 +3,7 @@
   "label_thinking": "思考中",
   "label_thinking_completed": "已完成思考",
   "label_stopped": "已停止",
+  "label_failed": "执行失败",
   "label_thinking_process": "思考过程",
   "label_thinking_again": "再次思考",
   "label_params": "参数",
@@ -11,5 +12,7 @@
   "label_execute_tool": "执行工具：{name}",
   "label_execute_skill": "执行技能：{name}",
   "status_running": "执行中...",
-  "status_done": "已完成"
+  "status_done": "已完成",
+  "status_stopped": "已停止",
+  "status_error": "执行失败"
 }

@@ -2,7 +2,11 @@ import { HtmlNode, HtmlNodeModel, h as flh } from '@logicflow/core'
 import { createApp, h, nextTick } from 'vue'
 import {generateUniqueId, jsonDecode} from '@/utils/index'
 import {HasOutputPluginNames} from "@/constants/plugin.js";
-import { allParentVariableNodeWhiteList } from '../util.js'
+import {
+  allParentVariableNodeWhiteList,
+  getExceptionSourceNodeIds,
+  getNodeOutputWithExceptionLog
+} from '../util.js'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.workflow.components.nodes.base-node')
@@ -350,6 +354,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
     const parentNodes = [];
     const visited = new Set();
     const edges = this.incoming.edges;
+    const exceptionSourceNodeIds = getExceptionSourceNodeIds(edges)
     const { nodes } = this.graphModel
 
     let startNode = nodes.find((node) => node.type === 'start-node')
@@ -607,7 +612,7 @@ export class BaseVueNodeModel extends HtmlNodeModel {
         }
       }
 
-      obj.children = Array.isArray(obj.children) ?  obj.children : []
+      obj.children = getNodeOutputWithExceptionLog(node, obj.children, exceptionSourceNodeIds)
       obj.children.forEach(variable => {
         variable.node_id = node.id
         variable.node_name = node.properties.node_name
@@ -616,7 +621,10 @@ export class BaseVueNodeModel extends HtmlNodeModel {
 
       obj.children = transformArray(obj.children, null)
 
-      variableArr.push(obj)
+      // 空节点会被选择器当作变量叶子，只提供包含实际输出字段的节点。
+      if (obj.children.length > 0) {
+        variableArr.push(obj)
+      }
     }
 
     return variableArr;

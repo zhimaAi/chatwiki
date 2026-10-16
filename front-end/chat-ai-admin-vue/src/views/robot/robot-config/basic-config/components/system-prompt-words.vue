@@ -1,5 +1,5 @@
 <template>
-  <div class="prompt-box" ref="promptBoxRef">
+  <div class="prompt-box" ref="promptBoxRef" :inert="isSaving ? '' : null">
     <div class="tab-header">
       <a-tabs style="width: 400px" v-model:activeKey="prompt_type">
         <a-tab-pane :key="1" :tab="t('tab_structured')"></a-tab-pane>
@@ -25,7 +25,7 @@
         </div>
 
         <a-flex :gap="8">
-          <a-button size="small" type="primary" @click="onSave">{{ t('btn_save') }}</a-button>
+          <a-button size="small" type="primary" :loading="isSaving" @click="onSave">{{ t('btn_save') }}</a-button>
           <a-button size="small" @click="onCancel">{{ t('btn_cancel') }}</a-button>
         </a-flex>
       </div>
@@ -348,6 +348,7 @@ const { t } = useI18n('views.robot.robot-config.basic-config.components.system-p
 const robotStore = useRobotStore()
 const miniCardStore = useMiniCardStore()
 const isEdit = ref(false)
+const isSaving = ref(false)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 const props = defineProps({
   robotList: {
@@ -622,22 +623,34 @@ const handleDeleteTheme = (index) => {
   formState.prompt_struct.custom.splice(index, 1)
 }
 
+const savePrompt = async (data) => {
+  if (isSaving.value) return
+  isSaving.value = true
+  try {
+    const success = await updateRobotInfo(data)
+    if (success) {
+      isEdit.value = false
+    }
+  } finally {
+    isSaving.value = false
+  }
+}
+
 const onSave = () => {
-  updateRobotInfo({
+  return savePrompt({
     ...toRaw(formState),
     prompt_type: prompt_type.value
   })
-  isEdit.value = false
 }
 
 const handleAiSave = (prompt_struct) => {
+  if (isSaving.value) return
   prompt_type.value = 1
-  updateRobotInfo({
+  return savePrompt({
     prompt_type: prompt_type.value,
     prompt: formState.prompt,
     prompt_struct
   })
-  isEdit.value = false
 }
 
 const handleEdit = () => {
@@ -670,6 +683,7 @@ const onShowUpPromptModal = () => {
 }
 
 const handleSavePrompt = (item) => {
+  if (isSaving.value) return
   if (item.prompt_type == 1) {
     prompt_type.value = 1
     formState.prompt_struct = item.prompt_struct
@@ -677,7 +691,7 @@ const handleSavePrompt = (item) => {
     prompt_type.value = 0
     formState.prompt = item.prompt
   }
-  onSave()
+  return onSave()
 }
 
 const miniCardFormModalRef = ref(null)
