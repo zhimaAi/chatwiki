@@ -154,7 +154,7 @@ const rules = reactive({
   ]
 })
 
-const { validate, validateInfos, clearValidate } = useForm(formState, rules)
+const { validate, validateInfos, clearValidate, resetFields } = useForm(formState, rules)
 
 const onAvatarChange = (data) => {
   formState.robot_avatar = data.file
@@ -212,11 +212,11 @@ const handleSave = () => {
 
 const open = () => {
   defaultAvatars.value = [default_avatar, ...DEFAULT_ROBOT_AVATAR_LIST]
-  formState.robot_avatar = ''
-  formState.robot_avatar_url = default_avatar
-  formState.robot_name = ''
-  formState.robot_intro = ''
-  formState.group_id = '0'
+  // 重置字段时同步清理校验状态，避免再次打开时清空名称触发必填提示。
+  resetFields({
+    robot_avatar: '',
+    robot_avatar_url: default_avatar
+  })
   show.value = true
 }
 

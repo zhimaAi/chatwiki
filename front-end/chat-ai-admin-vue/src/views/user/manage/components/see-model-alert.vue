@@ -21,6 +21,7 @@
             <div class="tools-wrapper">
               <img class="model-logo" :src="record.robot_avatar" alt="" />
               <div class="item-name">{{ record.robot_name }}</div>
+              <svg-icon v-if="record.application_type == 2" name="agent-text" width="40" height="14" />
             </div>
           </template>
         </a-table-column>

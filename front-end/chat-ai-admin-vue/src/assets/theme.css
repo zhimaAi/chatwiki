@@ -1,0 +1,21 @@
+/* 默认主题保留 base.css 的系统偏好行为；主动选择新主题后以应用配置为准。 */
+html[data-theme='webflow'],
+html[data-theme='claude'] {
+  color-scheme: light;
+  --color-background: var(--app-bg-layout);
+  --color-background-soft: var(--app-bg-container);
+  --color-background-mute: var(--app-bg-hover);
+  --color-text: var(--app-text-primary);
+  --color-heading: var(--app-text-primary);
+  --color-border: var(--app-border);
+  --color-border-hover: var(--app-primary-hover);
+  --wf-color-text-1: var(--app-text-primary);
+  --wf-color-text-2: var(--app-text-tertiary);
+  --wf-color-text-3: var(--app-text-secondary);
+}
+
+html[data-theme='webflow'] body,
+html[data-theme='claude'] body {
+  font-family: var(--app-font-family);
+}
+

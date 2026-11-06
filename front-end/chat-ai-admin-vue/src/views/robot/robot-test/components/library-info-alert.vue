@@ -144,7 +144,7 @@
               <span class="document-size"> {{ t('label_characters_count', { count: item.word_total }) }} </span>
             </div>
             <div class="right-box">
-              <a @click="viewSourceFile(item)" v-if="item.page_num > 0">{{ t('btn_preview_original_file') }}&gt;</a>
+              <a @click="viewSourceFile(item)" v-if="item.preview_url">{{ t('btn_preview_original_file') }}&gt;</a>
               <a @click="toSource">{{ t('btn_view_source_document') }}&gt;</a>
             </div>
           </div>
@@ -177,20 +177,19 @@
 </template>
 
 <script setup>
-import { ref, computed} from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onBeforeUnmount, inject } from 'vue'
 import { CloseOutlined } from '@ant-design/icons-vue'
 import { getAnswerSource } from '@/api/chat/index'
 import VuePdfEmbed from 'vue-pdf-embed'
 import { useChatStore } from '@/stores/modules/chat'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useMathJax } from "@/composables/useMathJax.js";
+import { useAnswerSourcePreview } from '@/composables/useAnswerSourcePreview'
 
 const { t } = useI18n('views.robot.robot-test.components.library-info-alert')
 
-const chatStore = useChatStore()
-const { robot, user } = chatStore
-const router = useRouter()
+const chatStore = inject('robotChatSession', null) || useChatStore()
+const { robot } = chatStore
 const { renderMath } = useMathJax()
 
 const docBoxRef = ref(null)
@@ -198,31 +197,36 @@ const show = ref(false)
 
 const fileList = ref([])
 const activeFileId = ref(null)
+const {
+  sources: documentList, sourceUrl, viewOpen, setContext, previewSource: viewSourceFile, reset: resetPreview
+} = useAnswerSourcePreview(getAnswerSource)
+watch(show, value => { if (!value) resetPreview() })
+watch(documentList, () => {
+  if (show.value && docBoxRef.value) renderMath(docBoxRef.value)
+}, { flush: 'post' })
+onBeforeUnmount(resetPreview)
+
+const parseSources = (value) => {
+  if (Array.isArray(value)) return value
+  try { return JSON.parse(value || '[]') } catch (_error) { return [] }
+}
 
 const reset = () => {
   fileList.value = []
   activeFileId.value = null
+  resetPreview()
 }
 
 const open = (files, file) => {
   reset()
   fileList.value = files.map(item => {
-    let answer_source_data = null;
-    if(item.answer_source_data){
-      answer_source_data = JSON.parse(item.answer_source_data)
-    }
     return {
       ...item,
-      answer_source_data,
+      answer_source_data: parseSources(item.answer_source_data),
     }
   })
   activeFileId.value = file.id
   show.value = true
-  console.log(files, file)
-  if(file.answer_source_data){
-    documentList.value = JSON.parse(file.answer_source_data) || []
-    return
-  }
   getDocumentList(file)
 }
 
@@ -233,26 +237,16 @@ const chagenFile = (file) => {
 
   activeFileId.value = file.id
 
-  if(file.answer_source_data){
-    documentList.value = file.answer_source_data || []
-    return
-  }
-
   getDocumentList(file)
 }
 
-const documentList = ref([])
-
 const getDocumentList = (file) => {
-  getAnswerSource({
+  setContext({
     message_id: file.message_id,
     file_id: file.id,
     robot_key: robot.robot_key,
     openid: robot.openid,
-  }).then((res) => {
-    documentList.value = res.data || []
-    renderMath(docBoxRef.value)
-  })
+  }, parseSources(file.answer_source_data))
 }
 
 // 查看原文档
@@ -272,13 +266,6 @@ const viewTitle = computed(()=>{
   }
   return currentItem.library_name + '-' + t('label_selected')
 })
-const sourceUrl = ref('')
-const viewOpen = ref(false)
-const viewSourceFile = (item) => {
-  console.log(robot)
-  viewOpen.value = true;
-  sourceUrl.value = '/manage/getLibRawFileOnePage?id=' + activeFileId.value + '&page=' + item.page_num + '&admin_user_id=' + user.admin_user_id
-}
 
 const onClose = () => {
   show.value = false

@@ -71,7 +71,8 @@ type ChatRequestParam struct {
 	Prompt               string
 	LibraryIds           string
 	IsClose              *bool
-	StopCtx              context.Context // request context; canceled by net/http when client disconnects (SSE abort)
+	StopCtx              context.Context      // request context; canceled by net/http when client disconnects (SSE abort)
+	ManualTransfer       *ManualTransferState `json:"-"` // shared only within this request's nested calls
 	WorkFlowGlobal       map[string]any
 	QuoteLib             bool
 	LoopTestParams       []any
@@ -144,6 +145,7 @@ type SplitParams struct {
 	AiChunkModel               string   `json:"ai_chunk_model"`
 	AiChunkModelConfigId       int      `json:"ai_chunk_model_config_id"`
 	AiChunkEnableThinking      int      `json:"ai_chunk_enable_thinking"`
+	AiChunkReasoningEffort     string   `json:"ai_chunk_reasoning_effort"`
 	AiChunkTaskId              string   `json:"ai_chunk_task_id"`
 	AiChunkSize                int      `json:"ai_chunk_size"`
 	AiChunkNew                 bool     `json:"ai_chunk_new"`
@@ -258,16 +260,17 @@ type UploadFormFile struct {
 }
 
 type SplitFaqParams struct {
-	SeparatorsNo        string `json:"separators_no"`
-	ChunkSize           int    `json:"chunk_size"`
-	ChunkType           int    `json:"chunk_type"`
-	ChunkPrompt         string `json:"chunk_prompt"`
-	ChunkModel          string `json:"chunk_model"`
-	ChunkModelConfigId  int    `json:"chunk_model_config_id"`
-	ChunkEnableThinking int    `json:"chunk_enable_thinking"`
-	IsQaDoc             int    `json:"is_qa_doc"`
-	FileExt             string `json:"file_ext"`
-	ExtractType         int    `json:"extract_type"`
+	SeparatorsNo         string `json:"separators_no"`
+	ChunkSize            int    `json:"chunk_size"`
+	ChunkType            int    `json:"chunk_type"`
+	ChunkPrompt          string `json:"chunk_prompt"`
+	ChunkModel           string `json:"chunk_model"`
+	ChunkModelConfigId   int    `json:"chunk_model_config_id"`
+	ChunkEnableThinking  int    `json:"chunk_enable_thinking"`
+	ChunkReasoningEffort string `json:"chunk_reasoning_effort"`
+	IsQaDoc              int    `json:"is_qa_doc"`
+	FileExt              string `json:"file_ext"`
+	ExtractType          int    `json:"extract_type"`
 }
 
 type OfficialAccountDraftListStruct struct {

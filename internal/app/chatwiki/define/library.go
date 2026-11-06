@@ -16,6 +16,7 @@ type ChunkParam struct {
 	AiChunkModel                     string `form:"ai_chunk_model"`
 	AiChunkModelConfigId             string `form:"ai_chunk_model_config_id"`
 	AiChunkEnableThinking            int    `form:"ai_chunk_enable_thinking"`
+	AiChunkReasoningEffort           string `form:"ai_chunk_reasoning_effort"`
 	AiChunkSize                      string `form:"ai_chunk_size"`
 	QaIndexType                      string `form:"qa_index_type"`
 	FatherChunkParagraphType         string `form:"father_chunk_paragraph_type"`

@@ -34,6 +34,8 @@ func init() {
 	Route[http.MethodPost]["/manage/loginSwitch"] = manage.LoginSwitch
 	Route[http.MethodPost]["/manage/saveUserConfig"] = manage.SaveUserConfig
 	Route[http.MethodGet]["/manage/getUserConfig"] = manage.GetUserConfig
+	Route[http.MethodPost]["/manage/saveSystemMode"] = manage.SaveSystemMode
+	Route[http.MethodGet]["/manage/getSystemMode"] = manage.GetSystemMode
 
 	/*admin API*/
 	noAuthFuns(Route[http.MethodPost], `/manage/login`, manage.AdminLogin)
@@ -87,6 +89,7 @@ func init() {
 	Route[http.MethodPost][`/manage/relationWorkFlow`] = manage.RelationWorkFlow
 	Route[http.MethodPost][`/manage/setUnknownIssueSummary`] = manage.SetUnknownIssueSummary
 	Route[http.MethodPost][`/manage/relationLibrary`] = manage.RelationLibrary
+	Route[http.MethodPost][`/manage/ensureRobotNormalLibrary`] = manage.EnsureRobotNormalLibrary
 	Route[http.MethodPost][`/manage/cleanRobotChatCache`] = manage.CleanRobotChatCache
 
 	/*robot API*/
@@ -202,7 +205,9 @@ func init() {
 	Route[http.MethodPost][`/manage/hardDelLibraryFile`] = manage.HardDelLibraryFile
 	Route[http.MethodGet][`/manage/getLibFileInfo`] = manage.GetLibFileInfo
 	Route[http.MethodGet][`/manage/getLibRawFile`] = manage.GetLibRawFile
-	noAuthFuns(Route[http.MethodGet], `/manage/getLibRawFileOnePage`, manage.GetLibRawFileOnePage)
+	Route[http.MethodGet][`/manage/getLibRawFileOnePage`] = manage.GetLibRawFileOnePage
+	// Visitor previews authenticate a short-lived, resource-scoped ticket in the handler.
+	noAuthFuns(Route[http.MethodGet], `/chat/getLibRawFileOnePage`, manage.GetChatLibRawFileOnePage)
 	Route[http.MethodGet][`/manage/getLibFileExcelTitle`] = manage.GetLibFileExcelTitle
 	Route[http.MethodPost][`/manage/readLibFileExcelTitle`] = manage.ReadLibFileExcelTitle
 	Route[http.MethodPost][`/manage/restudyLibraryFile`] = manage.RestudyLibraryFile
@@ -330,6 +335,7 @@ func init() {
 	Route[http.MethodGet][`/manage/getModelConfigOption`] = manage.GetModelConfigOption
 	Route[http.MethodPost][`/manage/saveUseModelConfig`] = manage.SaveUseModelConfig
 	Route[http.MethodPost][`/manage/delUseModelConfig`] = manage.DelUseModelConfig
+	Route[http.MethodGet][`/manage/getBackupModelStatus`] = manage.GetBackupModelStatus
 	Route[http.MethodGet][`/manage/getBackupModelConfig`] = manage.GetBackupModelConfig
 	Route[http.MethodPost][`/manage/setBackupModelConfig`] = manage.SetBackupModelConfig
 	Route[http.MethodGet][`/manage/getModelErrorLogs`] = manage.GetModelErrorLogs
@@ -411,6 +417,7 @@ func init() {
 	Route[http.MethodPost][`/manage/releaseDraftKey`] = manage.ReleaseDraftKey
 	Route[http.MethodGet][`/manage/getAdminConfig`] = manage.GetAdminConfig
 	Route[http.MethodPost][`/manage/saveDraftExTime`] = manage.SaveDraftExTime
+	Route[http.MethodPost][`/manage/saveSessionExpireTime`] = manage.SaveSessionExpireTime
 	Route[http.MethodPost][`/manage/testCodeRun`] = manage.TestCodeRun
 	Route[http.MethodPost][`/manage/workFlowPublishVersion`] = manage.WorkFlowPublishVersion
 	Route[http.MethodPost][`/manage/workFlowNextVersion`] = manage.WorkFlowNextVersion

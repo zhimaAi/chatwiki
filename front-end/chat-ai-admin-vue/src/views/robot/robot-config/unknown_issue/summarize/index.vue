@@ -1,5 +1,6 @@
 <template>
   <div class="user-model-page">
+    <a-alert v-if="loadError" type="error" :message="loadError" show-icon><template #action><a @click="getTableData">{{ commonT('retry') }}</a></template></a-alert>
     <a-alert show-icon style="padding-top: 16px">
       <template #message>
         <p>{{ t('alert_message_1') }}</p>
@@ -22,7 +23,7 @@
         <a @click="handleOpenClusterModal">{{ t('settings') }}</a>
       </div>
       <div class="right-block">
-          <DateSelect datekey="4" @dateChange="onDateChange" />
+          <DateSelect datekey="4" :start-date="filters.start_date || ''" :end-date="filters.end_date || ''" :preserve-query="embedded" @dateChange="onDateChange" />
           <a-button type="primary" @click="onSearch">{{ t('query') }}</a-button>
           <a-dropdown>
             <template #overlay>
@@ -173,7 +174,8 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick } from 'vue'
+import { reactive, ref, computed, nextTick, inject, onBeforeUnmount } from 'vue'
+import { useRequestState } from '@/composables/useRequestState'
 import { QuestionCircleOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import ImportLibraryModal from './components/import-library-modal.vue'
@@ -189,10 +191,17 @@ import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from '@/hooks/web/useI18n'
 import { extractVoiceInfo, removeVoiceFormat } from '@/utils/index'
 const { t } = useI18n('views.robot.robot-config.unknown-issue.summarize.index')
+const { t: commonT } = useI18n('views.customer-service.index')
+const props = defineProps({ robotId: { type: [String, Number], default: '' }, filters: { type: Object, default: () => ({}) }, embedded: Boolean })
+const customerContext = inject('customerRobotContext', null)
+const requestState = useRequestState()
+const loadError = requestState.error
+let alive = true
+onBeforeUnmount(() => { alive = false })
 const userStore = useUserStore()
 const robotStore = useRobotStore()
 
-const { getRobot } = robotStore
+const getRobot = customerContext ? customerContext.refreshRobot : robotStore.getRobot
 
 const robotInfo = computed(() => {
   return robotStore.robotInfo
@@ -203,12 +212,13 @@ const unknown_summary_status = computed(() => {
 })
 
 const query = useRoute().query
+const robotId = props.robotId || query.id
 const router = useRouter()
 const activeKey = ref(2)
 
 const requestParams = reactive({
-  start_day: '',
-  end_day: ''
+  start_day: props.filters.start_day || '',
+  end_day: props.filters.end_day || ''
 })
 
 const pager = reactive({
@@ -217,18 +227,16 @@ const pager = reactive({
   total: 0
 })
 const tableData = ref([])
-const loading = ref(false)
+const loading = requestState.loading
 const getTableData = () => {
   let parmas = {
-    robot_id: query.id,
+    robot_id: robotId,
     ...requestParams,
     ...pager
   }
-  loading.value = true
-  getUnknownIssueSummary({
+  return requestState.run(() => getUnknownIssueSummary({
     ...parmas
-  })
-    .then((res) => {
+  }), (res) => {
       tableData.value = res.data.list.map((item) => {
         return {
           ...item,
@@ -238,9 +246,6 @@ const getTableData = () => {
       })
       pager.total = +res.data.total || 0
     })
-    .finally(() => {
-      loading.value = false
-    })
 }
 getTableData()
 
@@ -248,7 +253,7 @@ const handleDownload = (type) => {
   let TOKEN = userStore.getToken
   let start_day = requestParams.start_day
   let end_day = requestParams.end_day
-  let srcUrl = `/manage/getUnknownIssueSummary?robot_id=${query.id}&token=${TOKEN}&start_day=${start_day}&end_day=${end_day}&export=${type}`
+  let srcUrl = `/manage/getUnknownIssueSummary?robot_id=${robotId}&token=${TOKEN}&start_day=${start_day}&end_day=${end_day}&export=${type}`
   window.location.href = srcUrl
 }
 const onTableChange = (pagination) => {
@@ -300,14 +305,14 @@ const handleChangeSwitch = (val) => {
     })
   } else {
     setUnknownIssueSummary({
-      id: query.id,
+      id: robotId,
       unknown_summary_model_config_id: robotInfo.value.unknown_summary_model_config_id,
       unknown_summary_use_model: robotInfo.value.unknown_summary_use_model,
       unknown_summary_similarity: robotInfo.value.unknown_summary_similarity,
       unknown_summary_status: 0
     }).then((res) => {
       message.success(t('save_success'))
-      getRobot(query.id)
+      getRobot(robotId)
     })
   }
 }
@@ -324,7 +329,7 @@ const handleOpenAnswerModal = (record) => {
 }
 
 const handleSaveCluster = () => {
-  getRobot(query.id)
+  getRobot(robotId)
 }
 
 const contextVisible = ref(false)
@@ -387,10 +392,11 @@ const handleOpenChatContext = async (record, question) => {
   contextLoading.value = true
   try {
     const res = await getUnknownIssueChatContext({
-      robot_id: query.id,
+      robot_id: robotId,
       trigger_day: record.trigger_day,
       question: question
     })
+    if (!alive) return
     const data = res.data || {}
     const list = Array.isArray(data.list) ? data.list : []
     contextRobotInfo.value = data.robot || {}

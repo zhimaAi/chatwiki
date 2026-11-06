@@ -7,6 +7,17 @@
       width: 125px;
       margin: 0 8px;
     }
+  }
+  &.is-compact {
+    .gradient-type-select {
+      width: 104px;
+    }
+    .color-item {
+      width: 132px;
+      margin: 0 0 0 12px;
+    }
+  }
+  .color-picker-box {
     .right-arrow {
       font-size: 14px;
       color: #8c8c8c;
@@ -22,10 +33,10 @@
 </style>
 
 <template>
-  <div class="gradient-color-picker">
+  <div class="gradient-color-picker" :class="{ 'is-compact': compact }">
     <div class="color-picker-box">
       <div class="gradient-type-select">
-        <a-select :value="gradientDirection" style="width: 230px" @change="onChangeType">
+        <a-select :value="gradientDirection" :style="{ width: compact ? '104px' : '230px' }" @change="onChangeType">
           <a-select-option
             :value="opt.value"
             :type="opt.type"
@@ -61,6 +72,10 @@ const props = defineProps({
   value: {
     type: String,
     default: ''
+  },
+  compact: {
+    type: Boolean,
+    default: false
   }
 })
 

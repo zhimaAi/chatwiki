@@ -1,4 +1,5 @@
 {
+  "system_mode": "系统模式",
   "model_management": "模型管理",
   "bind_chatclaw": "绑定ChatClaw",
   "token_usage": "Token使用",

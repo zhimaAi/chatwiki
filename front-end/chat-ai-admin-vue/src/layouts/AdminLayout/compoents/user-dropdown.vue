@@ -16,7 +16,7 @@
       line-height: 22px;
       padding: 0 4px;
       font-size: 14px;
-      color: #3a4559;
+      color: var(--app-text-secondary);
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   padding: 2px 8px;
-  color: #262626;
+  color: var(--app-text-primary);
   .menu-icon{
     margin-right: 8px;
     font-size: 16px;

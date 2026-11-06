@@ -1,5 +1,5 @@
 <template>
-  <div class="team-members-pages">
+  <div class="team-members-pages"><a-alert v-if="error || channels.error.value" type="error" :message="error || channels.error.value" show-icon><template #action><a @click="retry">{{ commonT('retry') }}</a></template></a-alert><a-spin v-if="loading" />
     <a-flex justify="flex-start" :gap="16">
       <div class="search-item">
         <div class="search-label">{{ t('label_channel') }}</div>
@@ -29,7 +29,7 @@
         <div class="search-content">
           <DateSelect
             @dateChange="onDateChange"
-            :datekey="datekey"
+            :datekey="datekey" :start-date="props.filters.start_date" :end-date="props.filters.end_date"
             :disabledValue="'2025-01-01'"
           ></DateSelect>
         </div>
@@ -86,7 +86,8 @@
     </div>
 
     <div>
-      <HitLineChart
+      <a-empty v-if="!loading && !error && !lineChartData.xAxis.length" :description="commonT('empty_statistics')" />
+      <HitLineChart v-else
         ref="hitLineChartRef"
         :xDataArray="lineChartData.xAxis"
         :yDataArray="lineChartData.series"
@@ -101,7 +102,8 @@ import DateSelect from './components/date.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import HitLineChart from './components/hit-line-charts.vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useChatStore } from '@/stores/modules/chat'
+import { getSessionChannelList } from '@/api/chat'
+import { useRequestState } from '@/composables/useRequestState'
 import dayjs from 'dayjs'
 import { useI18n } from '@/hooks/web/useI18n'
 const router = useRouter()
@@ -109,11 +111,15 @@ const router = useRouter()
 // 兼容 clawbot 模块通过 props 传入 robotId/robotKey
 const props = defineProps({
   robotId: { type: [String, Number], default: '' },
-  robotKey: { type: String, default: '' }
+  robotKey: { type: String, default: '' },
+  embedded: { type: Boolean, default: false },
+  filters: { type: Object, default: () => ({}) }
 })
 
-const chatStore = useChatStore()
-const { getChannelList } = chatStore
+const emit = defineEmits(['unknown'])
+const { t: commonT } = useI18n('views.customer-service.index')
+const { loading, error, run } = useRequestState()
+const channels = useRequestState()
 const route = useRoute()
 const { t } = useI18n('views.robot.robot-config.statistical-analysis.hit-statics')
 
@@ -128,7 +134,9 @@ const requestParams = reactive({
   robot_id: '', // 由 watch(robotId) 同步
   start_date: '',
   end_date: '',
-  channel: ''
+  channel: props.filters.channel || '',
+  app_type: props.filters.app_type || '',
+  app_id: props.filters.app_id || ''
 })
 
 const staticsHeader = reactive({
@@ -143,10 +151,10 @@ const lineChartData = reactive({
   series: []
 })
 
-const getChannelLists = async () => {
-  const res = await getChannelList({ robot_id: robotId.value })
-  channelItem.value = [...[{ app_type: '', app_name: t('ph_all_channels'), app_id: '' }], ...res.data]
-}
+const getChannelLists = () => channels.run(() => getSessionChannelList({ robot_id: robotId.value }), res => {
+  channelItem.value = [{ app_type: '', app_name: t('ph_all_channels'), app_id: '' }, ...(res.data || [])]
+})
+const retry = () => { getChannelLists(); getStatistics() }
 
 // 同步 robotId 变化到 requestParams；clawbot 切助手时主动重拉
 watch(
@@ -170,6 +178,8 @@ const onDateChange = (date) => {
 const onReset = () => {
   // 重置
   requestParams.channel = ''
+  requestParams.app_type = ''
+  requestParams.app_id = ''
   datekey.value = 2 + '-' + Math.random()
 }
 
@@ -177,8 +187,7 @@ const onSearch = () => {
   getStatistics()
 }
 
-const getStatistics = async () => {
-  statAiTipAnalyse({ ...requestParams }).then((res) => {
+const getStatistics = () => run(() => statAiTipAnalyse({ ...requestParams }), (res) => {
     Object.assign(staticsHeader, res.data.header)
 
     let list = res.data.chart_list || []
@@ -192,7 +201,6 @@ const getStatistics = async () => {
     lineChartData.xAxis = xData
     lineChartData.series = yData
   })
-}
 
 const forMatYDataArray = (arr) => {
   const series = []
@@ -238,6 +246,7 @@ const handleChangeModel = (val, options) => {
 }
 
 const handleToUnknow = () => {
+  if (props.embedded) { emit('unknown', { ...requestParams }); return }
   localStorage.setItem('/robot/config/unknown_issue/activeKey', 1)
 
   if (route.path.startsWith('/clawbot')) {

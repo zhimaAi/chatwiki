@@ -7,6 +7,7 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/custom_eino"
 	"chatwiki/internal/pkg/pipeline"
+	"sync"
 	"time"
 
 	"github.com/gin-contrib/sse"
@@ -39,6 +40,7 @@ type ChatInParam struct {
 	exitChat                 bool // direct exit flag
 	saveRobotChatCache       bool
 	isSwitchManual           bool
+	agentStreams             sync.WaitGroup // asynchronous model stream cleanup before terminal reply
 	chanStreamClosed         bool
 	robotAbilityPayment      bool
 	isPaymentManager         bool // is payment manager
@@ -76,6 +78,7 @@ type ChatOutParam struct {
 	functionTools    []chat.Tool              // function tool
 	list             []msql.Params            // knowledge segment recall
 	replyContentList []common.ReplyContent    // non ai extra reply content list
+	workFlowContent  string                   // joined finish node reply content returned by a claw workflow call
 	goodsWechatCards []define.GoodsWechatCard // cards from the latest successful goods recommendation
 	answerList       []string                 // QA direct reply multiple answers list (each answer contains image/video markdown)
 	quoteFileJson    string                   // quote knowledge base file storage json
@@ -89,6 +92,7 @@ type ChatOutParam struct {
 }
 
 func DoChatRequest(params *define.ChatRequestParam, useStream bool, chanStream chan sse.Event) (out *ChatOutParam) {
+	params.ManualTransfer = define.NewManualTransferState(params.Robot)
 	params.StopCtx = llm.NormalizeContext(params.StopCtx)
 	// builder
 	in := &ChatInParam{

@@ -2,6 +2,7 @@
   "label_agent_fallback": "Agent",
   "btn_new_agent": "New Agent",
   "btn_back_chatwiki": "Back to chatwiki",
+  "btn_system_settings": "System Settings",
   "nav_chat": "Chat",
   "nav_agent": "Agent",
   "nav_skill": "Skill",

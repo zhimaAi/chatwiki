@@ -95,7 +95,8 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 	if !rw.wroteHeader {
 		rw.statusCode = statusCode
 		rw.wroteHeader = true
-		// do not write to original response
+		// Preserve the status on the underlying Gin writer, including empty responses.
+		rw.ResponseWriter.WriteHeader(statusCode)
 	}
 }
 

@@ -1,6 +1,13 @@
 {
   "title_float_icon_setting": "悬浮图标设置",
   "label_display_type": "展示形式：",
+  "label_display_type_plain": "展示形式",
+  "label_icon_position": "图标位置",
+  "label_icon_display": "图标显示",
+  "label_right_plain": "右边距",
+  "label_bottom_plain": "底边距",
+  "label_unread_plain": "未读消息数",
+  "label_notice_plain": "新消息提示",
   "type_simple": "简洁",
   "type_with_text": "加文案",
   "type_custom": "自定义",

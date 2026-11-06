@@ -63,12 +63,18 @@
               <div class="reply-list">
                 <template v-for="(rc, idx) in parseReplyList(item.reply_content_list)" :key="idx">
                   <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
-                    <div class="message-content" v-html="rc.description"></div>
+                    <div v-if="rc.send_source === 'work_flow_finish'" class="message-content">
+                      <cherry-markdown :content="rc.description || ''" />
+                    </div>
+                    <div v-else class="message-content" v-html="formatReplyText(rc)"></div>
                   </div>
                   <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
                     <div class="message-content">
                       <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
                     </div>
+                  </div>
+                  <div v-else-if="(rc.reply_type || rc.type) === 'voice'" class="reply-item reply-voice">
+                    <audio class="reply-audio" :src="rc.url" controls preload="metadata"></audio>
                   </div>
                   <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
                     <div class="url-row">
@@ -114,7 +120,7 @@
                 </template>
               </div>
             </template>
-            <div class="item-body" v-if="!(item.msg_type == 1 && item.content == '') || hasVisibleProcessSteps(item)">
+            <div class="item-body" v-if="!((item.msg_type == 1) && (item.content == '' || isWorkFlowFinishReplyList(item.reply_content_list))) || hasVisibleProcessSteps(item)">
               <ProcessTimeline
                 v-if="item.is_customer == 0 && item.msg_type == 1 && hasVisibleProcessSteps(item)"
                 :item="item"
@@ -156,7 +162,7 @@
               </div>
             </div>
             <!-- 语音消息 -->
-            <div v-if="item.voice_content && item.voice_content.length">
+            <div v-if="item.voice_content && item.voice_content.length && !isWorkFlowFinishReplyList(item.reply_content_list)">
               <VoiceMessage :voice_content="item.voice_content" />
             </div>
           </div>
@@ -351,6 +357,14 @@ function parseReplyList(val) {
   } catch (_e) {
     return []
   }
+}
+
+const isWorkFlowFinishReplyList = (val) => {
+  return parseReplyList(val).some((rc) => rc?.send_source === 'work_flow_finish')
+}
+
+const formatReplyText = (rc) => {
+  return rc?.description || ''
 }
 
 function buildMenuLines(menu_content) {
@@ -753,6 +767,10 @@ defineExpose({
 
 .reply-image .msg-img {
   max-width: 500px;
+}
+
+.reply-voice .reply-audio {
+  max-width: 240px;
 }
 
 .reply-smartMenu {

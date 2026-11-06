@@ -137,6 +137,40 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/11/06**
+
+1.[STD] H5 cloud customer service: Added like and dislike buttons to LLM bot replies<br/>
+2.[STD] Fixed the credit prices shown for ChatWiki's own models in the model selector<br/>
+3.Added adjustable reasoning effort for LLMs in Deep Thinking mode<br/>
+4.Permissions can now be set separately for each Agent bot<br/>
+5.[STD] Fixed human handoff detection for repeated questions in multimodal input<br/>
+6.Fixed plain text extraction from multimodal input<br/>
+7.Fixed missing line breaks in bot replies in conversation history<br/>
+8.Switched full-text search to the BM25 index in `pg_search`<br/>
+9.Chat API: Added support for Smart Menus in fallback replies to unknown questions<br/>
+10.[STD] Improved how cloud Agents handle human handoff nodes when calling workflows<br/>
+11.[STD] Added a built-in human handoff tool for cloud Agents<br/>
+12.Workflow end nodes now send multiple configured replies as separate messages<br/>
+13.Added support for configuring when bot conversations end<br/>
+14.Workflow code execution: Blocked subprocesses and network requests in Python and limited mounts to essential
+read-only paths<br/>
+15.Added system modes: AI Customer Service, Agent Customer Service, and AI Knowledge Base and Workflows (Advanced)<br/>
+16.[STD] Added a credit usage history for ChatWiki's own models<br/>
+17.Fixed HTTP status code passthrough in the internationalization middleware<br/>
+18.Enforced tenant ownership and permission checks when updating data through the user management API<br/>
+19.Disabled MPTCP by default for containerized Go services via `CHATWIKI_GODEBUG`<br/>
+20.Added horizontal resizing and scrolling to the Agent persona page<br/>
+21.Knowledge base web fetch service: Upgraded to Playwright 1.64.1 and bundled its driver and browsers in the image<br/>
+22.[STD] Grouped related items in the Settings menu<br/>
+23.Retrieval settings and tests: Added a similarity threshold for the Word Segmentation Search mode of full-text
+search<br/>
+24.[STD] Fixed permission checks so super admins can access the model menu<br/>
+25.Security: Restricted Quick Command management to the current tenant<br/>
+26.Security: Validated that form fields belong to the correct tenant and form<br/>
+27.Security: Added authorization checks for single-page previews of knowledge base PDFs<br/>
+28.New UI: Added a notice when no backup model is configured<br/>
+29.New UI: Added the Skill menu<br/>
+
 **2026/10/16**
 
 1.Added Agent execution logs to the chat, conversation history, and real-time conversation interfaces<br/>
@@ -155,19 +189,6 @@ For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLo
 5.[STD] Added a workflow call limit for free-version accounts that have not consumed credits for three days<br/>
 6.Fixed a known authentication issue in bot API key management<br/>
 7.LLM calls: Fall back to text for multimodal input types unsupported by the model<br/>
-
-**2026/09/18**
-
-1.[STD] Cloud version human handoff settings: User intent-based handoff now supports custom recognition criteria<br/>
-2.[STD] Added credit usage statistics to the cloud version<br/>
-3.[STD] Fixed an issue where the trigger count in human handoff keyword statistics did not change based on the selected
-time range<br/>
-4.[STD] Cloud version VIP system: Added the Flagship Edition<br/>
-5.System security optimization: Plugin download URLs are now retrieved from the server<br/>
-6.[STD] Limited the number of workflow calls in the free cloud version<br/>
-7.Workflow HTTP request node: Adjusted the timeout duration<br/>
-8.[STD] Fixed incorrect model names being stored for custom model statistics<br/>
-9.Knowledge base retrieval test: The browser now remembers entered content, and the page has been optimized<br/>
 
 ## License
 

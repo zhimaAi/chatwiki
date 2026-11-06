@@ -39,8 +39,8 @@ axiosInstance.interceptors.request.use((config) => {
 
 axiosInstance.interceptors.response.use(
   (res) => {
-    // 在响应成功后，从 pending 中移除请求
-    removePending(res.config)
+    // 独立预览不参与同 URL 的请求去重，也不能清理其他会话的在途请求。
+    if (res.config.cancelToken) removePending(res.config)
     // 这里不能做任何处理，否则后面的 interceptors 拿不到完整的上下文了
     return res
   },
@@ -49,7 +49,7 @@ axiosInstance.interceptors.response.use(
       console.log('Request canceled', error.message)
     } else {
       // 在响应失败后，也从 pending 中移除请求
-      if (error.config) {
+      if (error.config?.cancelToken) {
         removePending(error.config)
       }
     }

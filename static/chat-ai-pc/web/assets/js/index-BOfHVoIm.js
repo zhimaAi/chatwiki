@@ -1,3 +1,0 @@
-import{k as e,L as t,V as n,G as o}from"./vue-chunks-BZ-BEYJh.js";import{_ as a}from"./index-B0EtByCt.js";import"./axios-B4uVmeYG.js";import"./qs-1aiB5q6L.js";import"./dayjs-C4iS2aBk.js";import"./crypto-js-Dix7BFLA.js";const s={class:"main"},r=e({__name:"index",setup(c){return(i,m)=>(o(),t("div",s,[n(` <van-button type="primary" @click="showAlert">showAlert</van-button>\r
-    <van-button type="success" @click="setLang('en-US')">en-US</van-button>\r
-    <van-button type="default" @click="setLang('zh-CN')">zh-CN</van-button> `)]))}}),v=a(r,[["__file","D:/zhima2027/zhima_chatwiki_0817--worktrees/space_main-external-services-style_20260813/front-end/chat-ai-pc/src/views/home/index.vue"]]);export{v as default};

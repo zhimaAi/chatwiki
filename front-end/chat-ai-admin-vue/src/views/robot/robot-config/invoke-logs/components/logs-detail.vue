@@ -144,6 +144,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.invoke-logs.components.logs-detail')
 const emit = defineEmits(['save', 'getGlobal'])
+const props = defineProps({ robotKey: { type: String, default: '' } })
 const query = useRoute().query
 
 const open = ref(false)
@@ -160,7 +161,7 @@ const cuttentItem = computed(() => {
 })
 
 const formState = reactive({
-  robot_key: query.robot_key,
+  robot_key: props.robotKey || query.robot_key,
   question: '',
   openid: ''
 })

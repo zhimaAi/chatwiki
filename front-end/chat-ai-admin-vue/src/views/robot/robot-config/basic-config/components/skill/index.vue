@@ -113,6 +113,7 @@ const { t } = useI18n('views.robot.robot-config.basic-config.components.skill.in
 const isEdit = ref(false)
 
 const { robotInfo, getRobot, getWorkFlowRobotList } = inject('robotInfo')
+const customerContext = inject('customerRobotContext', null)
 const props = defineProps({
   robotList: {
     type: Array,
@@ -156,10 +157,12 @@ const onSave = () => {
 
   formData.work_flow_ids = formData.work_flow_ids.join(',')
 
-  relationWorkFlow({
+  const params = {
     id: robotInfo.id,
     ...formData
-  }).then((res) => {
+  }
+  if (customerContext) return customerContext.saveAction(() => relationWorkFlow(params))
+  relationWorkFlow(params).then((res) => {
     message.success(t('msg_save_success'))
     getRobot(robotInfo.id)
   })

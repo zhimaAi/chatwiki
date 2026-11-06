@@ -1,5 +1,5 @@
 <template>
-  <div class="setting-box">
+  <div class="setting-box" :class="{ 'workspace-language': isWorkspace }">
     <div class="edit-box-header">
       <div class="left-box">
         <svg-icon name="sys-promt"></svg-icon>
@@ -7,6 +7,7 @@
       </div>
       <div class="right-box">
         <a-popover
+          v-if="!isWorkspace"
           v-model:open="moreLanguageOpen"
           trigger="hover"
           placement="bottomRight"
@@ -39,12 +40,12 @@
             </div>
           </template>
           <a-button class="more-language-btn" size="small">
-            <template #icon><SettingOutlined /></template>
+            <template #icon><img v-if="isWorkspace" src="@/assets/img/customer-service/basic-settings/language.svg" alt="" /><SettingOutlined v-else /></template>
             更多语言
           </a-button>
         </a-popover>
         <div class="actions-box">
-          <template v-if="isEdit">
+          <template v-if="isEdit && !isWorkspace">
             <a-flex :gap="8">
               <a-button @click="handleSave" size="small" type="primary">保存</a-button>
               <a-button @click="handleEdit(false)" size="small">取消</a-button>
@@ -56,7 +57,7 @@
         </div>
       </div>
     </div>
-    <div class="tabs-box">
+    <div class="tabs-box" v-if="!isWorkspace || visibleLanguageList.length > 1">
       <a-tabs v-model:activeKey="lang_key" size="small">
         <a-tab-pane
           v-for="item in visibleLanguageList"
@@ -87,9 +88,20 @@
       />
     </div>
   </div>
+  <SystemLanguageDialog
+    v-if="isWorkspace"
+    ref="systemLanguageDialog"
+    :configs="multiLangConfigs"
+    :languages="visibleLanguageList"
+    :more-languages="moreLanguageList"
+    :enabled-languages="enabledMoreLanguageKeys"
+    :is-workflow="isWorkflowRobot"
+    :submit="saveWorkspaceConfig"
+    @visibility-change="setLanguageVisible"
+  />
 </template>
 <script setup>
-import { ref, computed, watch, watchEffect } from 'vue'
+import { ref, computed, watch, watchEffect, inject } from 'vue'
 import { message } from 'ant-design-vue'
 import { SettingOutlined } from '@ant-design/icons-vue'
 import WelcomeWords from './welcome-words.vue'
@@ -98,9 +110,17 @@ import AnswerPrompt from './answer-prompt.vue'
 import { languageMapList } from './languageMap'
 import { useRobotStore } from '@/stores/modules/robot'
 import { saveRobotLangConfigs } from '@/api/robot/index'
+import SystemLanguageDialog from '@/views/customer-service/basic-settings/components/system-language-dialog.vue'
+const customerContext = inject('customerRobotContext', null)
+const props = defineProps({ variant: { type: String, default: 'legacy' } })
+const isWorkspace = computed(() => props.variant === 'workspace')
+const systemLanguageDialog = ref(null)
 
-const DEFAULT_LANGUAGE_KEYS = ['zh-CN', 'en-US']
-const MORE_LANGUAGE_VISIBLE_KEY = 'robot_config_more_language_visible_keys'
+const defaultLanguageKeys = computed(() => isWorkspace.value ? ['zh-CN'] : ['zh-CN', 'en-US'])
+// 新版单独保存语言显隐，避免沿用或改写旧版默认中英文的显示偏好。
+const MORE_LANGUAGE_VISIBLE_KEY = isWorkspace.value
+  ? 'customer_service_more_language_visible_keys'
+  : 'robot_config_more_language_visible_keys'
 
 const lang_key = ref('zh-CN')
 const moreLanguageOpen = ref(false)
@@ -114,11 +134,11 @@ const multiLangConfigs = computed(() => {
 })
 
 const defaultLanguageList = computed(() => {
-  return languageMapList.filter((item) => DEFAULT_LANGUAGE_KEYS.includes(item.value))
+  return languageMapList.filter((item) => defaultLanguageKeys.value.includes(item.value))
 })
 
 const moreLanguageList = computed(() => {
-  return languageMapList.filter((item) => !DEFAULT_LANGUAGE_KEYS.includes(item.value))
+  return languageMapList.filter((item) => !defaultLanguageKeys.value.includes(item.value))
 })
 
 const visibleLanguageList = computed(() => {
@@ -156,7 +176,7 @@ function getLocalEnabledMoreLanguageKeys() {
   try {
     const localValue = localStorage.getItem(MORE_LANGUAGE_VISIBLE_KEY)
     const keys = localValue ? JSON.parse(localValue) : []
-    return Array.isArray(keys) ? keys.filter((key) => !DEFAULT_LANGUAGE_KEYS.includes(key)) : []
+    return Array.isArray(keys) ? keys.filter((key) => !defaultLanguageKeys.value.includes(key)) : []
   } catch (error) {
     return []
   }
@@ -213,6 +233,7 @@ const handleSave = () => {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
+  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) isEdit.value = false })
   saveRobotLangConfigs(parmas).then(() => {
     message.success('保存成功')
     isEdit.value = false
@@ -223,10 +244,23 @@ const handleSave = () => {
 }
 
 const handleEdit = (val) => {
+  if (isWorkspace.value) {
+    if (val) systemLanguageDialog.value.open(lang_key.value)
+    return
+  }
   isEdit.value = val
   if (!val) {
     setMultiLangConfigs()
   }
+}
+
+async function saveWorkspaceConfig(configs) {
+  const params = { id: robotStore.robotInfo.id, multi_lang_configs: JSON.stringify(configs) }
+  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(params))
+  await saveRobotLangConfigs(params)
+  await robotStore.getRobot(params.id)
+  message.success('保存成功')
+  return true
 }
 </script>
 

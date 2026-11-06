@@ -147,6 +147,10 @@ func RobotImport(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+	if expected := c.PostForm("application_type"); expected != "" && cast.ToInt(expected) != cast.ToInt(robotCsl.Robot["application_type"]) {
+		common.FmtError(c, "param_invalid", "application_type")
+		return
+	}
 	token := c.GetHeader(`token`)
 	if len(token) == 0 {
 		token = c.Query(`token`)
@@ -436,7 +440,7 @@ func ApplyChatRobot(lang string, robot msql.Params, cslIdMaps *common.CslIdMaps,
 	chatRobot[`check_name`] = `1`
 	for key, val := range robot {
 		switch key {
-		case `id`, `admin_user_id`, `robot_key`, `work_flow_ids`, `default_library_id`, `default_app_config`, `start_node_key`, `work_flow_model_config_ids`, `creator`:
+		case `id`, `admin_user_id`, `robot_key`, `work_flow_ids`, `default_library_id`, `normal_library_id`, `default_app_config`, `start_node_key`, `work_flow_model_config_ids`, `creator`:
 		case `library_ids`:
 			newVals := make([]string, 0)
 			if len(val) > 0 {

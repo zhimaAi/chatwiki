@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { getUuid } from '@/utils/index'
 import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -92,6 +93,7 @@ const formState = reactive({
   prompt: '',
   question_value: [],
   enable_thinking: false,
+  reasoning_effort: 'none',
   categorys: []
 })
 
@@ -118,6 +120,8 @@ const reset = () => {
   }
 
   cate = JSON.parse(JSON.stringify(cate))
+
+  cate.reasoning_effort = toReasoningEffort(cate.enable_thinking, cate.reasoning_effort)
 
   for (let key in cate) {
     if(key === 'question_value'){

@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   
-  background: #fff;
+  background: var(--app-bg-container);
   box-sizing: border-box;
 }
 
@@ -37,7 +37,7 @@
 .chat-list-title {
   height: 34px;
   padding: 12px 8px 0;
-  color: #8c8c8c;
+  color: var(--app-text-tertiary);
   font-size: 14px;
   line-height: 22px;
   font-weight: 400;
@@ -49,8 +49,8 @@
   min-height: 38px;
   padding: 8px;
   border: 0;
-  border-radius: 6px;
-  background: #fff;
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-container);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -62,23 +62,22 @@
     color 0.2s ease;
 
   &:hover {
-    background: #f7f7f7;
+    background: var(--app-bg-hover);
   }
 
   &.active {
-    border-radius: 8px;
-    background: #f2f6ff;
+    background: var(--app-selected);
 
     .chat-item-icon,
     .chat-item-title {
-      color: #1668dc;
+      color: var(--app-primary);
     }
   }
 }
 
 .chat-item-icon {
   flex-shrink: 0;
-  color: #262626;
+  color: var(--app-text-primary);
   font-size: 16px;
   line-height: 1;
 }
@@ -89,7 +88,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #262626;
+  color: var(--app-text-primary);
   font-size: 14px;
   line-height: 22px;
   font-weight: 400;

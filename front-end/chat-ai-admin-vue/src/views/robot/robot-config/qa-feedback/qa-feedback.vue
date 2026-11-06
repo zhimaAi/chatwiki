@@ -34,9 +34,9 @@
         <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
       </div>
     </a-flex>
-    <div class="list-box">
+    <div class="list-box"><a-alert v-if="error" type="error" :message="error" show-icon><template #action><a @click="getData">{{ commonT('retry') }}</a></template></a-alert>
       <a-table
-        :data-source="tableData"
+        :data-source="tableData" :loading="loading"
         :pagination="requestParams.total > requestParams.size ? {
           current: requestParams.page,
           total: requestParams.total,
@@ -88,6 +88,7 @@
   </div>
 </template>
 <script setup>
+import { useRequestState } from '@/composables/useRequestState'
 import { ref, reactive, onMounted  } from 'vue'
 import { getFeedbackList, getFeedbackDetail } from '@/api/manage/index.js'
 import { useRoute } from 'vue-router'
@@ -97,6 +98,7 @@ import FeedbacksLogAlert from './components/feedbacks-log-alert.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.qa-feedback.qa-feedback')
+const { t: commonT } = useI18n('views.customer-service.index')
 
 // 打开Feedbacks日志
 const feedbacksLogAlertRef = ref(null)
@@ -104,6 +106,8 @@ const feedbacksLogAlertRef = ref(null)
 const route = useRoute()
 const datekey = ref('1')
 
+const props = defineProps({ robotId: { type: [String, Number], default: '' } })
+const { loading, error, run } = useRequestState()
 const query = route.query
 const modelList = ref([
   {
@@ -127,7 +131,7 @@ const modelList = ref([
 ])
 
 const requestParams = reactive({
-  robot_id: query.id, // Robot ID
+  robot_id: props.robotId || query.id, // Robot ID
   page: 1,
   size: 20,
   total: 0,
@@ -144,7 +148,7 @@ const onDateChange = (date) => {
 
 const handleOpenFeedbacksLog = async (item) => {
   const res = await getFeedbackDetail({id: item.id})
-  feedbacksLogAlertRef.value.open(res.data)
+  feedbacksLogAlertRef.value?.open(res.data)
 }
 
 const onReset = () => {
@@ -182,7 +186,7 @@ const getData = () => {
     parmas.type = requestParams.type
   }
 
-  getFeedbackList(parmas).then((res) => {
+  run(() => getFeedbackList(parmas), (res) => {
     let lists = res.data.list
     lists.forEach((item) => {
       item.create_time = item.create_time > 0 ? dayjs(item.create_time * 1000).format('YYYY-MM-DD HH:mm') : '--'

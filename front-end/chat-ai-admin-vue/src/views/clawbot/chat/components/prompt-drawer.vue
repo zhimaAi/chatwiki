@@ -2,13 +2,32 @@
   <a-drawer
     :open="props.open"
     placement="right"
-    :width="500"
+    :width="drawerWidth"
     :closable="false"
-    :maskClosable="!props.loading"
-    :bodyStyle="{ padding: '24px', background: '#fff' }"
+    :maskClosable="!props.loading && !resizing"
+    :contentWrapperStyle="{ maxWidth: '100vw', transition: resizing ? 'none' : undefined }"
+    :drawerStyle="{ position: 'relative', cursor: resizing ? 'ew-resize' : undefined, userSelect: resizing ? 'none' : undefined }"
+    :bodyStyle="{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', padding: '24px', background: '#fff' }"
     :headerStyle="{ padding: '10px 16px', borderBottom: '1px solid #f0f0f0' }"
     @close="handleClose"
   >
+    <div
+      class="drawer-resize-handle"
+      :class="{ resizing }"
+      role="separator"
+      tabindex="0"
+      aria-orientation="vertical"
+      :aria-label="t('title_persona')"
+      :aria-valuemin="Math.min(minDrawerWidth, viewportWidth)"
+      :aria-valuemax="viewportWidth"
+      :aria-valuenow="drawerWidth"
+      @pointerdown="startResize"
+      @pointermove="resizeDrawer"
+      @pointerup="stopResize"
+      @pointercancel="stopResize"
+      @lostpointercapture="stopResize"
+      @keydown="handleResizeKeydown"
+    />
     <template #title>
       <div class="drawer-header">
         <span class="drawer-title">{{ t('title_persona') }}</span>
@@ -50,6 +69,7 @@
           :cardOptions="miniCardOptions"
           :enableCardInsert="true"
           :checkAnyLevel="true"
+          :readonly="!editing || props.loading"
           @change="handlePromptChange"
         >
           <template #dropdown="{ options, select, cardOptions, selectCard, close }">
@@ -73,7 +93,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -106,6 +126,71 @@ const props = defineProps({
     type: Boolean,
     default: false
   }
+})
+
+const minDrawerWidth = 360
+const viewportWidth = ref(window.innerWidth)
+const drawerWidth = ref(Math.min(500, viewportWidth.value))
+const resizing = ref(false)
+let resizeSession = null
+
+const setDrawerWidth = (width) => {
+  const minWidth = Math.min(minDrawerWidth, viewportWidth.value)
+  drawerWidth.value = Math.min(viewportWidth.value, Math.max(minWidth, width))
+}
+
+const stopResize = () => {
+  const session = resizeSession
+  resizeSession = null
+  resizing.value = false
+  if (session?.target.hasPointerCapture(session.pointerId)) {
+    session.target.releasePointerCapture(session.pointerId)
+  }
+}
+
+const startResize = (event) => {
+  if (event.button !== 0 || !event.isPrimary) return
+  event.preventDefault()
+  resizeSession = {
+    target: event.currentTarget,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startWidth: drawerWidth.value
+  }
+  resizing.value = true
+  // 捕获指针，鼠标移出窄拖拽条后仍能继续调宽并收到松开事件。
+  event.currentTarget.setPointerCapture(event.pointerId)
+}
+
+const resizeDrawer = (event) => {
+  if (!resizeSession || event.pointerId !== resizeSession.pointerId) return
+  // 抽屉右侧固定，左边缘向左移动时增加宽度。
+  setDrawerWidth(resizeSession.startWidth + resizeSession.startX - event.clientX)
+}
+
+const handleResizeKeydown = (event) => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+  event.preventDefault()
+  if (event.key === 'Home') setDrawerWidth(minDrawerWidth)
+  else if (event.key === 'End') setDrawerWidth(viewportWidth.value)
+  else setDrawerWidth(drawerWidth.value + (event.key === 'ArrowLeft' ? 20 : -20))
+}
+
+const handleWindowResize = () => {
+  stopResize()
+  viewportWidth.value = window.innerWidth
+  setDrawerWidth(drawerWidth.value)
+}
+
+watch(() => props.open, (open) => {
+  if (open) handleWindowResize()
+  else stopResize()
+})
+
+onMounted(() => window.addEventListener('resize', handleWindowResize))
+onBeforeUnmount(() => {
+  stopResize()
+  window.removeEventListener('resize', handleWindowResize)
 })
 
 const editing = ref(false)
@@ -234,6 +319,22 @@ const handleSave = () => {
 </script>
 
 <style lang="less" scoped>
+.drawer-resize-handle {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 2;
+  width: 6px;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+
+  &:hover,
+  &:focus-visible,
+  &.resizing {
+    background: rgba(36, 117, 252, 0.15);
+  }
+}
+
 .drawer-header {
   display: flex;
   align-items: center;
@@ -274,7 +375,8 @@ const handleSave = () => {
 .prompt-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
@@ -284,6 +386,7 @@ const handleSave = () => {
 
 .prompt-card-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   padding: 16px;
@@ -325,6 +428,7 @@ const handleSave = () => {
 
 .prompt-content-box {
   flex: 1;
+  min-height: 0;
   margin: 0 16px 16px;
   position: relative;
   border-radius: 8px;
@@ -339,28 +443,47 @@ const handleSave = () => {
     inset: 0;
     z-index: 1;
     background: rgba(255, 255, 255, 0.25);
+    // 只读由输入组件控制，遮罩仅保留视觉效果，不拦截滚轮和滚动条。
+    pointer-events: none;
   }
   .prompt-at-input {
     height: 100%;
   }
   :deep(.mention-input-warpper) {
     height: 100%;
+    box-sizing: border-box;
     border: none;
     padding: 12px 16px;
     background: #f2f4f7;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 3px;
+      background: #bfbfbf;
+    }
   }
   :deep(.j-mention.type-textarea) {
-    min-height: 216px;
-    height: 100%;
-    overflow-y: auto;
+    min-height: 100%;
+    height: auto;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    cursor: text;
     background: transparent;
     font-size: 16px;
     line-height: 24px;
     color: #262626;
+
   }
 }
 
 .prompt-insert-tip {
+  flex-shrink: 0;
   margin: 0 16px 8px;
   color: #8c8c8c;
   font-size: 12px;

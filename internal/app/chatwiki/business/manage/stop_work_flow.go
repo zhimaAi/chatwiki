@@ -31,7 +31,7 @@ func StopWorkFlow(c *gin.Context) {
 	logInfo, err := msql.Model(`work_flow_logs`, define.Postgres).
 		Where(`id`, cast.ToString(logID)).
 		Where(`admin_user_id`, cast.ToString(userId)).
-		Field(`id,status`).
+		Field(`id,status,robot_id`).
 		Find()
 	if err != nil {
 		logs.Error(err.Error())
@@ -82,6 +82,6 @@ func StopWorkFlow(c *gin.Context) {
 		return
 	}
 	// Remove paused snapshots so workflows waiting for user input cannot be resumed.
-	work_flow.DelWorkFlowStorageByLogID(logID)
+	work_flow.DelWorkFlowStorageByLogID(cast.ToInt(logInfo[`robot_id`]), logID)
 	c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`stopped`: true}, nil))
 }

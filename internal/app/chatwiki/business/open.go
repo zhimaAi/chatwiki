@@ -48,19 +48,21 @@ type (
 		RobotKey string
 	}
 	ChatMessagesRes struct {
-		MessageId      string                `json:"message_id"`
-		ConversationId string                `json:"conversation_id"`
-		CreateAt       int64                 `json:"create_at"`
-		RawAnswer      string                `json:"raw_answer,omitempty"`
-		Answer         string                `json:"answer"`
-		Image          []string              `json:"image,omitempty"`
-		Voice          []string              `json:"voice,omitempty"`
-		Video          []string              `json:"video,omitempty"`
-		MetaData       ChatMessagesMetaData  `json:"metadata,omitempty"`
-		QuoteLib       any                   `json:"quote_lib,omitempty"`
-		QuoteFile      any                   `json:"quote_file,omitempty"`
-		IsSwitchManual *bool                 `json:"is_switch_manual,omitempty"`
-		MiniCard       []common.ReplyContent `json:"mini_card,omitempty"`
+		MessageId      string                 `json:"message_id"`
+		ConversationId string                 `json:"conversation_id"`
+		CreateAt       int64                  `json:"create_at"`
+		RawAnswer      string                 `json:"raw_answer,omitempty"`
+		Answer         string                 `json:"answer"`
+		Image          []string               `json:"image,omitempty"`
+		Voice          []string               `json:"voice,omitempty"`
+		Video          []string               `json:"video,omitempty"`
+		MetaData       ChatMessagesMetaData   `json:"metadata,omitempty"`
+		QuoteLib       any                    `json:"quote_lib,omitempty"`
+		QuoteFile      any                    `json:"quote_file,omitempty"`
+		IsSwitchManual *bool                  `json:"is_switch_manual,omitempty"`
+		MiniCard       []common.ReplyContent  `json:"mini_card,omitempty"`
+		MsgType        int                    `json:"msg_type,omitempty"`
+		Menu           *define.MenuJsonStruct `json:"menu,omitempty"`
 		// function center - auto reply: (keyword reply + received message reply)
 		ReplyContentList []common.ReplyContent `json:"reply_content_list,omitempty"`
 		AnswerList       []string              `json:"answer_list,omitempty"`
@@ -163,6 +165,15 @@ func ChatMessages(c *gin.Context) {
 		}
 		if len(message[`answer_list`]) > 0 { // QA direct reply multiple answers list
 			_ = tool.JsonDecodeUseNumber(message[`answer_list`], &res.AnswerList)
+		}
+		if msgType := cast.ToInt(message[`msg_type`]); msgType > 0 { // menu reply (unknown question) support
+			res.MsgType = msgType
+			if len(message[`menu_json`]) > 0 {
+				menu := define.MenuJsonStruct{}
+				if tool.JsonDecodeUseNumber(message[`menu_json`], &menu) == nil && len(menu.Question) > 0 {
+					res.Menu = &menu
+				}
+			}
 		}
 		if len(message[`reply_content_list`]) > 0 { // return function center auto reply content
 			_ = tool.JsonDecodeUseNumber(message[`reply_content_list`], &res.ReplyContentList)

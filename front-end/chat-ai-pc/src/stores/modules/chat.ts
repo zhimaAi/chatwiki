@@ -7,6 +7,7 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { postDot, postNewMessage } from '@/event/postMessage'
 import { DEFAULT_SDK_FLOAT_AVATAR, DEFAULT_SDK_FLOAT_AVATAR2 } from '@/constants/index'
+import { resolveSdkAvatarUrl } from '@/utils/sdk-avatar-url'
 import { getCurrentConfig } from '@/utils/getLangConfig'
 import type { ChatInitParams } from '@/types/chat'
 
@@ -325,7 +326,7 @@ export const useChatStore = defineStore('chat', () => {
         }else if(externalConfigPC.floatBtn.displayType == 2) {
           externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR2
         }else if(externalConfigPC.floatBtn.displayType == 3) {
-          externalConfigPC.floatBtn.buttonIcon = SDK_STATIC_HOST + externalConfigPC.floatBtn.buttonIcon
+          externalConfigPC.floatBtn.buttonIcon = resolveSdkAvatarUrl(externalConfigPC.floatBtn.buttonIcon, SDK_STATIC_HOST, DEFAULT_SDK_FLOAT_AVATAR)
         }
       }else{
         Object.assign(externalConfigPC, iframeConfigDefault)
@@ -419,7 +420,7 @@ export const useChatStore = defineStore('chat', () => {
         }else if(externalConfigPC.floatBtn.displayType == 2) {
           externalConfigPC.floatBtn.buttonIcon = DEFAULT_SDK_FLOAT_AVATAR2
         }else if(externalConfigPC.floatBtn.displayType == 3) {
-          externalConfigPC.floatBtn.buttonIcon = SDK_STATIC_HOST + externalConfigPC.floatBtn.buttonIcon
+          externalConfigPC.floatBtn.buttonIcon = resolveSdkAvatarUrl(externalConfigPC.floatBtn.buttonIcon, SDK_STATIC_HOST, DEFAULT_SDK_FLOAT_AVATAR)
         }
       }else{
         Object.assign(externalConfigPC, iframeConfigDefault)

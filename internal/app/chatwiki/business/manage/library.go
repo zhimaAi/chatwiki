@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	netURL "net/url"
 	"path/filepath"
@@ -392,7 +393,7 @@ func LibraryRecallTest(c *gin.Context) {
 	libraryIds := cast.ToString(c.PostForm(`id`))
 	question := strings.TrimSpace(c.PostForm(`question`))
 	size := cast.ToInt(c.PostForm(`size`))
-	similarity := cast.ToFloat64(c.PostForm(`similarity`))
+	similarity, similarityErr := parseLibraryRecallTestSimilarity(c.PostForm(`similarity`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
 	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
@@ -400,7 +401,7 @@ func LibraryRecallTest(c *gin.Context) {
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
 	rerankStatus := strings.TrimSpace(c.DefaultPostForm(`rerank_status`, `1`))
 	recallType := cast.ToString(c.PostForm(`recall_type`))
-	if len(libraryIds) <= 0 || len(question) == 0 || size <= 0 || similarity <= 0 || similarity > 1 || searchType == 0 {
+	if len(libraryIds) <= 0 || len(question) == 0 || size <= 0 || similarityErr != nil || searchType == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -1378,4 +1379,13 @@ func MergeQAParagraph(c *gin.Context) {
 	}
 
 	common.FmtOk(c, nil)
+}
+
+// parseLibraryRecallTestSimilarity accepts an explicit zero while rejecting missing or invalid thresholds.
+func parseLibraryRecallTestSimilarity(value string) (float64, error) {
+	similarity, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+	if err != nil || math.IsNaN(similarity) || math.IsInf(similarity, 0) || similarity < 0 || similarity > 1 {
+		return 0, errors.New(`invalid recall similarity`)
+	}
+	return similarity, nil
 }

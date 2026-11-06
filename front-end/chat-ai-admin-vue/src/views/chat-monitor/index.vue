@@ -14,6 +14,9 @@
   overflow: hidden;
   background-color: #fff;
   .app-list-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 16px 16px 8px;
   }
 
@@ -62,6 +65,23 @@
     overflow: hidden;
   }
 }
+.session-setting-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 6px;
+  color: #595959;
+  font-size: 16px;
+  cursor: pointer;
+  background: #f0f2f5;
+  &:hover {
+    color: #2475fc;
+    background: #e5efff;
+  }
+}
 .page-body {
   display: flex;
   flex-direction: column;
@@ -77,12 +97,17 @@
   <div class="chat-monitor-page">
     <div class="page-left">
       <div class="app-list-box">
-        <a-select v-model:value="selectedRobotId" style="width: 100%" @change="onChangeRobot">
+        <a-select v-model:value="selectedRobotId" style="flex: 1; min-width: 0" @change="onChangeRobot">
           <a-select-option value="">{{ t('all_apps') }}</a-select-option>
           <a-select-option :value="item.id" v-for="item in robotList" :key="item.id">
             <span>{{ item.robot_name }}</span>
           </a-select-option>
         </a-select>
+        <a-tooltip :title="t('btn_session_setting')">
+          <div class="session-setting-btn" @click="openSessionSetting">
+            <svg-icon name="system-setting"></svg-icon>
+          </div>
+        </a-tooltip>
       </div>
 
       <div class="search-box">
@@ -118,6 +143,7 @@
         </div>
       </list-empty>
     </div>
+    <SessionSettingModal ref="sessionSettingRef" />
   </div>
 </template>
 
@@ -131,6 +157,7 @@ import ChatList from './components/chat-list .vue'
 import ChatBox from './components/chat-box.vue'
 import ListEmpty from './components/list-empty.vue'
 import DateFilter from './components/date-filter.vue'
+import SessionSettingModal from './components/session-setting-modal.vue'
 import dayjs from 'dayjs'
 
 const { t } = useI18n('views.chat-monitor')
@@ -143,11 +170,16 @@ const { robotList, selectedRobotId, activeChat } = storeToRefs(chatMonitorStore)
 const bodyRef = ref(null)
 const chatListRef = ref(null)
 const chatBoxRef = ref(null)
+const sessionSettingRef = ref(null)
 const keyword = ref('')
 const showDateFilter = ref(false)
 const defaultDateKey = ref('2')
 const start_time = ref('')
 const end_time = ref('')
+
+const openSessionSetting = () => {
+  sessionSettingRef.value?.show()
+}
 
 const toggleDateFilter = () => {
   showDateFilter.value = !showDateFilter.value

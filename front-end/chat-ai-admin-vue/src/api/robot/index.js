@@ -1,6 +1,10 @@
 import request from '@/utils/http/axios'
 import SSE from '@/utils/http/sse'
 
+export const ensureRobotNormalLibrary = (robot_id) => request.post({
+  url: '/manage/ensureRobotNormalLibrary', data: { robot_id }
+})
+
 const baseURL = import.meta.env.VITE_BASE_API_URL
 
 export const getRobotList = (params = {}) => {

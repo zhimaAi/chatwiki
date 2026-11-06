@@ -359,7 +359,7 @@ func docToSkillGenerate(ctx context.Context, input []*schema.Message, opts custo
 		functionTools,
 		task.Temperature,
 		task.MaxToken,
-		ThinkingEnabled,
+		chat.ReasoningEffortMedium,
 	)
 	if err != nil {
 		return nil, errors.New(i18n.Show(lang, `doc_to_skill_runner_error`, err.Error()))

@@ -8,13 +8,14 @@
     display: flex;
     align-items: center;
     font-size: 14px;
-    color: #595959;
+    color: var(--app-text-secondary);
     cursor: pointer;
     transition: all 0.2s;
     &:hover {
-      color: #2475fc;
+      color: var(--app-primary);
+      background: var(--app-bg-hover);
       .menu-icon {
-        color: #2475fc;
+        color: var(--app-primary);
       }
     }
 
@@ -22,7 +23,7 @@
       margin-right: 4px;
       width: 20px;
       height: 16px;
-      color: #a1a7b3;
+      color: var(--app-text-tertiary);
     }
     .menu-name {
       flex: 1;
@@ -32,10 +33,10 @@
     }
 
     &.active {
-      color: #2475fc;
-      background-color: #e6efff;
+      color: var(--app-primary);
+      background-color: var(--app-selected);
       .menu-icon {
-        color: #2475fc;
+        color: var(--app-primary);
       }
     }
 
@@ -84,6 +85,14 @@ const permissionStore = usePermissionStore()
 
 const baseMenu = computed(() => [
   {
+    name: t('views.user.left-menus.enterprise_settings'),
+    key: 'enterprise',
+    path: '/user/enterprise',
+    svg: 'enterprise',
+    svgActive: 'enterprise-active',
+    permissionKey: 'CompanyManage'
+  },
+  {
     name: t('views.user.left-menus.model_management'),
     key: 'model',
     path: '/user/model',
@@ -120,14 +129,6 @@ const baseMenu = computed(() => [
     svg: 'ali-ocr',
     svgActive: 'ali-ocr',
     permissionKey: 'AliyunOCRManage'
-  },
-  {
-    name: t('views.user.left-menus.enterprise_settings'),
-    key: 'enterprise',
-    path: '/user/enterprise',
-    svg: 'enterprise',
-    svgActive: 'enterprise-active',
-    permissionKey: 'CompanyManage'
   },
   {
     name: t('views.user.left-menus.custom_domain'),
@@ -176,12 +177,14 @@ const baseMenu = computed(() => [
     svg: 'client',
     svgActive: 'client',
     haspermise: true
-  },
+  }
 ])
 
 const menus = computed(() => {
   let { role_permission, role_type } = permissionStore
-  return baseMenu.value.filter((item) => role_type == 1 || item.haspermise || role_permission.includes(item.permissionKey))
+  return baseMenu.value.filter(
+    (item) => role_type == 1 || item.haspermise || role_permission.includes(item.permissionKey)
+  )
 })
 
 const activeMenu = computed(() => {

@@ -1,5 +1,5 @@
 <template>
-  <ConfigProvider v-bind="$props" :locale="currentLocale.antvLocale" :theme="theme">
+  <ConfigProvider v-bind="$props" :locale="currentLocale.antvLocale" :theme="themeStore.antTheme">
     <slot />
   </ConfigProvider>
 </template>
@@ -8,8 +8,7 @@
 import { provide, computed } from 'vue'
 import { ConfigProvider } from 'ant-design-vue'
 import { useLocaleStore } from '@/stores/modules/locale'
-// 主题
-import theme from '@/config/theme'
+import { useThemeStore } from '@/stores/modules/theme'
 
 const props = defineProps({
   // eslint-disable-next-line vue/require-prop-type-constructor
@@ -20,6 +19,7 @@ provide('configGlobal', props)
 
 // 多语言相关
 const localeStore = useLocaleStore()
+const themeStore = useThemeStore()
 
 const currentLocale = computed(() => localeStore.currentLocale)
 </script>

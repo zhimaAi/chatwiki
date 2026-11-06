@@ -66,6 +66,7 @@ import { useI18n } from '@/hooks/web/useI18n';
 
 const { t } = useI18n('views.robot.robot-list.components.import-csl-alert');
 
+const props = defineProps({ applicationType: { type: Number, default: -1 } })
 const emit = defineEmits(['ok']);
 
 const show = ref(false);
@@ -91,7 +92,8 @@ const handleSave = () => {
   saveLoading.value = true;
 
   robotImport({
-    file: fileList.value[0].originFileObj
+    file: fileList.value[0].originFileObj,
+    ...(props.applicationType >= 0 ? { application_type: props.applicationType } : {})
   }).then((res) => {
     saveLoading.value = false;
     show.value = false;

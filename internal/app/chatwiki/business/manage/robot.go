@@ -352,6 +352,11 @@ func SaveRobot(c *gin.Context) {
 	maxToken := cast.ToInt(c.DefaultPostForm(`max_token`, `2000`))
 	contextPair := cast.ToInt(c.DefaultPostForm(`context_pair`, `6`))
 	enableThinking := cast.ToUint(c.PostForm(`enable_thinking`))
+	reasoningEffort := c.PostForm(`reasoning_effort`)
+	if err := common.ValidateReasoningEffort(common.GetLang(c), reasoningEffort, `reasoning_effort`); err != nil {
+		common.FmtError(c, `param_invalid`, `reasoning_effort`)
+		return
+	}
 	questionMultipleSwitch := cast.ToUint(c.PostForm(`question_multiple_switch`))
 	topK := cast.ToInt(c.DefaultPostForm(`top_k`, `5`))
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
@@ -378,6 +383,11 @@ func SaveRobot(c *gin.Context) {
 	optimizeQuestionModelConfigId := cast.ToInt(c.DefaultPostForm(`optimize_question_model_config_id`, "0"))
 	optimizeQuestionUseModel := strings.TrimSpace(c.DefaultPostForm(`optimize_question_use_model`, ``))
 	optimizeQuestionEnableThinking := cast.ToInt(cast.ToBool(c.DefaultPostForm(`optimize_question_enable_thinking`, `0`)))
+	optimizeQuestionReasoningEffort := c.PostForm(`optimize_question_reasoning_effort`)
+	if err := common.ValidateReasoningEffort(common.GetLang(c), optimizeQuestionReasoningEffort, `optimize_question_reasoning_effort`); err != nil {
+		common.FmtError(c, `param_invalid`, `optimize_question_reasoning_effort`)
+		return
+	}
 	optimizeQuestionDialogueBackground := strings.TrimSpace(c.DefaultPostForm(`optimize_question_dialogue_background`, ``))
 	enableQuestionGuide := cast.ToBool(c.DefaultPostForm(`enable_question_guide`, `true`))
 	questionGuideNum := cast.ToInt(c.DefaultPostForm(`question_guide_num`, `3`))
@@ -599,6 +609,10 @@ func SaveRobot(c *gin.Context) {
 		}
 		libraryIds = strings.Join(validLibraryIds, `,`)
 	}
+	if normalID := beforeRobot["normal_library_id"]; cast.ToInt(normalID) > 0 && !tool.InArrayString(normalID, strings.Split(libraryIds, ",")) {
+		common.FmtError(c, "default_library_remove")
+		return
+	}
 
 	//headImg uploaded
 	fileHeader, _ := c.FormFile(`robot_avatar`)
@@ -722,6 +736,7 @@ func SaveRobot(c *gin.Context) {
 		`max_token`:                             maxToken,
 		`context_pair`:                          contextPair,
 		`enable_thinking`:                       enableThinking,
+		`reasoning_effort`:                      reasoningEffort,
 		`question_multiple_switch`:              questionMultipleSwitch,
 		`top_k`:                                 topK,
 		`similarity`:                            similarity,
@@ -743,6 +758,7 @@ func SaveRobot(c *gin.Context) {
 		`optimize_question_dialogue_background`: optimizeQuestionDialogueBackground,
 		`optimize_question_use_model`:           optimizeQuestionUseModel,
 		`optimize_question_enable_thinking`:     optimizeQuestionEnableThinking,
+		`optimize_question_reasoning_effort`:    optimizeQuestionReasoningEffort,
 		`enable_question_guide`:                 enableQuestionGuide,
 		`question_guide_num`:                    questionGuideNum,
 		`question_guide_mode`:                   questionGuideMode,
@@ -1183,8 +1199,8 @@ func AddFlowRobot(c *gin.Context) {
 	robotName := strings.TrimSpace(c.PostForm(`robot_name`))
 	checkName := cast.ToInt(c.PostForm(`check_name`))
 	enName := strings.TrimSpace(c.PostForm(`en_name`))
-	if !common.CheckEnName(cast.ToString(userId), enName, `0`) {
-		common.FmtError(c, `param_err`, "en_name")
+	if err := common.CheckEnName(cast.ToString(userId), enName, `0`); err != nil {
+		common.FmtError(c, err.Error())
 		return
 	}
 	groupId := cast.ToInt(c.PostForm(`group_id`))
@@ -1710,7 +1726,7 @@ func CreatePromptByAi(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	promptStruct, err := common.CreatePromptByAi(c.Request.Context(), common.GetLang(c), demand, adminUserId, cast.ToInt(info[`model_config_id`]), info[`use_model`], common.ToThinkingSwitch(info[`enable_thinking`]))
+	promptStruct, err := common.CreatePromptByAi(c.Request.Context(), common.GetLang(c), demand, adminUserId, cast.ToInt(info[`model_config_id`]), info[`use_model`], common.ToReasoningEffort(info[`enable_thinking`], info[`reasoning_effort`]))
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
@@ -1874,8 +1890,8 @@ func EditBaseInfo(c *gin.Context) {
 	}
 	if cast.ToInt(robotInfo[`application_type`]) == define.ApplicationTypeFlow {
 		enName := strings.TrimSpace(c.PostForm(`en_name`))
-		if !common.CheckEnName(cast.ToString(userId), enName, cast.ToString(id)) {
-			common.FmtError(c, `param_err`, "en_name")
+		if err := common.CheckEnName(cast.ToString(userId), enName, cast.ToString(id)); err != nil {
+			common.FmtError(c, err.Error())
 			return
 		}
 		data[`en_name`] = enName
@@ -2061,7 +2077,7 @@ func RelationLibrary(c *gin.Context) {
 	defaultLibraryId := cast.ToInt(c.DefaultPostForm(`default_library_id`, `0`))
 	libraryIds := strings.TrimSpace(c.PostForm(`library_ids`))
 	robotInfo, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Where(`id`, cast.ToString(id)).Field(`robot_key,library_ids,default_library_id,application_type`).Find()
+		Where(`id`, cast.ToString(id)).Field(`robot_key,library_ids,default_library_id,normal_library_id,application_type`).Find()
 	if defaultLibraryId > 0 {
 		robotLibraryIds := []string{cast.ToString(defaultLibraryId)}
 		for _, libraryId := range strings.Split(robotInfo[`library_ids`], `,`) {
@@ -2077,6 +2093,11 @@ func RelationLibrary(c *gin.Context) {
 			common.FmtError(c, `default_library_remove`)
 			return
 		}
+	}
+	// Prevent the dedicated normal library from being unbound through the association list.
+	if normalID := robotInfo["normal_library_id"]; cast.ToInt(normalID) > 0 && !tool.InArrayString(normalID, strings.Split(libraryIds, ",")) {
+		common.FmtError(c, "default_library_remove")
+		return
 	}
 	updateData := msql.Datas{
 		`library_ids`: libraryIds,

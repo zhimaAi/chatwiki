@@ -433,7 +433,7 @@ watch(
     if (
       hasAddModalList.value.filter((item) => item.config_info_id == currentDefine.value).length == 0
     ) {
-      currentDefine.value = hasAddModalList.value[0].config_info_id
+      currentDefine.value = hasAddModalList.value[0]?.config_info_id || ''
     }
   },
   {

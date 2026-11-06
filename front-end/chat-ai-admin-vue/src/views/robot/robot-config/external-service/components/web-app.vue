@@ -249,7 +249,6 @@
                   <a-radio :value="1">{{ t('open_new_tab') }}</a-radio>
                   <a-radio :value="2">{{ t('open_new_window') }}
                     <a-tooltip :title="t('open_new_window_tooltip')">
-                      <template #title>prompt text</template>
                       <QuestionCircleOutlined />
                     </a-tooltip>
                   </a-radio>
@@ -292,6 +291,7 @@ import { ref, reactive, toRaw, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
 import { copyText } from '@/utils/index'
+import { toPageProtocol } from '@/utils/preview-url'
 import { useRobotStore } from '@/stores/modules/robot'
 import { editExternalConfig } from '@/api/robot/index'
 import CardBox from './card-box.vue'
@@ -336,7 +336,7 @@ const h5_src = computed(() => {
 })
 
 const previewIframeSrc = computed(() => {
-  return h5_website
+  return toPageProtocol(h5_website)
 })
 watch(formState, (val) => {
   updatePreview(val)

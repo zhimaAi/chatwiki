@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
-  border-radius: 6px;
+  background: var(--app-bg-hover);
+  border-radius: var(--app-radius-control);
 
   .nav-menu {
     display: flex;
@@ -14,19 +14,19 @@
     line-height: 22px;
     font-size: 14px;
     font-weight: 700;
-    border-radius: 6px;
-    color: #262626;
+    border-radius: var(--app-radius-control);
+    color: var(--app-text-primary);
     cursor: pointer;
     transition: all 0.2s;
     &:first-child {
       margin-left: 0;
     }
     &:hover {
-      background: #e4e6eb;
+      background: var(--app-fill-secondary);
     }
     &.active {
-      color: #fff;
-      background: #2475fc;
+      color: var(--app-text-on-primary);
+      background: var(--app-primary);
     }
 
     .nav-icon {
@@ -56,13 +56,25 @@
   opacity: 1;
 }
 .robot-active-item {
-  color: #2475fc;
+  color: var(--app-primary);
+}
+.mode-read-error {
+  padding: 5px 12px;
+  color: var(--app-error);
+  font-size: 14px;
 }
 </style>
 
 <template>
   <div class="navbar-wrapper">
     <div class="navbar">
+      <router-link
+        v-if="modeStore.storageStatus === 'error'"
+        class="mode-read-error"
+        to="/user/enterprise"
+      >
+        {{ modeT('error_nav') }}
+      </router-link>
       <template v-for="item in navs" :key="item.key">
         <template v-if="checkRole(item.permission)">
           <div
@@ -110,7 +122,12 @@
           >
             <template v-if="item.key === 'clawbot'">
               <svg-icon class="clawbot-agent-icon" name="agent" width="14" height="14"></svg-icon>
-              <svg-icon class="clawbot-agent-text" name="agent-text" width="40" height="22"></svg-icon>
+              <svg-icon
+                class="clawbot-agent-text"
+                name="agent-text"
+                width="40"
+                height="22"
+              ></svg-icon>
             </template>
             <template v-else>
               <svg-icon class="nav-icon" :name="item.icon"></svg-icon>
@@ -129,13 +146,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { DownOutlined, CheckOutlined } from '@ant-design/icons-vue'
 import { checkRole } from '@/utils/permission'
 import { getRobotList } from '@/api/robot/index.js'
-import { useGuideStore } from '@/stores/modules/guide'
 import { useCompanyStore } from '@/stores/modules/company'
-import { usePermissionStore } from '@/stores/modules/permission'
+import { SYSTEM_MODES, useSystemModeStore } from '@/stores/modules/system-mode'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('layout.navbar')
+const { t: modeT } = useI18n('views.system-mode')
 const companyStore = useCompanyStore()
+const modeStore = useSystemModeStore()
 
 const router = useRouter()
 const roure = useRoute()
@@ -249,20 +267,40 @@ const top_navigate = computed(() => {
 })
 
 const navs = computed(() => {
+  if (modeStore.storageStatus !== 'ready') return []
+
+  if (modeStore.currentMode !== SYSTEM_MODES.ADVANCED) {
+    const isCustomerService = modeStore.currentMode === SYSTEM_MODES.AI_SERVICE
+    return [
+      {
+        id: 'system-mode',
+        key: 'system-mode',
+        label: 'system-mode',
+        title: modeT(isCustomerService ? 'ai_service' : 'agent_entry'),
+        icon: isCustomerService ? 'nav-robot' : 'agent',
+        permission: ['RobotManage'],
+        isModeEntry: true
+      }
+    ]
+  }
+
   const openList = top_navigate.value.filter((item) => item.open)
 
-  return openList
-    .map((item) => baseNavs.value.find((nav) => nav.key === item.id))
-    .filter(Boolean)
+  return openList.map((item) => baseNavs.value.find((nav) => nav.key === item.id)).filter(Boolean)
 })
 
 const handleClickNav = (item) => {
-  if(item.target && item.target == '_blank'){
-    window.open(`/#${item.path}`, "_blank")
+  if (item.isModeEntry) {
+    // 同步新开统一入口，异步应用查询留在新页执行，避免弹窗被浏览器拦截。
+    window.open(router.resolve('/').href, '_blank', 'noopener')
+    return
+  }
+
+  if (item.target && item.target == '_blank') {
+    window.open(`/#${item.path}`, '_blank')
   } else {
     router.push(item.path)
   }
-
 }
 
 const handleChangeRobotmenuItem = (type, item) => {
@@ -314,6 +352,14 @@ const handleToRobotDetail = async () => {
     router.push('/robot/list')
   }
 }
+
+watch(
+  () => companyStore.id,
+  () => {
+    modeStore.loadForScope({ companyId: companyStore.id })
+  },
+  { immediate: true }
+)
 
 watch(
   () => roure.path,

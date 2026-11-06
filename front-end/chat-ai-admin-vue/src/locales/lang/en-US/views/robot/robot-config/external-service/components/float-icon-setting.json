@@ -1,6 +1,13 @@
 {
   "title_float_icon_setting": "Float Icon Settings",
   "label_display_type": "Display Type:",
+  "label_display_type_plain": "Display",
+  "label_icon_position": "Icon position",
+  "label_icon_display": "Icon display",
+  "label_right_plain": "Right",
+  "label_bottom_plain": "Bottom",
+  "label_unread_plain": "Unread count",
+  "label_notice_plain": "New message",
   "type_simple": "Simple",
   "type_with_text": "With Text",
   "type_custom": "Custom",

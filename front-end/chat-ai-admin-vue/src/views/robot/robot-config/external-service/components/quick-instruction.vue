@@ -82,6 +82,55 @@
     padding-right: 16px;
   }
 }
+.quick-instructions-box.is-workspace {
+  :deep(.card-icon) {
+    display: none;
+  }
+  :deep(.card-box) {
+    border-radius: 0;
+    background: transparent;
+  }
+  :deep(.card-box-header) {
+    height: 40px;
+    margin-top: 16px;
+    padding: 0 20px;
+    border-radius: 8px;
+    background: #f5f5f5;
+  }
+  :deep(.title-text) {
+    font-size: 14px;
+    line-height: 22px;
+  }
+  :deep(.card-box-body) {
+    padding: 16px 0 0 20px;
+  }
+  &.is-empty :deep(.card-box-body) {
+    display: none;
+  }
+  .quick-list-box {
+    overflow: hidden;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    background: #fff;
+  }
+  .list-item {
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid #e8e8e8;
+    border-radius: 0;
+    cursor: default;
+  }
+  .list-box-wrap:last-child .list-item {
+    border-bottom: 0;
+  }
+  .opration-box {
+    position: static;
+    opacity: 1;
+    margin-left: 12px;
+    padding: 0;
+    background: transparent;
+  }
+}
 .help-icon {
   color: #8c8c8c;
   cursor: pointer;
@@ -102,11 +151,11 @@
 </style>
 
 <template>
-  <div class="quick-instructions-box">
+  <div class="quick-instructions-box" :class="{ 'is-workspace': isWorkspace, 'is-empty': isWorkspace && !quickLists.length }">
     <card-box>
       <template #title>
         {{ t('quick_instruction_settings') }}
-        <a-popover placement="top">
+        <a-popover v-if="!isWorkspace" placement="top">
           <template #content>
             <div class="help-box">
               <div>{{ t('quick_instruction_help') }}</div>
@@ -127,13 +176,16 @@
             :checkedValue="1"
             :unCheckedValue="0"
             v-model:checked="fastCommandSwitch"
-            :checked-children="t('switch_on')"
-            :un-checked-children="t('switch_off')"
+            :checked-children="isWorkspace ? '' : t('switch_on')"
+            :un-checked-children="isWorkspace ? '' : t('switch_off')"
           />
-          <a-button @click="openAddModal" size="small" type="primary">{{ t('add_btn') }}</a-button>
+          <a-button v-if="isWorkspace" size="small" @click="openAddModal">
+            <PlusOutlined />{{ t('add_btn') }}
+          </a-button>
+          <a-button v-else @click="openAddModal" size="small" type="primary">{{ t('add_btn') }}</a-button>
         </div>
       </template>
-      <div class="quick-list-box">
+      <div v-if="!isWorkspace || quickLists.length" class="quick-list-box">
         <draggable
           v-model="quickLists"
           item-key="id"
@@ -150,7 +202,8 @@
                 </div>
                 <div class="opration-box">
                   <EditOutlined @click="openAddModal(element)" />
-                  <CloseCircleOutlined @click="handleDelete(element.id)" />
+                  <DeleteOutlined v-if="isWorkspace" @click="handleDelete(element.id)" />
+                  <CloseCircleOutlined v-else @click="handleDelete(element.id)" />
                 </div>
               </div>
             </div>
@@ -199,7 +252,7 @@
 
 <script setup>
 import { useI18n } from '@/hooks/web/useI18n'
-import { ref, reactive, toRaw, createVNode, watch } from 'vue'
+import { computed, ref, reactive, toRaw, createVNode, watch } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import CardBox from './card-box.vue'
 import { isValidURL } from '@/utils/validate.js'
@@ -209,6 +262,8 @@ import draggable from 'vuedraggable'
 import {
   EditOutlined,
   CloseCircleOutlined,
+  DeleteOutlined,
+  PlusOutlined,
   ExclamationCircleOutlined,
   QuestionCircleOutlined
 } from '@ant-design/icons-vue'
@@ -226,8 +281,13 @@ const props = defineProps({
   type: {
     type: Number,
     default: void 0
+  },
+  appearance: {
+    type: String,
+    default: 'card'
   }
 })
+const isWorkspace = computed(() => props.appearance === 'workspace')
 const emit = defineEmits(['updata'])
 const route = useRoute()
 const robotStore = useRobotStore()

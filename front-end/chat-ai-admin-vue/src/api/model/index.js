@@ -48,6 +48,10 @@ export const setModelConfigWeight = (data) => {
   return request.post({ url: '/manage/setModelConfigWeight', data })
 }
 
+export const getBackupModelStatus = () => {
+  return request.get({ url: '/manage/getBackupModelStatus' })
+}
+
 export const getBackupModelConfig = (params) => {
   return request.get({ url: '/manage/getBackupModelConfig', params })
 }

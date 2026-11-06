@@ -42,6 +42,9 @@ import (
 )
 
 func GetLibFileSplit(userId, fileId, pdfPageNum int, splitParams define.SplitParams, lang string) (list define.DocSplitItems, wordTotal int, _splitParams define.SplitParams, err error) {
+	if err = ValidateReasoningEffort(lang, splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		return
+	}
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		err = errors.New(i18n.Show(lang, `sys_err`))
@@ -346,6 +349,9 @@ func isAdminMiniCardQAParagraphType(paragraphType int) bool {
 }
 
 func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list define.DocSplitItems, pdfPageNum int, lang string) ([]int64, error) {
+	if err := ValidateReasoningEffort(lang, splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		return nil, err
+	}
 	info, err := GetLibFileInfo(fileId, userId)
 	if err != nil {
 		logs.Error(err.Error())
@@ -717,6 +723,7 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		`ai_chunk_model`:                 splitParams.AiChunkModel,
 		`ai_chunk_model_config_id`:       splitParams.AiChunkModelConfigId,
 		`ai_chunk_enable_thinking`:       splitParams.AiChunkEnableThinking,
+		`ai_chunk_reasoning_effort`:      splitParams.AiChunkReasoningEffort,
 		`ai_chunk_size`:                  splitParams.AiChunkSize,
 		`ai_chunk_prumpt`:                splitParams.AiChunkPrumpt,
 		`ai_chunk_task_id`:               splitParams.AiChunkTaskId,
@@ -1785,7 +1792,7 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 				chanStream,
 				0.1,
 				maxToken,
-				ToThinkingSwitch(splitParams.AiChunkEnableThinking),
+				ToReasoningEffort(splitParams.AiChunkEnableThinking, splitParams.AiChunkReasoningEffort),
 			)
 			docSplitItem := define.DocSplitItem{
 				PageNum: item.PageNum,
@@ -1891,6 +1898,9 @@ func AISplitDocs(adminUserId, fileId int, splitParams define.SplitParams, list d
 }
 
 func SaveAISplitDocs(userId, fileId, wordTotal, qaIndexType int, splitParams define.SplitParams, list define.DocSplitItems, pdfPageNum int, lang string) (err error) {
+	if err = ValidateReasoningEffort(lang, splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		return
+	}
 	// save data
 	taskId := splitParams.AiChunkTaskId
 	ticker := time.NewTicker(1 * time.Second)

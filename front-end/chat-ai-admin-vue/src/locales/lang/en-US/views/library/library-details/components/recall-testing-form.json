@@ -23,6 +23,7 @@
   "ph_select_rerank_model": "Please select Rerank model",
   "msg_select_rerank_model": "Please select Rerank model",
   "msg_input_similarity": "Please enter similarity",
+  "msg_similarity_range": "Similarity must be a valid number between 0 and 1.",
   "msg_input_size": "Please enter segment count",
   "msg_input_question": "Please enter test question",
   "label_full_text_search_mode": "Full Text Search Mode",

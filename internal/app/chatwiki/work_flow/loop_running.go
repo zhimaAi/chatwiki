@@ -128,6 +128,9 @@ func (flowLoop *WorkFlowLoop) ForRunning() (nextNodeKey string, err error) {
 	flowLoop.initLoopIntermediate()
 loopFor:
 	for loopIndex, inField := range loopInFields {
+		if flowLoop.Flow.applyManualTransfer() {
+			break
+		}
 		flowL := &WorkFlow{}
 		if inField == nil {
 			flowLoop.Flow.Logs(`Executing loop node.. %dth time`, loopIndex)
@@ -137,6 +140,10 @@ loopFor:
 		var isLoopEnd bool
 		isLoopEnd, flowL, err = flowLoop.loopNodeRunning(loopIndex, len(loopInFields), inField)
 		flowLoop.FlowLs = append(flowLoop.FlowLs, flowL)
+		if flowLoop.Flow.applyManualTransfer() {
+			err = nil
+			break
+		}
 		// Interrupt handling
 		if flowLoop.Flow.isTimeout {
 			break
@@ -153,6 +160,13 @@ loopFor:
 	}
 	// Inject loop node output
 	flowLoop.TakeChildOutputs()
+	for _, child := range flowLoop.FlowLs {
+		flowLoop.Flow.replyContentList = append(flowLoop.Flow.replyContentList, child.replyContentList...)
+	}
+	if output := manualTransferOutput(flowLoop.Flow.params.ManualTransfer); output != nil {
+		flowLoop.Outputs = mergeManualTransferOutput(flowLoop.Outputs, flowLoop.Flow.params.ManualTransfer)
+		return ``, nil
+	}
 	nextNodeKey = flowLoop.LoopNode[`next_node_key`]
 	return
 }
@@ -328,6 +342,9 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 	}
 	flowL.Logs(`Start running loop node child nodes %d/%d`, loopIndex, maxLoopNumber)
 	for {
+		if flowL.applyManualTransfer() {
+			break
+		}
 		var nodeInfo msql.Params
 		flowL.curNode, nodeInfo, err = GetNodeByKey(flowL, cast.ToUint(flowL.params.RealRobot[`id`]), flowL.curNodeKey)
 		if err != nil {
@@ -358,6 +375,9 @@ func (flowLoop *WorkFlowLoop) loopNodeRunning(loopIndex, maxLoopNumber int, inFi
 			flowL.outputs[flowL.curNodeKey] = make(common.SimpleFields)
 		} else {
 			flowL.output, nextNodeKey, err = flowL.curNode.Running(flowL)
+			if flowL.applyManualTransfer() {
+				nextNodeKey, err = ``, nil
+			}
 			flowL.outputs[flowL.curNodeKey] = flowL.output // Record variables output by each node
 		}
 		// Inject intermediate variables into outputs

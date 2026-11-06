@@ -6,20 +6,20 @@
   line-height: 20px;
   padding: 5px 12px;
   margin-left: 16px;
-  border-radius: 6px;
+  border-radius: var(--app-radius-control);
   font-size: 14px;
   font-weight: 400;
-  color: #595959;
+  color: var(--app-text-secondary);
   transition: all .2s;
   cursor: pointer;
 
   &:hover {
-    background: #e4e6eb;
+    background: var(--app-fill-secondary);
   }
 
   &.active {
-    color: #fff;
-    background: #2475fc;
+    color: var(--app-text-on-primary);
+    background: var(--app-primary);
   }
 
   .nav-icon {
@@ -34,7 +34,7 @@
     display: inline-block;
     width: 8px;
     height: 8px;
-    background: #ff4d4f;
+    background: var(--app-error);
     border-radius: 50%;
     margin-right: 4px;
   }

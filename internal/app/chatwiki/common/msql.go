@@ -269,6 +269,7 @@ func GetMatchLibraryParagraphByVectorSimilarity(ctx context.Context, lang string
 		if cast.ToFloat64(one[`similarity`]) < similarity {
 			break
 		}
+		one[`vector_similarity`] = one[`similarity`]
 		result = append(result, one)
 	}
 	return result, nil
@@ -318,7 +319,7 @@ func GetMatchLibraryParagraphByGraphSimilarity(ctx context.Context, lang string,
 		nil,
 		0.1,
 		500,
-		ThinkingDisabled,
+		chat.ReasoningEffortNone,
 	)
 	if err != nil {
 		logs.Error("Failed to extract entities: %s", err.Error())
@@ -485,41 +486,50 @@ func GetMatchLibraryParagraphByGraphSimilarity(ctx context.Context, lang string,
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size, searchType int) ([]msql.Params, error) {
+func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size, searchType int, similarity float64) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
-	for _, old := range []string{`'`, `"`, "\r", "\n", "\t"} {
-		question = strings.ReplaceAll(question, old, ` `)
-	}
-	queryTokens, err := msql.Model(fmt.Sprintf(`ts_parse('zhparser', '%s')`, question), define.Postgres).ColumnArr(`token`)
-	if err != nil {
-		return nil, err
-	}
-
-	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
-		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
-		Limit(5000).ColumnArr(`id`)
+	matches, err := getBM25IndexMatches(question, libraryIds, size, similarity)
 	if err != nil {
 		return list, err
 	}
-	if len(ids) == 0 {
+	if len(matches) == 0 {
 		return list, nil
 	}
 
-	return msql.Model(`chat_ai_library_file_data_index`, define.Postgres).
-		Alias("a").
-		Join("chat_ai_library_file_data b", "a.data_id=b.id", "left").
-		Where(`a.delete_time`, `0`).
-		Where(`a.id`, `in`, strings.Join(ids, `,`)).
-		Where(`b.id is not null`).
-		Field(`b.*,a.id as index_id`).
-		Field(fmt.Sprintf(`ts_rank(to_tsvector('zhima_zh_parser',upper(a.content)),to_tsquery('zhima_zh_parser',upper('%s'))) as similarity`, strings.Join(queryTokens, " | "))).
-		Order(`similarity DESC`).Limit(size).Select()
+	dataIDs := make([]string, 0, len(matches))
+	for _, match := range matches {
+		dataIDs = append(dataIDs, match.DataID)
+	}
+	paragraphs, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
+		Where(`delete_time`, `0`).Where(`id`, `in`, strings.Join(dataIDs, `,`)).Select()
+	if err != nil {
+		return list, err
+	}
+	paragraphByID := make(map[string]msql.Params, len(paragraphs))
+	for _, paragraph := range paragraphs {
+		paragraphByID[paragraph[`id`]] = paragraph
+	}
+	for _, match := range matches {
+		paragraph, ok := paragraphByID[match.DataID]
+		if !ok {
+			continue
+		}
+		// A paragraph may match several index rows; retain each row's own score.
+		item := make(msql.Params, len(paragraph)+2)
+		for key, value := range paragraph {
+			item[key] = value
+		}
+		item[`index_id`] = match.IndexID
+		item[`similarity`] = cast.ToString(match.Similarity)
+		list = append(list, item)
+	}
+	return list, nil
 }
 
-func GetMatchLibraryParagraphBySearchType(question, libraryIds string, size, searchType int, librarySearchType string) ([]msql.Params, error) {
+func GetMatchLibraryParagraphBySearchType(question, libraryIds string, size, searchType int, librarySearchType string, similarity float64) ([]msql.Params, error) {
 	librarySearchType, err := NormalizeLibrarySearchType(searchType, librarySearchType)
 	if err != nil {
 		return nil, err
@@ -527,7 +537,7 @@ func GetMatchLibraryParagraphBySearchType(question, libraryIds string, size, sea
 	if librarySearchType == define.LibrarySearchTypeKeyword {
 		return GetMatchLibraryParagraphByKeywordSearch(question, libraryIds, size, searchType)
 	}
-	return GetMatchLibraryParagraphByFullTextSearch(question, libraryIds, size, searchType)
+	return GetMatchLibraryParagraphByFullTextSearch(question, libraryIds, size, searchType, similarity)
 }
 
 func GetMatchLibraryParagraphByKeywordSearch(question, libraryIds string, size, searchType int) ([]msql.Params, error) {
@@ -535,7 +545,7 @@ func GetMatchLibraryParagraphByKeywordSearch(question, libraryIds string, size, 
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
 		return list, nil
 	}
-	question = strings.TrimSpace(GetFirstQuestionByInput(question))
+	question = strings.TrimSpace(GetFirstQuestionByInput(question, true))
 	if question == `` {
 		return list, nil
 	}
@@ -599,16 +609,16 @@ func buildKeywordSearchLogPayload(question, libraryIds, sql string, result []msq
 }
 
 func GetMatchLibraryDataIdsByFullText(content, libraryIds string, size int) ([]string, error) {
-	queryTokens := []string{content}
-	ids, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Where(`library_id`, `in`, libraryIds).
-		Where(`delete_time`, `0`).
-		Where(fmt.Sprintf(`to_tsvector('zhima_zh_parser',upper(content))@@to_tsquery('zhima_zh_parser',upper('%s'))`, strings.Join(queryTokens, " | "))).
-		Limit(size).ColumnArr(`id`)
+	matches, err := getBM25IndexMatches(content, libraryIds, size, 0)
 	if err != nil {
 		return nil, err
 	}
-	if len(ids) == 0 {
+	if len(matches) == 0 {
 		return nil, nil
+	}
+	ids := make([]string, 0, len(matches))
+	for _, match := range matches {
+		ids = append(ids, match.IndexID)
 	}
 	return ids, nil
 }
@@ -682,6 +692,10 @@ func GetMatchLibraryParagraphByMergeRerank(ctx context.Context, lang string, ope
 
 func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appType, appId, question string, optimizedQuestions []string, libraryIds string, size int, similarity float64, searchType int, robot msql.Params) (_ []msql.Params, libUseTime LibUseTime, _ error) {
 	result := make([]msql.Params, 0)
+	question = GetFirstQuestionByInput(question, true)
+	if len(question) == 0 {
+		return result, libUseTime, nil // Skip text retrieval when input has no text
+	}
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
 	}
@@ -694,11 +708,6 @@ func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appT
 	if len(libraryIds) == 0 {
 		return result, libUseTime, nil
 	}
-	question = GetFirstQuestionByInput(question) // Multimodal input special processing
-	if len(question) == 0 {
-		return result, libUseTime, nil
-	}
-
 	fetchSize := 4 * size
 	var vectorList, searchList, graphList []msql.Params
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
@@ -715,7 +724,7 @@ func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appT
 			logs.Error(err.Error())
 		}
 		graphList = append(graphList, changeListContent(list)...)
-		list, err = GetMatchLibraryParagraphBySearchType(q, libraryIds, fetchSize, searchType, robot[`library_search_type`])
+		list, err = GetMatchLibraryParagraphBySearchType(q, libraryIds, fetchSize, searchType, robot[`library_search_type`], similarity)
 		if err != nil {
 			logs.Error(err.Error())
 		}
@@ -1163,7 +1172,7 @@ func GetLastDialogueId(adminUserId, robotId int, openid string) int {
 }
 
 func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[string]string) ([]string, error) {
-	question := GetFirstQuestionByInput(param.Question) // Multimodal input special processing
+	question := GetFirstQuestionByInput(param.Question, true)
 	if len(question) == 0 {
 		return []string{}, nil // Skip question optimization when input has no text content
 	}
@@ -1208,7 +1217,7 @@ func GetOptimizedQuestions(param *define.ChatRequestParam, contextList []map[str
 		nil,
 		cast.ToFloat32(param.Robot[`temperature`]),
 		200,
-		ToThinkingSwitch(param.Robot[`optimize_question_enable_thinking`]),
+		ToReasoningEffort(param.Robot[`optimize_question_enable_thinking`], param.Robot[`optimize_question_reasoning_effort`]),
 	)
 	if err != nil {
 		return nil, err
@@ -1515,6 +1524,7 @@ func GetAdminConfig(UserId int) map[string]string {
 		defaultList["draft_exptime"] = "10"
 		defaultList["comment_pull_days"] = "7"
 		defaultList["comment_pull_limit"] = "10"
+		defaultList["session_expire_seconds"] = cast.ToString(DefaultSessionSecond)
 		return defaultList
 	}
 

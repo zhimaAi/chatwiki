@@ -268,6 +268,7 @@
     </template>
     <EditSubscription
       :detailsInfo="detailsInfo"
+      :file-id="route.query.id"
       @handleEdit="handleEditParagraph"
       ref="editSubscriptionRef"
     ></EditSubscription>
@@ -286,6 +287,7 @@
 </template>
 
 <script setup>
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
@@ -484,6 +486,7 @@ let formData = {
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_enable_thinking: 0, // AI大模型分段深度思考开关
+  ai_chunk_reasoning_effort: 'none',
   ai_chunk_prumpt: defaultAiChunkPrumpt,
   ai_chunk_task_id: '',  //  ai分段数据id，如果有ai分段数据就有值
   father_chunk_paragraph_type: 2,
@@ -538,6 +541,7 @@ const getFileInfo = async () => {
       ai_chunk_prumpt: res.data.ai_chunk_prumpt || '',
       ai_chunk_model: res.data.ai_chunk_model || '',
       ai_chunk_enable_thinking: +res.data.ai_chunk_enable_thinking || 0,
+      ai_chunk_reasoning_effort: toReasoningEffort(res.data.ai_chunk_enable_thinking, res.data.ai_chunk_reasoning_effort),
       semantic_chunk_model_config_id:
         res.data.semantic_chunk_model_config_id > 0 ? res.data.semantic_chunk_model_config_id : '',
       ai_chunk_model_config_id:
@@ -1198,6 +1202,7 @@ const handleSaveLibFileSplit = async (documentFragmentList, index) => {
       ? +formData.ai_chunk_model_config_id
       : 0,
     ai_chunk_enable_thinking: formData.ai_chunk_enable_thinking || 0,
+    ai_chunk_reasoning_effort: toReasoningEffort(formData.ai_chunk_enable_thinking, formData.ai_chunk_reasoning_effort),
     is_table_file: settingMode.value
   }
 

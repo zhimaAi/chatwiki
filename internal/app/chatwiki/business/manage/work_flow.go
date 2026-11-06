@@ -361,6 +361,12 @@ func SaveNodes(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `node_list`))))
 		return
 	}
+	for _, node := range nodeList {
+		if err := node.NodeParams.ValidateReasoningEffort(common.GetLang(c)); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]any{"err_node_key": node.NodeKey}, err))
+			return
+		}
+	}
 	lockKey := define.LockPreKey + fmt.Sprintf(`%s.%s.%d`, `SaveNodes`, robotKey, dataType)
 	if !lib_redis.AddLock(define.Redis, lockKey, time.Minute) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `op_lock`))))
@@ -767,6 +773,12 @@ func WorkFlowPublishVersion(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `node_list`))))
 		return
 	}
+	for _, node := range nodeList {
+		if err := node.NodeParams.ValidateReasoningEffort(common.GetLang(c)); err != nil {
+			c.String(http.StatusOK, lib_web.FmtJson(map[string]any{"err_node_key": node.NodeKey}, err))
+			return
+		}
+	}
 	lockKey := define.LockPreKey + fmt.Sprintf(`%s.%s.%d`, `SaveNodes`, robotKey, dataType)
 	if !lib_redis.AddLock(define.Redis, lockKey, time.Minute) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `op_lock`))))
@@ -984,6 +996,44 @@ func SaveDraftExTime(c *gin.Context) {
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 	return
 
+}
+
+func SaveSessionExpireTime(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	sessionExpireSeconds, valid := common.SessionExpireSecondsFromHours(cast.ToFloat64(strings.TrimSpace(c.PostForm(`session_expire_hours`))))
+	if !valid {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `session_expire_hours`))))
+		return
+	}
+	m := msql.Model(`admin_user_config`, define.Postgres)
+	info, err := m.Where(`admin_user_id`, cast.ToString(userId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(info) == 0 {
+		_, err = m.Insert(msql.Datas{
+			`admin_user_id`:          userId,
+			`session_expire_seconds`: sessionExpireSeconds,
+			`create_time`:            tool.Time2Int(),
+			`update_time`:            tool.Time2Int(),
+		})
+	} else {
+		_, err = m.Where(`admin_user_id`, cast.ToString(userId)).Update(msql.Datas{
+			`session_expire_seconds`: sessionExpireSeconds,
+			`update_time`:            tool.Time2Int(),
+		})
+	}
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetAdminConfig(userId), nil))
 }
 
 // GetDraftKey gets draft edit lock

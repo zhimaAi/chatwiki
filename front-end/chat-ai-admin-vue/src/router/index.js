@@ -1,5 +1,4 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import BlankLayout from '../layouts/BlankLayout.vue'
 import user from './user'
 import robot from './robot'
 import explore from './explore'
@@ -18,14 +17,20 @@ import templates from './templates'
 import guide from './guide'
 import workbench from './workbench'
 import clawbot from './clawbot'
+import customerService from './customer-service'
 import SetToken from '../views/set-token/index.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Root',
-    component: BlankLayout,
-    redirect: '/robot/list'
+    component: () => import('@/views/home/index.vue')
+  },
+  {
+    path: '/mode-select',
+    name: 'ModeSelect',
+    component: () => import('@/views/mode-select/index.vue'),
+    meta: { title: 'routes.basic.system_mode', noCache: true, hidden: true }
   },
   {
     path: '/login',
@@ -85,6 +90,7 @@ const routes = [
   templates,
   workbench,
   clawbot,
+  customerService,
 ]
 
 if (import.meta.env.DEV) {

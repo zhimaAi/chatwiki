@@ -82,7 +82,7 @@
 }
 
 .log-out.scrolled {
-  transform: translateY(-50%) translateX(84px); /* 露出20px (104px - 20px) */
+  transform: translateY(-50%) translateX(64px);
 }
 .form-banner-top{
   max-width: 900px;

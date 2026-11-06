@@ -1,3 +1,6 @@
 {
-  "ph_select_model": "请选择嵌入模型"
+  "ph_select_model": "请选择嵌入模型",
+  "backup_model_disabled": "备用模型暂未开启，",
+  "backup_model_settings": "点此设置",
+  "backup_model_contact_admin": "请联系管理员设置"
 }

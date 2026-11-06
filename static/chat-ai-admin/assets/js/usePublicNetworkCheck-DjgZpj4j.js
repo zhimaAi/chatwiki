@@ -1,0 +1,1 @@
+import{u as r}from"../../index-CFJlGt8o.js";import{c,w as i}from"./vue-chunks-Bhj60i6p.js";function a(e=null){const t=r(),u=c(()=>(t==null?void 0:t.is_public_network)==1);return typeof e=="function"&&i(()=>u.value,o=>{o&&e()},{immediate:!0}),{isPublicNetwork:u}}export{a as u};

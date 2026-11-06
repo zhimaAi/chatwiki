@@ -103,6 +103,7 @@
 </template>
 
 <script setup>
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import NodeCommon from '../base-node.vue'
@@ -144,6 +145,7 @@ const formState = reactive({
   prompt_tags: [],
   question_value: [],
   enable_thinking: false,
+  reasoning_effort: 'none',
   libs_node_key: void 0
 })
 
@@ -180,6 +182,7 @@ const reset = () => {
     prompt_tags,
     question_value,
     enable_thinking,
+    reasoning_effort,
     libs_node_key
   } = JSON.parse(JSON.stringify(llm))
 
@@ -190,6 +193,7 @@ const reset = () => {
   formState.max_token = max_token
   formState.prompt = prompt
   formState.enable_thinking = enable_thinking
+  formState.reasoning_effort = toReasoningEffort(enable_thinking, reasoning_effort)
   formState.prompt_tags = prompt_tags || []
   formState.libs_node_key = libs_node_key
   formState.question_value = formatQuestionValue(question_value)

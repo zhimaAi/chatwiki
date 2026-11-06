@@ -13,8 +13,8 @@ const usage = `false is pro,true is dev,default run dev`
 
 func Initialize() {
 	flag.BoolVar(&define.IsDev, `IsDev`, true, usage)
-	lib_define.IsDev = define.IsDev //pkg
 	flag.Parse()
+	lib_define.IsDev = define.IsDev //pkg
 
 	if define.IsDev {
 		logs.SetTerminal(true)

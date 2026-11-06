@@ -1,0 +1,1 @@
+const e=["none","minimal","low","medium","high","xhigh","max"];function r(n,o){return n===!0||Number(n)>0?o||"medium":"none"}function i(n){return typeof n=="string"&&Array.from(n).length<=50}export{e as R,i,r as t};

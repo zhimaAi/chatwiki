@@ -8,7 +8,7 @@ import { getErrorMsg } from './errorMsg'
 // 全局错误提示
 let isGlobalError = false
 let showReqError = true
-function showGlobalErrorMsg(msg) {
+export function showGlobalErrorMsg(msg) {
   if (isGlobalError) {
     return
   }

@@ -522,7 +522,7 @@ func ChatQuestionGuide(c *gin.Context) {
 			nil,
 			cast.ToFloat32(chatBaseParam.Robot[`temperature`]),
 			200,
-			common.ThinkingDisabled,
+			chat.ReasoningEffortNone,
 		)
 		if err != nil {
 			logs.Error(err.Error())
@@ -583,6 +583,9 @@ func generateQuestionGuideByWorkflow(chatBaseParam *define.ChatBaseParam, histor
 	// extract text as suggestions
 	var guides []string
 	for _, rc := range replyContents {
+		if rc.SendSource == common.SendSourceWorkFlowFinish {
+			continue // finish node replies are appended below as the joined content
+		}
 		text := rc.Description
 		if len(text) == 0 {
 			text = rc.Title

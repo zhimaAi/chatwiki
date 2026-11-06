@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { computed, markRaw, nextTick, onMounted, provide, ref, toRaw, watch } from 'vue'
+import { computed, inject, markRaw, nextTick, onMounted, provide, ref, toRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
@@ -102,6 +102,7 @@ const route = useRoute()
 const router = useRouter()
 const clawbotStore = useClawbotStore()
 const robotStore = useRobotStore()
+const agentContext = inject('customerAgentContext', null)
 const modelStore = useModelStore()
 const { robotInfo } = storeToRefs(robotStore)
 
@@ -215,8 +216,8 @@ const getWorkFlowRobotList = () => {
 
 const refreshRobot = async (id = robotId.value) => {
   if (!id) return false
-  const res = await robotStore.getRobot(id)
-  robotStore.fetchChatVariables()
+  const res = agentContext ? await agentContext.getRobot(id) : await robotStore.getRobot(id)
+  if (!agentContext || res) robotStore.fetchChatVariables()
   return res
 }
 
@@ -247,7 +248,8 @@ const updateRobotInfo = (val = {}) => {
 }
 
 const refreshSavedRobot = async (id) => {
-  await refreshRobot(id)
+  const refreshed = await refreshRobot(id)
+  if (agentContext && !refreshed) return
   await clawbotStore.fetchRobotInfo(id)
   await robotStore.getRobotLists()
 }
@@ -296,7 +298,8 @@ const loadRobotContext = async (id) => {
   const currentVersion = ++loadVersion
   isRobotReady.value = false
 
-  await refreshRobot(id)
+  const refreshed = await refreshRobot(id)
+  if (agentContext && !refreshed) return
   if (currentVersion !== loadVersion) return
 
   robotStore.getRobotLists()

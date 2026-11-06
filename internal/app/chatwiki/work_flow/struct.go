@@ -241,17 +241,21 @@ type LibsNodeParams struct {
 /************************************/
 
 type LlmBaseParams struct {
-	ModelConfigId  common.MixedInt `json:"model_config_id"`
-	UseModel       string          `json:"use_model"`
-	ContextPair    common.MixedInt `json:"context_pair"`
-	EnableThinking bool            `json:"enable_thinking"`
-	Temperature    float32         `json:"temperature"`
-	MaxToken       common.MixedInt `json:"max_token"`
-	Prompt         string          `json:"prompt"`
-	Role           int             `json:"role"`
+	ModelConfigId   common.MixedInt `json:"model_config_id"`
+	UseModel        string          `json:"use_model"`
+	ContextPair     common.MixedInt `json:"context_pair"`
+	EnableThinking  bool            `json:"enable_thinking"`
+	ReasoningEffort string          `json:"reasoning_effort"`
+	Temperature     float32         `json:"temperature"`
+	MaxToken        common.MixedInt `json:"max_token"`
+	Prompt          string          `json:"prompt"`
+	Role            int             `json:"role"`
 }
 
 func (params *LlmBaseParams) Verify(adminUserId int, lang string) error {
+	if err := common.ValidateReasoningEffort(lang, params.ReasoningEffort, `reasoning_effort`); err != nil {
+		return err
+	}
 	if params.ModelConfigId <= 0 || len(params.UseModel) == 0 {
 		return errors.New(i18n.Show(lang, `llm_model_please_select`))
 	}
@@ -739,6 +743,16 @@ type NodeParams struct {
 	ImmediatelyReply ImmediatelyReplyNodeParams `json:"immediately_reply"`
 	Question         QuestionParams             `json:"question"`
 	Agent            AgentNodeParams            `json:"agent"`
+}
+
+// ValidateReasoningEffort also applies to draft nodes, which skip full model verification.
+func (params *NodeParams) ValidateReasoningEffort(lang string) error {
+	for _, effort := range []string{params.Cate.ReasoningEffort, params.Llm.ReasoningEffort, params.QuestionOptimize.ReasoningEffort, params.ParamsExtractor.ReasoningEffort} {
+		if err := common.ValidateReasoningEffort(lang, effort, "reasoning_effort"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func FillDiyGlobalBlanks(output TriggerOutputParam, start *StartNodeParams) {

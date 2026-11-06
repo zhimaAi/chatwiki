@@ -148,10 +148,11 @@ import { getFastCommandList } from '@/api/chat/index.js'
 import { Popover } from 'vant'
 import { windowWidth } from 'vant/lib/utils'
 import { storeToRefs } from 'pinia'
+import { openExternalLink } from '@/utils/open-external-link'
 const emit = defineEmits(['send'])
 const chatStore = useChatStore()
 const { getFastCommand } = chatStore
-const { robot } = storeToRefs(chatStore)
+const { robot, externalConfigH5 } = storeToRefs(chatStore)
 const buttonsContainer = ref(null)
 const buttons = ref([]);
 const visibleButtons = ref([])
@@ -212,7 +213,7 @@ const handleClickItem = (item, isShow) => {
     emit('send', item.content)
   }
   if (item.typ == 2) {
-    window.open(item.content)
+    openExternalLink(item.content, externalConfigH5.value)
   }
 }
 </script>

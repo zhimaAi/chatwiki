@@ -822,11 +822,9 @@
                   <div class="form-item-label">{{ thinkingT('label_deep_thinking') }}</div>
                   <div class="form-item-body">
                     <a-flex align="center" :gap="8">
-                      <a-switch
-                        v-model:checked="formState.ai_chunk_enable_thinking"
-                        :checkedValue="1"
-                        :unCheckedValue="0"
-                        @change="onChange"
+                      <ReasoningEffortSelect
+                        v-model:value="formState.ai_chunk_reasoning_effort"
+                        @change="(effort) => { formState.ai_chunk_enable_thinking = effort === 'none' ? 0 : 1; onChange() }"
                       />
                       <a-tooltip :title="thinkingT('tooltip_deep_thinking')">
                         <QuestionCircleOutlined />
@@ -993,6 +991,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { getSeparatorsList } from '@/api/library/index'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { reactive, ref, toRaw, computed, watch, nextTick } from 'vue'
@@ -1073,6 +1073,7 @@ watch(props, (val) => {
   formState.ai_chunk_model_config_id =
     libFileInfo.ai_chunk_model_config_id > 0 ? libFileInfo.ai_chunk_model_config_id : ''
   formState.ai_chunk_enable_thinking = +libFileInfo.ai_chunk_enable_thinking || 0
+  formState.ai_chunk_reasoning_effort = toReasoningEffort(libFileInfo.ai_chunk_enable_thinking, libFileInfo.ai_chunk_reasoning_effort)
 
   formState.father_chunk_paragraph_type = +libFileInfo.father_chunk_paragraph_type || 2
   formState.father_chunk_separators_no = formatSeparatorsNo(libFileInfo.father_chunk_separators_no, [12, 11])
@@ -1130,6 +1131,7 @@ const formState = reactive({
   ai_chunk_model:'', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_enable_thinking: 0, // AI大模型分段深度思考开关
+  ai_chunk_reasoning_effort: 'none',
   ai_chunk_prumpt: defaultAiChunkPrumpt, // ai大模型分段提示词设置
 
   father_chunk_paragraph_type: 2,

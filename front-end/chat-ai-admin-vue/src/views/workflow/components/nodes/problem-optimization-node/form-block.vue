@@ -80,7 +80,10 @@
             </a-tooltip>
           </template>
           <div class="number-box">
-            <a-switch v-model:checked="formState.enable_thinking" />
+            <ReasoningEffortSelect
+              v-model:value="formState.reasoning_effort"
+              @change="(effort) => (formState.enable_thinking = effort !== 'none')"
+            />
           </div>
         </a-form-item>
         <a-form-item name="context_pair">
@@ -168,6 +171,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { ref, reactive, watch, inject, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import {
   QuestionCircleOutlined,
@@ -272,6 +277,7 @@ const formState = reactive({
   prompt_tags: [],
   question_value: '',
   enable_thinking: false,
+  reasoning_effort: 'none',
 })
 let lock = false
 watch(
@@ -296,7 +302,8 @@ watch(
         prompt,
         prompt_tags,
         question_value,
-        enable_thinking
+        enable_thinking,
+        reasoning_effort
       } = question_optimize
       getVlaueVariableList()
       getOptions()
@@ -307,6 +314,7 @@ watch(
       formState.max_token = max_token
       formState.prompt = prompt
       formState.enable_thinking = enable_thinking
+      formState.reasoning_effort = toReasoningEffort(enable_thinking, reasoning_effort)
       formState.prompt_tags = prompt_tags || []
       formState.question_value = formatQuestionValue(question_value)
       if (!formState.model_config_id && modelList.value.length > 0) {

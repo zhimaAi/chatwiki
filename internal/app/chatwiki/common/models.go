@@ -71,20 +71,6 @@ type ModelCallHandler struct {
 	CurModelMap map[string]UseModelConfig
 }
 
-type ThinkingSwitch bool
-
-const (
-	ThinkingDisabled ThinkingSwitch = false
-	ThinkingEnabled  ThinkingSwitch = true
-)
-
-func ToThinkingSwitch(enableThinking any) ThinkingSwitch {
-	if cast.ToBool(cast.ToUint(enableThinking)) {
-		return ThinkingEnabled
-	}
-	return ThinkingDisabled
-}
-
 type HandlerFunc func(modelInfo ModelInfo, config msql.Params, useModel string) (*ModelCallHandler, error)
 type SupplierHandlerFunc func(modelInfo ModelInfo, config msql.Params) (*SupplierHandler, error)
 type BeforeFunc func(info ModelInfo, config msql.Params, useModel string) error
@@ -714,21 +700,21 @@ func GetVector2000(ctx context.Context, lang string, adminUserId int, openid str
 	return tool.JsonEncode(values)
 }
 
-func requestChatStreamWithState(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, chanStream chan sse.Event, temperature float32, maxToken int, enableThinking ThinkingSwitch) (ChatResponse, int64, bool, ModelErrStage, error) {
+func requestChatStreamWithState(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, chanStream chan sse.Event, temperature float32, maxToken int, reasoningEffort chat.ReasoningEffort) (ChatResponse, int64, bool, ModelErrStage, error) {
 	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return ChatResponse{}, 0, false, precheckErrStage(err), err
 	}
 	ctx, usageUUID := withModelUsageUUID(ctx)
-	chatResp, requestTime, streamed, stage, err := handler.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken, enableThinking)
+	chatResp, requestTime, streamed, stage, err := handler.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken, reasoningEffort)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0, usageUUID)
 	}
 	return chatResp, requestTime, streamed, stage, err
 }
 
-func RequestChatStream(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, chanStream chan sse.Event, temperature float32, maxToken int, enableThinking ThinkingSwitch) (ChatResponse, int64, error) {
-	chatResp, requestTime, streamed, stage, err := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, chanStream, temperature, maxToken, enableThinking)
+func RequestChatStream(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, chanStream chan sse.Event, temperature float32, maxToken int, reasoningEffort chat.ReasoningEffort) (ChatResponse, int64, error) {
+	chatResp, requestTime, streamed, stage, err := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, chanStream, temperature, maxToken, reasoningEffort)
 	if err == nil {
 		return chatResp, requestTime, nil
 	}
@@ -746,7 +732,7 @@ func RequestChatStream(ctx context.Context, lang string, adminUserId int, openid
 	if !ok {
 		return chatResp, requestTime, err
 	}
-	bResp, bTime, _, bStage, bErr := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, chanStream, temperature, maxToken, enableThinking)
+	bResp, bTime, _, bStage, bErr := requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, chanStream, temperature, maxToken, reasoningEffort)
 	if bErr == nil {
 		return bResp, bTime, nil
 	}
@@ -762,20 +748,20 @@ func RequestSearchStream(ctx context.Context, lang string, adminUserId int, mode
 		return ChatResponse{}, 0, err
 	}
 	ctx, usageUUID := withModelUsageUUID(ctx)
-	chatResp, requestTime, err := handler.RequestChatStream(ctx, lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken, ThinkingDisabled)
+	chatResp, requestTime, err := handler.RequestChatStream(ctx, lang, adminUserId, "", library, "", messages, functionTools, chanStream, temperature, maxToken, chat.ReasoningEffortNone)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, msql.Params{}, 0, usageUUID)
 	}
 	return chatResp, requestTime, err
 }
 
-func requestChatWithState(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, enableThinking ThinkingSwitch) (ChatResponse, int64, ModelErrStage, error) {
+func requestChatWithState(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, reasoningEffort chat.ReasoningEffort) (ChatResponse, int64, ModelErrStage, error) {
 	handler, err := GetModelCallHandler(lang, adminUserId, modelConfigId, useModel, robot)
 	if err != nil {
 		return ChatResponse{}, 0, precheckErrStage(err), err
 	}
 	ctx, usageUUID := withModelUsageUUID(ctx)
-	chatResp, requestTime, err := handler.RequestChat(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken, enableThinking)
+	chatResp, requestTime, err := handler.RequestChat(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, temperature, maxToken, reasoningEffort)
 	if err == nil && handler.modelInfo != nil && handler.modelInfo.TokenUseReport != nil { //token use report
 		handler.modelInfo.TokenUseReport(handler.config, useModel, chatResp.Usage.PromptTokens, chatResp.Usage.CompletionTokens, robot, 0, usageUUID)
 	}
@@ -785,8 +771,8 @@ func requestChatWithState(ctx context.Context, lang string, adminUserId int, ope
 	return chatResp, requestTime, ModelErrNone, nil
 }
 
-func RequestChat(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, enableThinking ThinkingSwitch) (ChatResponse, int64, error) {
-	chatResp, requestTime, stage, err := requestChatWithState(ctx, lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, temperature, maxToken, enableThinking)
+func RequestChat(ctx context.Context, lang string, adminUserId int, openid string, robot msql.Params, appType string, modelConfigId int, useModel string, messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, reasoningEffort chat.ReasoningEffort) (ChatResponse, int64, error) {
+	chatResp, requestTime, stage, err := requestChatWithState(ctx, lang, adminUserId, openid, robot, appType, modelConfigId, useModel, messages, functionTools, temperature, maxToken, reasoningEffort)
 	if err == nil {
 		return chatResp, requestTime, nil
 	}
@@ -801,7 +787,7 @@ func RequestChat(ctx context.Context, lang string, adminUserId int, openid strin
 	if !ok {
 		return chatResp, requestTime, err
 	}
-	bResp, bTime, bStage, bErr := requestChatWithState(ctx, lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, temperature, maxToken, enableThinking)
+	bResp, bTime, bStage, bErr := requestChatWithState(ctx, lang, adminUserId, openid, robot, appType, backupConfigId, backupUseModel, messages, functionTools, temperature, maxToken, reasoningEffort)
 	if bErr == nil {
 		return bResp, bTime, nil
 	}
@@ -952,9 +938,9 @@ func (h *ModelCallHandler) RequestChatStream(
 	chanStream chan sse.Event,
 	temperature float32,
 	maxToken int,
-	enableThinking ThinkingSwitch,
+	reasoningEffort chat.ReasoningEffort,
 ) (ChatResponse, int64, error) {
-	chatResp, requestTime, _, _, err := h.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken, enableThinking)
+	chatResp, requestTime, _, _, err := h.requestChatStreamWithState(ctx, lang, adminUserId, openid, robot, appType, messages, functionTools, chanStream, temperature, maxToken, reasoningEffort)
 	return chatResp, requestTime, err
 }
 
@@ -970,13 +956,13 @@ func (h *ModelCallHandler) requestChatStreamWithState(
 	chanStream chan sse.Event,
 	temperature float32,
 	maxToken int,
-	enableThinking ThinkingSwitch,
+	reasoningEffort chat.ReasoningEffort,
 ) (ChatResponse, int64, bool, ModelErrStage, error) {
 	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
 		messages = ConvertQuestionMultiple(append([]chat.Message(nil), messages...)) // Convert to multimodal input structure
 		messages = convertUnsupportedQuestionParts(messages, h.CurModelMap[Llm].ModelInputSupport)
 	}
-	req := h.chatRequest(messages, functionTools, temperature, maxToken, enableThinking)
+	req := h.chatRequest(messages, functionTools, temperature, maxToken, reasoningEffort)
 	streamRequest := &chat.StreamRequest{CreateRequest: *req}
 	stream, err := h.Client.Chat.Stream(ctx, streamRequest)
 	if err != nil {
@@ -1100,7 +1086,7 @@ func (h *ModelCallHandler) CheckFunctionArguments(functionToolCall chat.ToolCall
 	return false
 }
 
-func (h *ModelCallHandler) chatRequest(messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, enableThinking ThinkingSwitch) *chat.CreateRequest {
+func (h *ModelCallHandler) chatRequest(messages []chat.Message, functionTools []chat.Tool, temperature float32, maxToken int, reasoningEffort chat.ReasoningEffort) *chat.CreateRequest {
 	request := &chat.CreateRequest{
 		Model:       h.Model,
 		Messages:    append([]chat.Message(nil), messages...),
@@ -1111,10 +1097,7 @@ func (h *ModelCallHandler) chatRequest(messages []chat.Message, functionTools []
 		request.MaxTokens = tea.Int(maxToken)
 	}
 	if h.ChoosableThinking {
-		request.ReasoningEffort = chat.ReasoningEffortNone
-		if enableThinking == ThinkingEnabled {
-			request.ReasoningEffort = chat.ReasoningEffortMedium
-		}
+		request.ReasoningEffort = reasoningEffort
 	}
 	return request
 }
@@ -1130,13 +1113,13 @@ func (h *ModelCallHandler) RequestChat(
 	functionTools []chat.Tool,
 	temperature float32,
 	maxToken int,
-	enableThinking ThinkingSwitch,
+	reasoningEffort chat.ReasoningEffort,
 ) (ChatResponse, int64, error) {
 	if (h.CurModelMap[Llm].InputImage > 0 || h.CurModelMap[Llm].InputVideo > 0 || h.CurModelMap[Llm].InputVoice > 0) && len(robot) > 0 && cast.ToBool(robot[`question_multiple_switch`]) {
 		messages = ConvertQuestionMultiple(append([]chat.Message(nil), messages...)) // Convert to multimodal input structure
 		messages = convertUnsupportedQuestionParts(messages, h.CurModelMap[Llm].ModelInputSupport)
 	}
-	req := h.chatRequest(messages, functionTools, temperature, maxToken, enableThinking)
+	req := h.chatRequest(messages, functionTools, temperature, maxToken, reasoningEffort)
 	var functionToolCall chat.ToolCall
 	requestStartTime := time.Now()
 	providerResponse, err := h.Client.Chat.Create(ctx, req)

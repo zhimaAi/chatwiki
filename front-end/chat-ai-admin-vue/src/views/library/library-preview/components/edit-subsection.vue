@@ -308,11 +308,14 @@ watch(
 
 const route = useRoute()
 const router = useRouter()
-const query = route.query
 const pathName = route.name
 const props = defineProps({
   detailsInfo: {
     type: Object
+  },
+  fileId: {
+    type: [String, Number],
+    default: ''
   }
 })
 const emit = defineEmits(['handleEdit', 'handleStatrList'])
@@ -385,7 +388,8 @@ const getGroupLists = () => {
 
 const startLists = ref([])
 const getCategoryLists = () => {
-  getCategoryList({ file_id: query.id }).then((res) => {
+  const context = props.fileId ? { file_id: props.fileId } : { library_id: props.detailsInfo.library_id }
+  getCategoryList(context).then((res) => {
     let list = res.data || []
     list = list.map((item) => {
       return {
@@ -457,8 +461,11 @@ const handleOk = () => {
   }
   if (id.value) {
     data.id = id.value
+  }
+  if (props.fileId) {
+    if (!id.value) data.file_id = props.fileId
   } else {
-    data.file_id = route.query.id
+    data.library_id = props.detailsInfo.library_id
   }
   const submitData = {
     ...data,
@@ -474,17 +481,7 @@ const handleOk = () => {
       formData.append(key, submitData[key])
     }
   }
-  if(pathName == 'knowledgeDocument'){
-    formData.delete('file_id')
-    formData.append('library_id', route.query.id)
-  }
-  if(pathName == 'libraryConfig'){
-    formData.delete('file_id')
-    formData.append('library_id', props.detailsInfo.library_id)
-  }
   if (pathName == 'categaryManages') {
-      formData.delete('file_id')
-      formData.append('library_id', route.query.id)
       saveCategoryParagraph(formData).then(() => {
         message.success(data.id ? t('msg_edit_success') : t('msg_add_success'))
         open.value = false

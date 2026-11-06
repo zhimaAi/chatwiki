@@ -19,35 +19,36 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" :title="t('title_show_like_dislike')" icon-name="like-icon">
+  <edit-box class="setting-box" :compact="compact" :title="t('title_show_like_dislike')" icon-name="like-icon">
     <template #extra>
       <span></span>
     </template>
     <div class="robot-info-box">
-      <div class="robot-prompt">{{ t('msg_show_like_dislike_desc') }}</div>
+      <div class="robot-prompt" :title="t('msg_show_like_dislike_desc')">{{ t('msg_show_like_dislike_desc') }}</div>
     </div>
 
-    <a-switch
+    <template #switch><a-switch
       @change="handleEdit"
-      class="switch-item"
+      :class="{ 'switch-item': !compact }"
       :checkedValue="1"
       :unCheckedValue="0"
       v-model:checked="robotInfo.feedback_switch"
       :checked-children="t('btn_on')"
       :un-checked-children="t('btn_off')"
-    />
+    /></template>
   </edit-box>
 </template>
 <script setup>
-import { ref, reactive, inject, toRaw } from 'vue'
+import { inject } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import EditBox from './edit-box.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.show-like')
+defineProps({ compact: { type: Boolean, default: false } })
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
-const handleEdit = (val) => {
+const handleEdit = () => {
   updateRobotInfo({})
 }
 </script>

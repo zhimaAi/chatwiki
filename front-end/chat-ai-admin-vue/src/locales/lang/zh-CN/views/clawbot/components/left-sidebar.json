@@ -2,6 +2,7 @@
   "label_agent_fallback": "Agent",
   "btn_new_agent": "新建 Agent",
   "btn_back_chatwiki": "返回 chatwiki",
+  "btn_system_settings": "系统设置",
   "nav_chat": "对话",
   "nav_agent": "Agent",
   "nav_skill": "Skill",

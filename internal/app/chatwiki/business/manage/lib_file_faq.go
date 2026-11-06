@@ -30,7 +30,7 @@ func GetFAQConfig(c *gin.Context) {
 	config, err := msql.Model("chat_ai_faq_files", define.Postgres).
 		Where("admin_user_id", cast.ToString(adminUserId)).
 		Order("id DESC").
-		Field(`id,chunk_type,chunk_prompt,chunk_model,chunk_model_config_id,chunk_enable_thinking,chunk_size,chunk_overlap,separators_no`).
+		Field(`id,chunk_type,chunk_prompt,chunk_model,chunk_model_config_id,chunk_enable_thinking,chunk_reasoning_effort,chunk_size,chunk_overlap,separators_no`).
 		Find()
 	if err != nil {
 		common.FmtError(c, "sys_err")
@@ -570,6 +570,10 @@ func addFAQFile(c *gin.Context, adminUserId int) ([]int64, error) {
 	chunkModel := strings.TrimSpace(c.PostForm(`chunk_model`))
 	chunkModelConfigId := cast.ToInt(c.PostForm(`chunk_model_config_id`))
 	chunkEnableThinking := cast.ToInt(cast.ToBool(c.PostForm(`chunk_enable_thinking`)))
+	chunkReasoningEffort := c.PostForm(`chunk_reasoning_effort`)
+	if err := common.ValidateReasoningEffort(common.GetLang(c), chunkReasoningEffort, `chunk_reasoning_effort`); err != nil {
+		return nil, err
+	}
 	separatorsNo := strings.TrimSpace(c.PostForm(`separators_no`))
 	//document uploaded
 	var (
@@ -593,22 +597,23 @@ func addFAQFile(c *gin.Context, adminUserId int) ([]int64, error) {
 	for _, uploadInfo := range libraryFiles {
 		status := define.FAQFileStatusQueuing
 		insData := msql.Datas{
-			`admin_user_id`:         adminUserId,
-			`creator`:               getLoginUserId(c),
-			`file_url`:              uploadInfo.Link,
-			`file_name`:             uploadInfo.Name,
-			`file_ext`:              uploadInfo.Ext,
-			`file_size`:             uploadInfo.Size,
-			`status`:                status,
-			`chunk_size`:            chunkSize,
-			`separators_no`:         separatorsNo,
-			`chunk_type`:            chunkType,
-			`chunk_prompt`:          chunkPrompt,
-			`chunk_model`:           chunkModel,
-			`chunk_model_config_id`: chunkModelConfigId,
-			`chunk_enable_thinking`: chunkEnableThinking,
-			`create_time`:           tool.Time2Int(),
-			`update_time`:           tool.Time2Int(),
+			`admin_user_id`:          adminUserId,
+			`creator`:                getLoginUserId(c),
+			`file_url`:               uploadInfo.Link,
+			`file_name`:              uploadInfo.Name,
+			`file_ext`:               uploadInfo.Ext,
+			`file_size`:              uploadInfo.Size,
+			`status`:                 status,
+			`chunk_size`:             chunkSize,
+			`separators_no`:          separatorsNo,
+			`chunk_type`:             chunkType,
+			`chunk_prompt`:           chunkPrompt,
+			`chunk_model`:            chunkModel,
+			`chunk_model_config_id`:  chunkModelConfigId,
+			`chunk_enable_thinking`:  chunkEnableThinking,
+			`chunk_reasoning_effort`: chunkReasoningEffort,
+			`create_time`:            tool.Time2Int(),
+			`update_time`:            tool.Time2Int(),
 		}
 		fileId, err := m.Insert(insData, `id`)
 		if err != nil {

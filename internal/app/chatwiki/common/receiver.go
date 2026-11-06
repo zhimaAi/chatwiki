@@ -5,8 +5,12 @@ package common
 import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
+	"context"
+	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -141,20 +145,107 @@ func FillRelUserInfo2(info msql.Params, relUserId int, relUserInfos ...msql.Para
 }
 
 func DeleteReceiver() {
+	adminUserIds, err := msql.Model(`chat_ai_receiver`, define.Postgres).Group(`admin_user_id`).ColumnArr(`admin_user_id`)
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	now := tool.Time2Int()
+	for _, adminUserId := range adminUserIds {
+		userId := cast.ToInt(adminUserId)
+		if userId <= 0 {
+			continue
+		}
+		deleteMatchedReceivers(0, userId, now-GetSessionSecond(userId))
+	}
+}
+
+func deleteReceiverBySession(sessionId int) {
+	if sessionId <= 0 {
+		return
+	}
+	deleteMatchedReceivers(sessionId, 0, 0)
+}
+
+func deleteMatchedReceivers(sessionId, adminUserId, lastChatTime int) {
 	m := msql.Model(`chat_ai_receiver`, define.Postgres)
-	list, err := m.Where(`last_chat_time`, `<=`, cast.ToString(tool.Time2Int()-GetSessionSecond())).ColumnObj(`admin_user_id`, `id`)
+	if sessionId > 0 {
+		m.Where(`session_id`, cast.ToString(sessionId))
+	} else {
+		m.Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Where(`last_chat_time`, `<=`, cast.ToString(lastChatTime))
+	}
+	list, err := m.Field(`id,admin_user_id,session_id`).Select()
 	if err != nil {
 		logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
 		return
 	}
-	if len(list) == 0 {
-		return // No closed receiver
+	dialogueIds := map[string]int{}
+	if sessionId == 0 && len(list) > 0 {
+		dialogueIds = dialogueIdsBySession(list)
 	}
-	for id, adminUserId := range list {
-		if _, err = m.Where(`id`, id).Delete(); err != nil {
-			logs.Error(`sql:%s,err:%s`, m.GetLastSql(), err.Error())
+	for _, item := range list {
+		deleteModel := msql.Model(`chat_ai_receiver`, define.Postgres).Where(`id`, item[`id`])
+		if adminUserId > 0 {
+			deleteModel.Where(`admin_user_id`, cast.ToString(adminUserId)).
+				Where(`last_chat_time`, `<=`, cast.ToString(lastChatTime))
 		}
-		// WebSocket notify
-		ReceiverChangeNotify(cast.ToInt(adminUserId), `delete`, id)
+		rows, err := deleteModel.Delete()
+		if err != nil {
+			logs.Error(`sql:%s,err:%s`, deleteModel.GetLastSql(), err.Error())
+			continue
+		}
+		if rows == 0 {
+			continue
+		}
+		sessionID := cast.ToInt(item[`session_id`])
+		if dialogueId := dialogueIds[cast.ToString(sessionID)]; dialogueId > 0 {
+			clearSessionCache(dialogueId, sessionID)
+		}
+		ReceiverChangeNotify(cast.ToInt(item[`admin_user_id`]), `delete`, item[`id`])
+	}
+}
+
+func dialogueIdsBySession(list []msql.Params) map[string]int {
+	result := map[string]int{}
+	sessionIds := make([]string, 0, len(list))
+	for _, item := range list {
+		if sessionID := cast.ToInt(item[`session_id`]); sessionID > 0 {
+			sessionIds = append(sessionIds, cast.ToString(sessionID))
+		}
+	}
+	if len(sessionIds) == 0 {
+		return result
+	}
+	rows, err := msql.Model(`chat_ai_session`, define.Postgres).
+		Where(`id`, `in`, strings.Join(sessionIds, `,`)).
+		Field(`id,dialogue_id`).Select()
+	if err != nil {
+		logs.Error(err.Error())
+		return result
+	}
+	for _, row := range rows {
+		result[cast.ToString(cast.ToInt(row[`id`]))] = cast.ToInt(row[`dialogue_id`])
+	}
+	return result
+}
+
+func clearSessionCache(dialogueId, sessionId int) {
+	if dialogueId <= 0 || sessionId <= 0 {
+		return
+	}
+	cacheKey := SessionCacheKey(dialogueId)
+	currentSessionId, err := define.Redis.Get(context.Background(), cacheKey).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			logs.Error(err.Error())
+		}
+		return
+	}
+	if cast.ToInt(currentSessionId) != sessionId {
+		return
+	}
+	if err = define.Redis.Del(context.Background(), cacheKey).Err(); err != nil && !errors.Is(err, redis.Nil) {
+		logs.Error(err.Error())
 	}
 }

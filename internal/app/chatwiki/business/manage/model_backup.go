@@ -20,6 +20,47 @@ import (
 	"github.com/zhimaAi/go_tools/tool"
 )
 
+// Unlike the settings GET, this endpoint never clears an invalid backup.
+func GetBackupModelStatus(c *gin.Context) {
+	adminUserId := GetAdminUserId(c)
+	if adminUserId == 0 {
+		return
+	}
+	cfg, err := msql.Model(`model_backup_config`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	modelConfigId := cast.ToInt(cfg[`model_config_id`])
+	if modelConfigId <= 0 || len(cfg[`use_model`]) == 0 {
+		common.FmtOk(c, map[string]bool{`enabled`: false})
+		return
+	}
+	config, err := msql.Model(`chat_ai_model_config`, define.Postgres).
+		Where(`id`, cast.ToString(modelConfigId)).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Field(`model_define`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if _, exists := common.GetModelConfigByDefine(common.GetLang(c), config[`model_define`]); !exists {
+		common.FmtOk(c, map[string]bool{`enabled`: false})
+		return
+	}
+	model, err := msql.Model(`chat_ai_model_list`, define.Postgres).
+		Where(`model_config_id`, cast.ToString(modelConfigId)).
+		Where(`model_type`, common.Llm).Where(`use_model_name`, cfg[`use_model`]).Field(`id`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	common.FmtOk(c, map[string]bool{`enabled`: len(model) > 0})
+}
+
 func GetBackupModelConfig(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

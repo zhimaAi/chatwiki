@@ -59,10 +59,46 @@
     padding: 0 16px 16px 16px;
   }
 }
+
+.edit-box.compact-setting {
+  height: 96px;
+  box-sizing: border-box;
+
+  .edit-box-header {
+    height: 56px;
+    box-sizing: border-box;
+    gap: 12px;
+    .left-box {
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .right-box {
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .extra-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+  }
+
+  .edit-box-body {
+    line-height: 24px;
+    :deep(.robot-prompt) {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      line-height: 24px;
+      font-size: 14px;
+      color: #595959;
+    }
+  }
+}
 </style>
 
 <template>
-  <div class="edit-box" :class="{ 'is-edit': isEdit }">
+  <div class="edit-box" :class="{ 'is-edit': isEdit, 'compact-setting': compact }">
     <div class="edit-box-header">
       <div class="left-box">
         <svg-icon class="edit-box-icon" :name="props.iconName"></svg-icon>
@@ -89,11 +125,13 @@
             </div>
           </slot>
         </div>
+        <slot v-if="compact" name="switch"></slot>
       </div>
     </div>
 
     <div class="edit-box-body" :style="{ ...bodyStyle }">
       <slot></slot>
+      <slot v-if="!compact" name="switch"></slot>
     </div>
   </div>
 </template>
@@ -103,6 +141,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['update:isEdit', 'save', 'edit'])
 
 const props = defineProps({
+  compact: { type: Boolean, default: false },
   iconName: {
     type: String,
     default: ''

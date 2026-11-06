@@ -487,7 +487,7 @@ const handleDelete = (record) => {
 
 // 获取机器人列表
 const getList = async () => {
-  await getRobotList()
+  await getRobotList({ filter_claw: false })
     .then((res) => {
       robotList.value = res.data
     })

@@ -71,7 +71,7 @@
 </style>
 
 <template>
-  <div class="user-model-page">
+  <div class="user-model-page"><a-alert v-if="error" type="error" :message="error" show-icon><template #action><a @click="getData">{{ commonT('retry') }}</a></template></a-alert>
     <div class="page-title">{{ t('title_data_overview') }}</div>
     <div class="overview-box">
       <div class="item-box" v-for="item in overviewData" :key="item.titleObj.id">
@@ -83,12 +83,13 @@
 
     <div class="page-title">{{ t('title_feedback_records') }}</div>
     <div class="list-wrapper">
-      <QaFeedback></QaFeedback>
+      <QaFeedback :robot-id="props.robotId" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { useRequestState } from '@/composables/useRequestState'
 import { useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { getFeedbackStats } from '@/api/manage/index.js'
@@ -96,8 +97,11 @@ import QaFeedback from './qa-feedback.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.qa-feedback.index')
+const { t: commonT } = useI18n('views.customer-service.index')
 const route = useRoute()
 
+const props = defineProps({ robotId: { type: [String, Number], default: '' } })
+const { error, run } = useRequestState()
 const query = route.query
 
 const overviewData = ref([])
@@ -130,11 +134,11 @@ const forMatTitle = (key) => {
 const getData = () => {
   // Get list
   let parmas = {
-    robot_id: query.id, // Robot ID
+    robot_id: props.robotId || query.id, // Robot ID
   }
 
 
-  getFeedbackStats(parmas).then((res) => {
+  run(() => getFeedbackStats(parmas), (res) => {
     const arr = []
     for (const key in res.data) {
       const item = res.data[key]

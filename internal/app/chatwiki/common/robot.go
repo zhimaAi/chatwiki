@@ -23,7 +23,7 @@ import (
 func GetLibraryRobotInfo(adminUserId, libraryId int) ([]msql.Params, error) {
 	robotInfo, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`admin_user_id`, cast.ToString(adminUserId)).
-		Field(`id,robot_key,robot_name,robot_intro,robot_avatar,application_type,library_ids`).
+		Field(`id,robot_key,robot_name,robot_intro,robot_avatar,application_type,library_ids,normal_library_id`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -35,7 +35,7 @@ func GetLibraryRobotInfo(adminUserId, libraryId int) ([]msql.Params, error) {
 	}
 	for _, item := range robotInfo {
 		libraryIds := strings.Split(cast.ToString(item[`library_ids`]), ",")
-		if tool.InArrayString(cast.ToString(libraryId), libraryIds) {
+		if tool.InArrayString(cast.ToString(libraryId), libraryIds) || cast.ToInt(item[`normal_library_id`]) == libraryId {
 			robotData = append(robotData, item)
 		}
 	}

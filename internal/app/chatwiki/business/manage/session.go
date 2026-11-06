@@ -26,7 +26,16 @@ func GetSessionChannelList(c *gin.Context) {
 		return
 	}
 	robotId := cast.ToUint(c.Query(`robot_id`))
-	list := common.GetChannelList(userId, robotId)
+	list, total, err := getSessionChannels(c, userId, robotId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if c.Query(`with_stats`) == `1` {
+		c.String(http.StatusOK, lib_web.FmtJson(map[string]any{`list`: list, `total`: total}, nil))
+		return
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 

@@ -186,7 +186,7 @@
           </div>
         </div>
 
-        <div class="form-item">
+        <div class="form-item" v-if="showSimilarity">
           <div class="form-item-label">
             <span>{{ t('label_similarity_threshold') }}&nbsp;</span>
             <a-tooltip>
@@ -382,6 +382,13 @@ const formState = reactive({
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
   library_search_type: 'fullTextSearch'
+})
+
+const showSimilarity = computed(() => {
+  const searchType = Number(formState.search_type)
+  const fullTextMode = formState.library_search_type || 'fullTextSearch'
+  return searchType === 1 || searchType === 2 ||
+    (searchType === 3 && fullTextMode === 'fullTextSearch')
 })
 
 const show = ref(false)

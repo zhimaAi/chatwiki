@@ -23,6 +23,7 @@
   "ph_select_rerank_model": "请选择Rerank模型",
   "msg_select_rerank_model": "请选择Rerank模型",
   "msg_input_similarity": "请输入相似度",
+  "msg_similarity_range": "相似度必须为 0～1 之间的有效数字",
   "msg_input_size": "请输入分段数",
   "msg_input_question": "请输入测试问题",
   "label_full_text_search_mode": "全文检索模式",

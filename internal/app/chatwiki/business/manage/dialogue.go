@@ -10,7 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cast"
@@ -58,25 +60,18 @@ func GetDialogueList(c *gin.Context) {
 }
 
 func GetAnswerSource(c *gin.Context) {
-	chatBaseParam, err := common.CheckChatRequest(c, true)
-	if err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
-		return
-	}
+	c.Header("Cache-Control", "no-store")
 	messageId := cast.ToInt(c.Query(`message_id`))
 	fileId := cast.ToInt(c.Query(`file_id`))
 	if messageId <= 0 || fileId <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	list, err := msql.Model(`chat_ai_answer_source`, define.Postgres).
-		Alias(`c`).
-		Join(`chat_ai_library_file_data d`, `c.paragraph_id = d.id`, `left`).
-		Join(`chat_ai_library_file f`, `d.file_id = f.id`, `left`).
-		Where(`c.admin_user_id`, cast.ToString(chatBaseParam.AdminUserId)).
-		Where(`c.message_id`, cast.ToString(messageId)).
-		Where(`d.delete_time`, `0`).
-		Where(`c.file_id`, cast.ToString(fileId)).
+	access, ok := getAnswerSourceAccess(c, messageId)
+	if !ok {
+		return
+	}
+	list, err := answerSourceQuery(access.AdminUserID, messageId, fileId).
 		Order(`c.id`).
 		Field(`
 			c.paragraph_id as id,
@@ -88,7 +83,7 @@ func GetAnswerSource(c *gin.Context) {
 			c.question,
 			c.answer,
 			c.images,
-			case when f.id is null or f.file_ext != 'pdf' then 0 else d.page_num end as page_num
+			case when f.file_ext != 'pdf' then 0 else d.page_num end as page_num
 		`).
 		Select()
 	if err != nil {
@@ -96,7 +91,11 @@ func GetAnswerSource(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	var formatedList []map[string]any
+	if len(list) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
+	formatedList := make([]map[string]any, 0, len(list))
 	for _, item := range list {
 		formatedItem := make(map[string]any)
 		for k, v := range item {
@@ -105,6 +104,19 @@ func GetAnswerSource(c *gin.Context) {
 		var images []string
 		_ = json.Unmarshal([]byte(item[`images`]), &images)
 		formatedItem[`images`] = images
+		if page := cast.ToInt(item[`page_num`]); page > 0 {
+			previewToken, signErr := common.SignLibFilePagePreview(common.LibFilePagePreview{
+				AdminUserID: access.AdminUserID, RobotID: access.RobotID, OpenID: access.OpenID,
+				MessageID: messageId, FileID: fileId, ParagraphID: cast.ToInt(item[`id`]),
+				Page: page, AdminAccess: access.AdminAccess,
+			}, time.Now())
+			if signErr != nil {
+				logs.Error(signErr.Error())
+				common.FmtError(c, `sys_err`)
+				return
+			}
+			formatedItem[`preview_url`] = "/chat/getLibRawFileOnePage?preview_token=" + url.QueryEscape(previewToken)
+		}
 		formatedList = append(formatedList, formatedItem)
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(formatedList, nil))

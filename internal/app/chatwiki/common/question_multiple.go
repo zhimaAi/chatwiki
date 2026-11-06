@@ -126,11 +126,15 @@ func convertUnsupportedQuestionParts(messages []chat.Message, support ModelInput
 }
 
 // GetQuestionByContentParts extracts the display text from multimodal input.
-func GetQuestionByContentParts(parts []chat.ContentPart) string {
+// Passing onlyText=true returns an empty string instead of a media placeholder when no text exists.
+func GetQuestionByContentParts(parts []chat.ContentPart, onlyText ...bool) string {
 	for _, part := range parts {
 		if part.Type == chat.ContentPartText && len(part.Text) > 0 {
 			return part.Text
 		}
+	}
+	if len(onlyText) > 0 && onlyText[0] {
+		return `` // only return text
 	}
 	for _, part := range parts {
 		switch part.Type {
@@ -146,9 +150,10 @@ func GetQuestionByContentParts(parts []chat.ContentPart) string {
 }
 
 // GetFirstQuestionByInput extracts the first displayable question.
-func GetFirstQuestionByInput(question string) string {
+// Passing onlyText=true suppresses media placeholders; plain text is returned unchanged.
+func GetFirstQuestionByInput(question string, onlyText ...bool) string {
 	if parts, ok := ParseInputQuestion(question); ok {
-		return GetQuestionByContentParts(parts)
+		return GetQuestionByContentParts(parts, onlyText...)
 	}
 	return question
 }

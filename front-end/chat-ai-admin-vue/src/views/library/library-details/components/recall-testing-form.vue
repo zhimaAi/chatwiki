@@ -108,7 +108,7 @@
           <a-input-number v-model:value="formState.size" :min="1" :max="500" />
         </div>
       </div>
-      <div v-if="formState.search_type <= 2" class="form-item">
+      <div v-if="showSimilarity" class="form-item">
         <div class="form-item-label">
           <span>{{ t('label_similarity_threshold') }}</span>
           <a-tooltip>
@@ -211,6 +211,13 @@ const formState = reactive({
     graph: 0
   },
   library_search_type: 'fullTextSearch'
+})
+
+const showSimilarity = computed(() => {
+  const searchType = Number(formState.search_type)
+  const fullTextMode = formState.library_search_type || 'fullTextSearch'
+  return searchType === 1 || searchType === 2 ||
+    (searchType === 3 && fullTextMode === 'fullTextSearch')
 })
 
 const selectedRetrievalMode = computed(() =>
@@ -330,8 +337,20 @@ const handleSelectRetrievalMode = (value) => {
 }
 
 const handleRecallTest = () => {
-  if (!formState.similarity) {
+  // 纯关键词模式也需要提交阈值，且 0 是合法值。
+  const rawSimilarity = formState.similarity
+  if (
+    rawSimilarity === null || rawSimilarity === undefined ||
+    (typeof rawSimilarity === 'string' && rawSimilarity.trim() === '')
+  ) {
     return message.error(t('msg_input_similarity'))
+  }
+  if (typeof rawSimilarity !== 'number' && typeof rawSimilarity !== 'string') {
+    return message.error(t('msg_similarity_range'))
+  }
+  const similarity = Number(rawSimilarity)
+  if (!Number.isFinite(similarity) || similarity < 0 || similarity > 1) {
+    return message.error(t('msg_similarity_range'))
   }
   if (!formState.size) {
     return message.error(t('msg_input_size'))
@@ -343,7 +362,7 @@ const handleRecallTest = () => {
     id: formState.id,
     question: formState.question,
     size: formState.size,
-    similarity: formState.similarity,
+    similarity,
     search_type: formState.search_type,
     rrf_weight: JSON.stringify(formState.rrf_weight),
     library_search_type: formState.library_search_type

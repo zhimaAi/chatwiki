@@ -5,26 +5,26 @@
         <a-button @click="handleEdit(true)" size="small">{{ t('btn_modify') }}</a-button>
       </div>
     </template>
-    <div class="setting-info-block">
-      <div class="set-item w-100">
-        {{ t('label_llm_model') }}：
-        <span>{{ getModelName }}</span>
+    <div class="setting-info-block" :class="{ 'inline-summary workspace-summary': inlineSummary }">
+      <div class="set-item" :class="{ 'w-100': !inlineSummary }">
+        <span class="summary-label">{{ t('label_llm_model') }}{{ inlineSummary ? '' : '：' }}</span>
+        <span class="summary-value">{{ getModelName }}</span>
       </div>
       <div class="set-item">
-        {{ t('label_temperature') }}：
-        <span>{{ formState.temperature }}</span>
+        <span class="summary-label">{{ t('label_temperature') }}{{ inlineSummary ? '' : '：' }}</span>
+        <span class="summary-value">{{ formState.temperature }}</span>
       </div>
       <div class="set-item">
-        {{ t('label_max_token') }}：
-        <span>{{ formState.max_token }}</span>
+        <span class="summary-label">{{ t('label_max_token') }}{{ inlineSummary ? '' : '：' }}</span>
+        <span class="summary-value">{{ formState.max_token }}</span>
       </div>
       <div class="set-item">
-        {{ t('label_context_pair') }}：
-        <span>{{ formState.context_pair }}</span>
+        <span class="summary-label">{{ t('label_context_pair') }}{{ inlineSummary ? '' : '：' }}</span>
+        <span class="summary-value">{{ formState.context_pair }}</span>
       </div>
       <div class="set-item">
-        {{ t('label_show_reasoning_process') }}：
-        <span>{{ formState.think_switch == 1 ? t('state_on') : t('state_off') }}</span>
+        <span class="summary-label">{{ t('label_show_reasoning_process') }}{{ inlineSummary ? '' : '：' }}</span>
+        <span class="summary-value" :class="{ 'summary-status': inlineSummary, 'is-enabled': inlineSummary && formState.think_switch == 1 }">{{ inlineSummary ? workspaceT(formState.think_switch == 1 ? 'setting_on' : 'setting_off') : t(formState.think_switch == 1 ? 'state_on' : 'state_off') }}</span>
       </div>
     </div>
     <a-modal
@@ -39,7 +39,7 @@
           <a-col v-bind="grid">
             <div class="form-item">
               <div class="form-item-label mb12">
-                <span>{{ t('label_llm_model') }}&nbsp;</span>
+                <BackupModelLabel :label="t('label_llm_model')" :active="isEdit" />
               </div>
               <div class="form-item-body">
                 <!-- 自定义选择器 -->
@@ -192,10 +192,9 @@
                   <QuestionCircleOutlined class="question-icon" />
                 </a-tooltip>
               </div>
-              <a-switch
-                v-model:checked="formState.enable_thinking"
-                :checkedValue="1"
-                :unCheckedValue="0"
+              <ReasoningEffortSelect
+                v-model:value="formState.reasoning_effort"
+                @change="(effort) => (formState.enable_thinking = effort === 'none' ? 0 : 1)"
               />
             </div>
           </a-col>
@@ -225,6 +224,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import {
   ref,
   reactive,
@@ -235,12 +236,15 @@ import {
 } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from './edit-box.vue'
+import BackupModelLabel from '@/components/model-select/backup-model-label.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { getModelNameText } from '@/components/model-select/index.js'
 import CuTooltip from '@/components/cu-tooltip/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.model-settings')
+const { t: workspaceT } = useI18n('views.customer-service.index')
+defineProps({ inlineSummary: { type: Boolean, default: false } })
 
 const grid = reactive({ sm: 24, md: 24, lg: 12, xl: 24, xxl: 24 })
 // 获取LLM模型
@@ -257,6 +261,7 @@ const formState = reactive({
   think_switch: 1,
   prompt_role_type: '0',
   enable_thinking: 0,
+  reasoning_effort: 'none',
   question_multiple_switch: 1,
 })
 
@@ -316,6 +321,7 @@ const handleEdit = (val) => {
   formState.think_switch = Number(robotInfo.think_switch)
   formState.prompt_role_type = robotInfo.prompt_role_type
   formState.enable_thinking = robotInfo.enable_thinking
+  formState.reasoning_effort = toReasoningEffort(robotInfo.enable_thinking, robotInfo.reasoning_effort)
   formState.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
   isEdit.value = val
 }
@@ -329,6 +335,7 @@ watchEffect(() => {
   formState.think_switch = Number(robotInfo.think_switch)
   formState.prompt_role_type = robotInfo.prompt_role_type
   formState.enable_thinking = robotInfo.enable_thinking
+  formState.reasoning_effort = toReasoningEffort(robotInfo.enable_thinking, robotInfo.reasoning_effort)
   formState.question_multiple_switch = Number(robotInfo.question_multiple_switch) || 0
 })
 
@@ -400,6 +407,15 @@ const getModelName = computed(() => {
   }
   .w-100 {
     width: 100%;
+  }
+  &.inline-summary .set-item {
+    max-width: 100%;
+    flex-wrap: wrap;
+
+    > span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
   }
 }
 

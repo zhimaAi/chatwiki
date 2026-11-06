@@ -1,6 +1,6 @@
 <style lang="less">
 .vue-markdown {
-  white-space: normal;
+  white-space: pre-wrap;
   word-break: break-all;
   width: 100%;
   

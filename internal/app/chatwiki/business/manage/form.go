@@ -280,7 +280,7 @@ func SaveFormField(c *gin.Context) {
 	description := cast.ToString(c.PostForm(`description`))
 	_type := cast.ToString(c.PostForm(`type`))
 	required := cast.ToBool(c.PostForm(`required`))
-	if id < 0 || formId < 0 || len(name) == 0 || len(description) == 0 || len(_type) == 0 {
+	if id < 0 || formId <= 0 || len(name) == 0 || len(description) == 0 || len(_type) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -318,7 +318,9 @@ func SaveFormField(c *gin.Context) {
 		return
 	}
 	if id > 0 {
-		formField, err := msql.Model(`form_field`, define.Postgres).Where(`id`, cast.ToString(id)).Find()
+		formField, err := msql.Model(`form_field`, define.Postgres).
+			Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`form_id`, cast.ToString(formId)).Find()
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -329,6 +331,7 @@ func SaveFormField(c *gin.Context) {
 			return
 		}
 		duplicated, err := msql.Model(`form_field`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).
 			Where(`form_id`, cast.ToString(formId)).
 			Where(`name`, name).
 			Where(`id`, `!=`, cast.ToString(id)).
@@ -342,7 +345,10 @@ func SaveFormField(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `duplicated_field`))))
 			return
 		}
-		_, err = msql.Model(`form_field`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+		var affected int64
+		affected, err = msql.Model(`form_field`, define.Postgres).
+			Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).
+			Where(`form_id`, cast.ToString(formId)).Update(msql.Datas{
 			`name`:        name,
 			`description`: description,
 			`type`:        _type,
@@ -354,8 +360,13 @@ func SaveFormField(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 			return
 		}
+		if affected == 0 {
+			common.FmtError(c, `no_data`)
+			return
+		}
 	} else {
-		duplicated, err := msql.Model(`form_field`, define.Postgres).Where(`form_id`, cast.ToString(formId)).Where(`name`, name).Count()
+		duplicated, err := msql.Model(`form_field`, define.Postgres).
+			Where(`admin_user_id`, cast.ToString(userId)).Where(`form_id`, cast.ToString(formId)).Where(`name`, name).Count()
 		if err != nil {
 			logs.Error(err.Error())
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
@@ -377,6 +388,11 @@ func SaveFormField(c *gin.Context) {
 			`update_time`:   tool.Time2Int(),
 		}
 		_, err = msql.Model(`form_field`, define.Postgres).Insert(data)
+		if err != nil {
+			logs.Error(err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
 	}
 
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))
@@ -391,7 +407,7 @@ func UpdateFormRequired(c *gin.Context) {
 	id := cast.ToInt(c.PostForm(`id`))
 	formId := cast.ToInt(c.PostForm(`form_id`))
 	required := cast.ToBool(c.PostForm(`required`))
-	if id < 0 || formId < 0 {
+	if id <= 0 || formId <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
@@ -405,12 +421,19 @@ func UpdateFormRequired(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	if _, err = msql.Model(`form_field`, define.Postgres).Where(`id`, cast.ToString(id)).Update(msql.Datas{
+	affected, err := msql.Model(`form_field`, define.Postgres).
+		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`form_id`, cast.ToString(formId)).Update(msql.Datas{
 		`required`:    required,
 		`update_time`: tool.Time2Int(),
-	}); err != nil {
+	})
+	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if affected == 0 {
+		common.FmtError(c, `no_data`)
 		return
 	}
 	c.String(http.StatusOK, lib_web.FmtJson(nil, nil))

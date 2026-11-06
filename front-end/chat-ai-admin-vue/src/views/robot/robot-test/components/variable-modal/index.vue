@@ -68,16 +68,15 @@
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
-import { useRoute } from 'vue-router'
+import { inject } from 'vue'
 import { useChatStore } from '@/stores/modules/chat'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-test.components.variable-modal.index')
-const query = useRoute().query
 
 const isEdit = ref(false)
 
-const chatStore = useChatStore()
+const chatStore = inject('robotChatSession', null) || useChatStore()
 const chat_variables = computed(() => {
   return chatStore.chat_variables || {}
 })
@@ -180,7 +179,6 @@ const formRef = ref(null)
 const handleSave = () => {
   formRef.value.validate().then(() => {
     let chat_prompt_variables = getPostData()
-    let variables_key = `chat_prompt_variables_${query.robot_key}`
     const currentDialogueId = Number(chatStore.dialogue_id || 0)
 
     chatStore.chat_variables.need_fill_variable = false
@@ -190,9 +188,8 @@ const handleSave = () => {
       chatStore.handleEditVariables({
         chat_prompt_variables
       })
-      localStorage.removeItem(variables_key)
     } else {
-      localStorage.setItem(variables_key, JSON.stringify(chat_prompt_variables))
+      chatStore.setPendingVariables(chat_prompt_variables)
     }
 
     open.value = false

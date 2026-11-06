@@ -1,5 +1,13 @@
 <template>
-  <div class="details-library-page">
+  <div class="details-library-page" :class="{ 'workspace-document': compact }">
+    <template v-if="compact">
+    <WorkspaceDocumentView v-if="compact" :groups="groupCards" :group-id="groupId" :group-width="groupBoxWidth" :collapsed="isHiddenGroup" :files="fileList" :counts="count_data" :pagination="queryParams" :extra-columns="columns.filter(column => column.key?.startsWith('meta_') || ['graph_status', 'graph_entity_count'].includes(column.key))" :view-mode="viewMode" :library-id="libraryId" :loading="isLoading" :readonly="type == 3" :update-frequency="formatUpdateFrequency" :status-options="statusList.map(item => ({ value: item.id, label: item.name }))" v-model:file-name="queryParams.file_name" v-model:status="queryParams.status"
+      @toggle-groups="handleChangeHideStatus" @resize-groups="handleResizeMouseDown" @reorder-groups="workspaceReorderGroups" @select-group="handleChangeGroup" @group-action="workspaceGroupAction" @search="onSearch" @view-change="workspaceViewChange" @metadata="showMetaModal(1)" @add="handleMenuClick" @action="workspaceDocumentAction" @sort="sorter => onTableChange({}, {}, sorter)" @page-change="onWorkspacePageChange" />
+    <BaseDataDrawer v-if="compact" v-model:open="baseDataOpen" :record="baseDataModelRecord" @createGraphTask="val => createGraphTask(val, true)" @handlePreview="handlePreview" @close="baseDataOpen = false" @editOnline="handleEditOnlineDoc" />
+    <ModelSelect modelType="TEXT EMBEDDING" style="display: none" @loaded="onVectorTextModelLoaded" />
+    <ModelSelect v-if="neo4j_status" modelType="LLM" style="display: none" @loaded="onVectorModelLoaded" />
+    </template>
+    <template v-else>
     <div
       class="group-content-box"
       :class="[{ collapsed: isHiddenGroup }, { 'no-transition': isDragging }]"
@@ -15,7 +23,7 @@
     >
       <div class="group-head-box">
         <div class="head-title">
-          <a-tooltip :title="t('tooltip_collapse_group')">
+          <a-tooltip v-if="!compact" :title="t('tooltip_collapse_group')">
             <div class="hover-btn-wrap" @click="handleChangeHideStatus">
               <svg-icon name="put-away"></svg-icon>
             </div>
@@ -40,8 +48,8 @@
           </a-input>
         </div>
       </div>
-      <div class="classify-box" style="margin-top: 16px">
-        <cu-scroll style="padding-right: 24px">
+      <div class="classify-box" :style="{ marginTop: compact ? '12px' : '16px' }">
+        <cu-scroll :style="{ paddingRight: compact ? '12px' : '24px' }">
           <Draggable
             v-model="groupLists"
             item-key="id"
@@ -88,10 +96,11 @@
 
       <div v-if="!isHiddenGroup" class="resize-bar" @mousedown="handleResizeMouseDown"></div>
     </div>
+    <GroupPanelToggle v-if="compact" :collapsed="isHiddenGroup" :width="groupBoxWidth" :dragging="isDragging" @toggle="handleChangeHideStatus" />
     <div class="main-content-box">
-      <cu-scroll :scrollbar="false">
-        <div class="group-header-title">
-          <a-popover :title="null" placement="bottom" v-if="isHiddenGroup">
+      <component :is="compact ? 'div' : CuScroll" :class="{ 'document-main-layout': compact }" :scrollbar="compact ? undefined : false">
+        <div class="group-header-title" v-if="!compact || inFolderDetail">
+          <a-popover :title="null" placement="bottom" v-if="isHiddenGroup && !compact">
             <template #content>
               <div class="pover-group-content-box">
                   <div class="group-head-box">
@@ -292,7 +301,7 @@
                 </template>
               </a-input>
             </div>
-            <a-flex align="center" v-if="neo4j_status" class="tool-item custom-select-box pd-5-8">
+            <a-flex align="center" v-if="neo4j_status && !compact" class="tool-item custom-select-box pd-5-8">
               <ModelSelect modelType="LLM" v-show="false" @loaded="onVectorModelLoaded" />
               <span>{{ t('label_generate_knowledge_graph') }}</span>
               <a-switch
@@ -507,14 +516,14 @@
           />
         </div>
         <!-- 列表视图 -->
-        <div class="list-content" v-else>
+        <div class="list-content" :class="{ 'fixed-table-host': compact }" ref="tableBox" v-else>
           <a-table
             @resizeColumn="handleResizeColumn"
             :columns="columns"
             :data-source="fileList"
-            :scroll="{ x: 1000 }"
+            :scroll="compact ? { x: 1000, y: scrollY } : { x: 1000 }"
             row-key="id"
-            :pagination="{
+            :pagination="compact ? false : {
               current: queryParams.page,
               total: queryParams.total,
               pageSize: queryParams.size,
@@ -811,8 +820,20 @@
             </template>
           </a-table>
         </div>
-      </cu-scroll>
+        <div v-if="compact && viewMode === 'list'" class="document-pagination">
+          <a-pagination
+            :current="queryParams.page"
+            :page-size="queryParams.size"
+            :total="queryParams.total"
+            :page-size-options="['10', '20', '50', '100']"
+            show-quick-jumper
+            show-size-changer
+            @change="onWorkspacePageChange"
+          />
+        </div>
+      </component>
     </div>
+    </template>
 
     <a-modal
       v-model:open="addFileState.open"
@@ -981,6 +1002,10 @@ import { useLibraryStore } from '@/stores/modules/library'
 import { convertTime } from '@/utils/index'
 import { useCompanyStore } from '@/stores/modules/company'
 import AddGroup from './qa-knowledge-document/components/add-group.vue'
+import GroupPanelToggle from './components/group-panel-toggle.vue'
+import WorkspaceDocumentView from './components/workspace-document-view.vue'
+import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
+import { useTableScroll } from './components/use-table-scroll'
 import EditGroup from './qa-knowledge-document/components/edit-group.vue'
 import Draggable from 'vuedraggable'
 import AddFeishuDocument from "./components/add-feishu-document.vue";
@@ -992,6 +1017,8 @@ const { t } = useI18n('views.library.library-details.knowledge-document')
 const SOURCE_TYPE_MAP = KNOWLEDGE_SOURCE_TYPE_MAP()
 
 const libraryStore = useLibraryStore()
+let alive = true
+let listRequestSequence = 0
 const { changeGraphSwitch } = libraryStore
 
 const companyStore = useCompanyStore()
@@ -1003,6 +1030,7 @@ const ali_ocr_switch = computed(() => {
 })
 
 const props = defineProps({
+  compact: { type: Boolean, default: false },
   type: {
     type: [Number, String],
     default: () => 2
@@ -1017,7 +1045,8 @@ const libraryId = computed(() => {
   return props.library_id || query.id
 })
 
-const isHiddenGroup = ref(localStorage.getItem('document_group_hide_key') == 1)
+const GROUP_HIDE_KEY = props.compact ? 'customer_service_document_group_hide_key' : 'document_group_hide_key'
+const isHiddenGroup = ref(localStorage.getItem(GROUP_HIDE_KEY) == 1)
 
 const groupSearchKey = ref('')
 const groupLists = ref([])
@@ -1143,6 +1172,7 @@ const onVectorTextModelLoaded = (list) => {
 }
 
 const setDefaultModel = () => {
+  if (!alive) return
   // 防止没有数据时，切换模型报错
   if (!libraryInfo.value.id) {
     setTimeout(() => {
@@ -1187,6 +1217,8 @@ const setDefaultModel = () => {
 const fileList = ref([])
 
 const viewMode = ref('list')
+const tableBox = ref(null)
+const { scrollY } = useTableScroll(tableBox, () => props.compact && viewMode.value === 'list')
 const sortBtnRef = ref(null)
 
 function switchToFolderView() {
@@ -1205,7 +1237,7 @@ function switchToFolderView() {
   folderSort.order_type = 'DESC'
   state.selectedRowKeys = []
   sortOpen.value = false
-  if (!isHiddenGroup.value) {
+  if (!props.compact && !isHiddenGroup.value) {
     handleChangeHideStatus()
   }
   onSearch()
@@ -1225,7 +1257,7 @@ function switchToListView() {
   folderSort.order_type = 'DESC'
   state.selectedRowKeys = []
   sortOpen.value = false
-  if (isHiddenGroup.value) {
+  if (!props.compact && isHiddenGroup.value) {
     handleChangeHideStatus()
   }
   onSearch()
@@ -1474,7 +1506,7 @@ const queryParams = reactive({
   file_name: undefined,
   status: '', // 2:成功 3:全部失败 8:部分失败 4:待学习
   page: 1,
-  size: 10,
+  size: props.compact ? 100 : 10,
   total: 0,
   sort_field: '',
   sort_type: '',
@@ -1599,7 +1631,7 @@ const columnsDefault = [
 ]
 
 const getColumnsWidthStorageKey = () => `qa_document_columns_widths_${libraryId.value || 0}`
-const getViewModeStorageKey = () => `qa_document_view_mode_${libraryId.value || 0}`
+const getViewModeStorageKey = () => `${props.compact ? 'customer_service_document_view_mode' : 'qa_document_view_mode'}_${libraryId.value || 0}`
 const getSavedColumnsWidths = () => {
   try {
     const s = localStorage.getItem(getColumnsWidthStorageKey()) || '{}'
@@ -1637,15 +1669,24 @@ const handleChangeStatus = (item) => {
 }
 
 const onTableChange = (pagination, _ , sorter) => {
-  console.log(sorter,'==')
-  queryParams.page = pagination.current
-  queryParams.size = pagination.pageSize
+  if (props.compact) {
+    queryParams.page = 1
+  } else {
+    queryParams.page = pagination.current
+    queryParams.size = pagination.pageSize
+  }
   queryParams.sort_field = ''
   queryParams.sort_type = ''
   if(sorter.order && sorter.field){
     queryParams.sort_field = sorter.field
     queryParams.sort_type = sorter.order == 'ascend' ? 'ASC' : 'DESC'
   }
+  getData()
+}
+
+const onWorkspacePageChange = (page, size) => {
+  queryParams.page = page
+  queryParams.size = size
   getData()
 }
 
@@ -1701,6 +1742,7 @@ const handleBatchDelete = () => {
     ),
     onOk() {
       delLibraryFile({ id: state.selectedRowKeys.join(',') }).then(() => {
+        if (props.compact) state.selectedRowKeys = []
         getData()
         message.success(t('msg_batch_delete_success'))
       })
@@ -1759,7 +1801,9 @@ const handlePreview = (record, params = {}) => {
 }
 
 const getData = (append = false) => {
-  let params = toRaw(queryParams)
+  if (!alive) return
+  const sequence = ++listRequestSequence
+  let params = { ...toRaw(queryParams) }
   if (params.status == 0) {
     params.status = ''
   }
@@ -1767,6 +1811,7 @@ const getData = (append = false) => {
   isLoading.value = true
   getLibraryFileList(params)
     .then((res) => {
+      if (!alive || sequence !== listRequestSequence) return
       let info = res.data.info
 
       if (!modelForm.use_model && modelForm.use_model != info.use_model) {
@@ -1843,13 +1888,15 @@ const getData = (append = false) => {
       needRefresh && timingRefreshStatus()
       !needRefresh && clearInterval(timingRefreshStatusTimer.value)
     })
+    .catch((err) => { if (alive && sequence === listRequestSequence) message.error(err.message) })
     .finally(() => {
-      isLoading.value = false
+      if (alive && sequence === listRequestSequence) isLoading.value = false
     })
 }
 
 const timingRefreshStatusTimer = ref(null)
 const timingRefreshStatus = () => {
+  if (!alive) return
   clearInterval(timingRefreshStatusTimer.value)
   timingRefreshStatusTimer.value = setInterval(() => {
     getData()
@@ -2143,7 +2190,7 @@ const handleDownload = (record) => {
 }
 const handleChangeHideStatus = () => {
   isHiddenGroup.value = !isHiddenGroup.value
-  localStorage.setItem('document_group_hide_key', isHiddenGroup.value ? 1 : 2)
+  localStorage.setItem(GROUP_HIDE_KEY, isHiddenGroup.value ? 1 : 2)
 }
 
 const getGroupLists = () => {
@@ -2251,11 +2298,11 @@ const handleDelGroup = (item) => {
   })
 }
 
-const GROUP_BOX_WIDTH_KEY = 'qa_document_group_box_width'
+const GROUP_BOX_WIDTH_KEY = props.compact ? 'customer_service_document_group_box_width' : 'qa_document_group_box_width'
 const minGroupBoxWidth = 180
-const maxGroupBoxWidth = 256
+const maxGroupBoxWidth = props.compact ? 320 : 256
 
-const groupBoxWidth = ref(minGroupBoxWidth)
+const groupBoxWidth = ref(props.compact ? 200 : minGroupBoxWidth)
 const isDragging = ref(false) // 新增
 
 onMounted(() => {
@@ -2266,7 +2313,7 @@ onMounted(() => {
   const savedViewMode = localStorage.getItem(getViewModeStorageKey())
   if (savedViewMode === 'folder' || savedViewMode === 'list') {
     viewMode.value = savedViewMode
-    queryParams.size = savedViewMode === 'folder' ? 50 : 10
+    queryParams.size = props.compact ? 100 : savedViewMode === 'folder' ? 50 : 10
   } else {
     localStorage.setItem(getViewModeStorageKey(), 'list')
   }
@@ -2382,7 +2429,39 @@ const handleResizeColumn = (w, col) => {
   saveColumnWidth(col.key, width)
 }
 
+function workspaceViewChange(mode) {
+  if (mode === viewMode.value) return
+  viewMode.value = mode
+  state.selectedRowKeys = []
+  localStorage.setItem(getViewModeStorageKey(), mode)
+}
+function workspaceReorderGroups(groups) {
+  groupLists.value = groups.map(group => groupLists.value.find(item => String(item.id) === String(group.id)) || group)
+  handleDragEnd()
+}
+function workspaceGroupAction({ key, record }) {
+  if (key === 'delete') return handleDelGroup(record)
+  openGroupModal(key === 'add' ? {} : record)
+}
+function workspaceDocumentAction({ key, record }) {
+  if (key === 'base') return showBaseData(record)
+  if (key === 'preview') return handlePreview(record, { open_new: true })
+  if (key === 'graph-details') return handlePreview(record, { graph_status: 3, open_new: true })
+  if (key === 'edit') return handleEditOnlineDoc(record)
+  if (key === 'rename') return handleOpenRenameModal(record)
+  if (key === 'group') return openEditGroupModal(record)
+  if (key === 'download') return handleDownload(record)
+  if (key === 'resegment') return toReSegmentationPage(record)
+  if (key === 'relearn') return handleRelearn(record)
+  if (key === 'cancel-ocr') return handleCancelOcrPdf(record)
+  if (key === 'generate-graph') return createGraphTask(record)
+  if (key === 'graph') return toGraph(record)
+  if (key === 'delete') Modal.confirm({ title: t('confirm_delete'), okType: 'danger', onOk: () => onDelete(record) })
+}
+
 onUnmounted(() => {
+  alive = false
+  listRequestSequence++
   timingRefreshStatusTimer.value && clearInterval(timingRefreshStatusTimer.value)
   learnProgressTimer && clearInterval(learnProgressTimer)
   folderScrollObserver.value && folderScrollObserver.value.disconnect()

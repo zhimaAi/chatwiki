@@ -1,3 +1,6 @@
 {
-  "ph_select_model": "Select embedding model"
+  "ph_select_model": "Select embedding model",
+  "backup_model_disabled": "Backup model is disabled,",
+  "backup_model_settings": "configure it",
+  "backup_model_contact_admin": "contact an administrator to configure it"
 }

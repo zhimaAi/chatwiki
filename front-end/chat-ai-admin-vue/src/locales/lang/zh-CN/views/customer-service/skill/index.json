@@ -1,0 +1,18 @@
+{
+  "title": "Skill",
+  "intro_title": "Agent 智能体，重新定义你的客服机器人",
+  "intro_description": "不只是问答。Agent 能自主规划、调用工具、串联多个 Skill，把原本需要多轮人工跟进的复杂业务，一次性自动办妥。",
+  "switch_agent": "切换 Agent 类型机器人",
+  "agent_only": "仅Agent类型的机器人支持skill",
+  "benefits_title": "Agent 的核心优势",
+  "benefits_description": "相比传统“一问一答”机器人，Agent 能自主规划、调用工具、记住上下文，把复杂的客服业务一次性自动办妥。",
+  "planning_title": "自主规划与推理",
+  "planning_description": "用户一句“我要退货”，Agent 自动拆解：查订单 → 校验规则 → 生成退货单 → 同步物流，全程无需人工介入。",
+  "tools_title": "工具 / Skill 调用",
+  "tools_description": "一句话查余额、改地址、开发票。Agent 实时打通订单、物流、CRM 等系统，跨系统操作一次办妥。",
+  "memory_title": "长期记忆与上下文",
+  "memory_description": "记住用户历史问题与偏好，多轮对话不重复追问、不冷场；转接人工也带着完整上下文，体验更像真人客服。",
+  "create_title": "现在就创建你的 Agent 机器人",
+  "create_description": "从模板起步，挂上所需 Skill，几分钟即可上线一个能“办事”的智能客服。",
+  "create_agent": "新增 agent 类型的机器人"
+}

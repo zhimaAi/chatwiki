@@ -154,7 +154,7 @@
         {{ t('label_top_k') }}
         <span>{{ formState.top_k }}</span>
       </div>
-      <div class="set-item" v-if="formState.search_type <= 2">
+      <div class="set-item" v-if="showSimilarity">
         {{ t('label_similarity_threshold') }}
         <span>{{ formState.similarity }}</span>
       </div>
@@ -219,6 +219,13 @@ const formState = reactive({
   recall_neighbor_before_num: 1,
   recall_neighbor_after_num: 1,
   library_search_type: 'fullTextSearch'
+})
+
+const showSimilarity = computed(() => {
+  const searchType = Number(formState.search_type)
+  const fullTextMode = formState.library_search_type || 'fullTextSearch'
+  return searchType === 1 || searchType === 2 ||
+    (searchType === 3 && fullTextMode === 'fullTextSearch')
 })
 
 // 知识库
