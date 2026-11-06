@@ -6,6 +6,7 @@
   "action_reply_content": "回复指定文案",
   "reply_placeholder": "请输入限流提示文案，例如：您发送消息太频繁，请稍后再试",
   "save_config": "保存配置",
+  "retry": "重试",
   "msg_missing_robot_key": "缺少机器人标识，无法获取限流配置",
   "msg_load_failed": "限流配置获取失败，请稍后重试",
   "msg_save_success": "限流配置保存成功",

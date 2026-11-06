@@ -110,7 +110,7 @@ func (trigger *TriggerConfig) SetGlobalValue(flow *WorkFlow) {
 		if trigger.TriggerChatConfig.QuestionMultipleSwitch {
 			if questionMultiple, ok := common.ParseInputQuestion(flow.params.Question); ok {
 				assignParams[`question_multiple`] = common.ContentPartsAppendImageDomain(questionMultiple)
-				assignParams[`question`] = common.GetQuestionByContentParts(questionMultiple)
+				assignParams[`question`] = common.GetQuestionByContentParts(questionMultiple, true)
 			}
 		}
 	case TriggerTypeTest: // Test Trigger

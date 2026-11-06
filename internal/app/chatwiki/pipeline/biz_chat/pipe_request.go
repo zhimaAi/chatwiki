@@ -182,6 +182,7 @@ func GetSessionId(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	}
 	// record session id
 	in.sessionId = sessionId
+	in.params.ManualTransfer.SetSource(in.params, sessionId)
 	in.Stream(sse.Event{Event: `session_id`, Data: in.sessionId})
 	return pipeline.PipeContinue
 }

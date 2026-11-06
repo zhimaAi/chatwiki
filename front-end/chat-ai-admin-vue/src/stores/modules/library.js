@@ -17,8 +17,9 @@ export const useLibraryStore = defineStore('library', {
   },
   getters: {},
   actions: {
-    async getLibraryInfo(id){
+    async getLibraryInfo(id, isCurrent = () => true){
       const res = await getLibraryInfo({ id: id })
+      if (!isCurrent()) return
 
       this.library_name = res.data.library_name
       this.avatar = res.data.avatar
@@ -28,6 +29,7 @@ export const useLibraryStore = defineStore('library', {
       this.type = res.data.type * 1
       this.qa_index_type = res.data.qa_index_type
       this.sync_official_content_status = res.data.sync_official_content_status
+      return res
     },
     changeGraphSwitch(val){
       this.graph_switch = val

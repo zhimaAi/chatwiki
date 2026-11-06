@@ -172,12 +172,20 @@ func ValidateFile(robot msql.Params, op custom_eino.FileOperation, filePath stri
 }
 
 func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
+	if finishClawbotManualTransfer(in, out) {
+		return nil
+	}
 	// set language
 	_ = adk.SetLanguage(adk.LanguageChinese)
 	// init dirs
 	common.InitClawbotDirs(in.params.Robot[`robot_key`])
 	// ChatModel
-	ctx := clawbotRunContext(in)
+	if in.params.ManualTransfer == nil {
+		in.params.ManualTransfer = define.NewManualTransferState(in.params.Robot)
+	}
+	ctx, cancel := clawbotManualTransferContext(clawbotRunContext(in), in.params.ManualTransfer)
+	manualTools, waitTools := clawbotManualTransferTools(ctx, cancel, in.params.ManualTransfer)
+	defer func() { cancel(); waitTools(); in.agentStreams.Wait() }()
 	cm, err := custom_eino.NewChatModel(ctx, &custom_eino.ChatModelConfig{
 		Generate: func(ctx context.Context, input []*schema.Message, opts custom_eino.RuntimeOptions) (*schema.Message, error) {
 			return Generate(ctx, input, opts, in, out)
@@ -236,7 +244,11 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		return err
 	}
 	// BaseTool
+	workFlowFuncCall, _ := work_flow.BuildFunctionTools(in.params.Lang, in.params.Robot)
 	tools := make([]einotool.BaseTool, 0)
+	if manualTool := newManualTransferTool(in, workFlowFuncCall...); manualTool != nil {
+		tools = append(tools, manualTool)
+	}
 	kbSearchTool := newKbsearchTool(in.params, in.sessionId)
 	if kbSearchTool != nil {
 		tools = append(tools, kbSearchTool)
@@ -248,7 +260,6 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		tools = append(tools, goodsLibRecommendTool)
 	}
 	// related workflow
-	workFlowFuncCall, _ := work_flow.BuildFunctionTools(in.params.Lang, in.params.Robot)
 	for _, t := range workFlowFuncCall {
 		var parameters struct {
 			Type       string         `json:"type"`
@@ -285,6 +296,7 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 			ToolsNodeConfig: compose.ToolsNodeConfig{
 				Tools:               tools,
 				ExecuteSequentially: true,
+				ToolCallMiddlewares: []compose.ToolMiddleware{manualTools},
 			},
 		},
 		MaxIteration:           20,
@@ -306,7 +318,7 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	// history
 	out.debugLog = append(out.debugLog, map[string]string{`type`: `prompt`, `content`: `【prompt】`})
 	var history []*schema.Message
-	contextList := common.BuildChatContextPair(in.params.Openid, cast.ToInt(in.params.Robot[`id`]),
+	contextList := common.BuildChatContextPair(in.params.Openid, common.ChatHistoryRobotID(in.params),
 		in.dialogueId, in.sessionId, int(out.cMsgId), cast.ToInt(in.params.Robot[`context_pair`]))
 	for i := range contextList {
 		history = append(history, schema.UserMessage(contextList[i][`question`]))
@@ -320,7 +332,9 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 	events := runner.Run(ctx, history)
 	defer func() {
 		reason := `finish`
-		if ctx.Err() != nil {
+		if _, transferred := in.params.ManualTransfer.Result(); transferred {
+			reason = `switch_manual`
+		} else if ctx.Err() != nil {
 			reason = `stop`
 		} else if out.Error != nil {
 			reason = `error`
@@ -333,6 +347,12 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		event, ok := events.Next()
 		if !ok {
 			break
+		}
+		if _, transferred := in.params.ManualTransfer.Result(); transferred {
+			if event.Output != nil && event.Output.MessageOutput != nil && event.Output.MessageOutput.MessageStream != nil {
+				event.Output.MessageOutput.MessageStream.Close()
+			}
+			continue // drain the runner before persisting the terminal reply
 		}
 		if event.Err != nil {
 			if ctx.Err() != nil {
@@ -348,8 +368,11 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 		if event.Output == nil || event.Output.MessageOutput == nil {
 			continue
 		}
-		message, err := ConcatStreamMessages(in, event.Output.MessageOutput)
+		message, err := ConcatStreamMessages(in, out, event.Output.MessageOutput)
 		if err != nil {
+			if _, transferred := in.params.ManualTransfer.Result(); transferred {
+				continue
+			}
 			if ctx.Err() != nil {
 				break // client disconnect/stop: keep partial content, skip fallback
 			}
@@ -386,9 +409,21 @@ func doApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) error {
 			})
 		}
 	}
-	out.chatResp.SetResult(sb.String())
+	waitTools()
+	in.agentStreams.Wait()
 	out.requestTime = time.Now().Sub(requestStartTime).Milliseconds()
-	out.content = out.chatResp.Result()
+	if finishClawbotManualTransfer(in, out) {
+		return nil
+	}
+	if out.workFlowContent != `` {
+		// finish node replies were pushed as separate messages; use the workflow
+		// text as content instead of the suppressed agent follow-up text
+		out.chatResp.SetResult(out.workFlowContent)
+		out.content = out.workFlowContent
+	} else {
+		out.chatResp.SetResult(sb.String())
+		out.content = out.chatResp.Result()
+	}
 	var appendContent string
 	out.content, appendContent = common.AppendGoodsWechatCardTags(out.content, out.goodsWechatCards)
 	if content, ok := common.ReplaceMiniCardMarkersForRobotPromptReply(in.params.AdminUserId, out.content); ok {
@@ -429,6 +464,9 @@ func replacePromptPlaceholder(prompt string, out *ChatOutParam) {
 }
 
 func Generate(ctx context.Context, input []*schema.Message, opts custom_eino.RuntimeOptions, in *ChatInParam, out *ChatOutParam) (*schema.Message, error) {
+	if _, transferred := in.params.ManualTransfer.Result(); transferred {
+		return nil, context.Canceled
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -486,7 +524,7 @@ func Generate(ctx context.Context, input []*schema.Message, opts custom_eino.Run
 		out.functionTools,
 		cast.ToFloat32(in.params.Robot[`temperature`]),
 		cast.ToInt(in.params.Robot[`max_token`]),
-		common.ToThinkingSwitch(in.params.Robot[`enable_thinking`]),
+		common.ToReasoningEffort(in.params.Robot[`enable_thinking`], in.params.Robot[`reasoning_effort`]),
 	)
 	if chatResp.Usage.PromptTokens > 0 || chatResp.Usage.CompletionTokens > 0 {
 		out.chatResp.Usage.PromptTokens += chatResp.Usage.PromptTokens
@@ -514,6 +552,9 @@ func buildFilterTools(robot msql.Params) []string {
 }
 
 func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.RuntimeOptions, in *ChatInParam, out *ChatOutParam) (*schema.StreamReader[*schema.Message], error) {
+	if _, transferred := in.params.ManualTransfer.Result(); transferred {
+		return nil, context.Canceled
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -558,6 +599,7 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 		out.functionTools = append(out.functionTools, result)
 	}
 	// RequestChatStream
+	in.agentStreams.Add(1)
 	var streamErr error
 	var totalResponse common.ChatResponse
 	chanStream := make(chan sse.Event)
@@ -577,7 +619,7 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 			chanStream,
 			cast.ToFloat32(in.params.Robot[`temperature`]),
 			cast.ToInt(in.params.Robot[`max_token`]),
-			common.ToThinkingSwitch(in.params.Robot[`enable_thinking`]),
+			common.ToReasoningEffort(in.params.Robot[`enable_thinking`], in.params.Robot[`reasoning_effort`]),
 		)
 		if totalResponse.Usage.PromptTokens > 0 || totalResponse.Usage.CompletionTokens > 0 {
 			out.chatResp.Usage.PromptTokens += totalResponse.Usage.PromptTokens
@@ -588,6 +630,7 @@ func Stream(ctx context.Context, input []*schema.Message, opts custom_eino.Runti
 	reader, writer := schema.Pipe[*schema.Message](0)
 	go func() {
 		defer writer.Close()
+		defer in.agentStreams.Done()
 		in.Stream(sse.Event{Event: `llm_rounds`, Data: `begin`})
 		defer in.Stream(sse.Event{Event: `llm_rounds`, Data: `finish`})
 		for event := range chanStream {
@@ -764,7 +807,7 @@ func replaceGoodsWechatCardsForReply(out *ChatOutParam, list []map[string]any) {
 	out.goodsWechatCards = common.ExtractGoodsWechatCardsForReply(list)
 }
 
-func ConcatStreamMessages(in *ChatInParam, mv *adk.MessageVariant) (*schema.Message, error) {
+func ConcatStreamMessages(in *ChatInParam, out *ChatOutParam, mv *adk.MessageVariant) (*schema.Message, error) {
 	if !mv.IsStreaming {
 		return mv.Message, nil
 	}
@@ -784,7 +827,11 @@ func ConcatStreamMessages(in *ChatInParam, mv *adk.MessageVariant) (*schema.Mess
 		if frame == nil {
 			continue
 		}
-		in.Stream(sse.Event{Event: `stream_message`, Data: frame})
+		// workflow finish replies were already pushed as separate messages,
+		// suppress the agent's follow-up text to avoid duplication
+		if _, transferred := in.params.ManualTransfer.Result(); !transferred && len(out.workFlowContent) == 0 {
+			in.Stream(sse.Event{Event: `stream_message`, Data: frame})
+		}
 		frames = append(frames, frame)
 	}
 	if len(frames) > 0 {
@@ -798,11 +845,22 @@ func doClawbotRelationWorkFlow(functionTool chat.ToolCall, in *ChatInParam, out 
 	if len(workFlowRobot) == 0 {
 		return ``, errors.New(`failed to obtain workflow skill information`)
 	}
-	workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
+	workFlowParams := work_flow.BuildWorkFlowParams(in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
 	workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
-	content, _, _, _, replyContentList, err := work_flow.CallWorkFlow(workFlowParams, nil, nil, nil)
-	if len(replyContentList) > 0 {
-		out.replyContentList = append(out.replyContentList, replyContentList...)
+	in.workFlowExecuted = true
+	content, _, _, _, replyContentList, err := work_flow.CallWorkFlow(workFlowParams, nil, nil, &in.isSwitchManual)
+	appendReplyContentList(in, out, replyContentList)
+	if err != nil || !common.IsWorkFlowFinishReplyList(replyContentList) {
+		return content, err
 	}
-	return content, err
+	if len(out.workFlowContent) > 0 && len(content) > 0 {
+		out.workFlowContent += "\n"
+	}
+	out.workFlowContent += content
+	// the replies are relayed by the pipeline, tell the model not to repeat them
+	return tool.JsonEncodeNoError(map[string]any{
+		`content`:            content,
+		`reply_content_list`: replyContentList,
+		`note`:               `These replies have already been sent to the user as separate messages. Do not repeat or summarize them.`,
+	}), nil
 }

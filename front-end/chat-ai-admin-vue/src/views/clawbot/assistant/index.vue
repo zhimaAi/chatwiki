@@ -4,7 +4,7 @@
 
     <div class="page-header">
       <div class="page-title">{{ t('page_title') }}</div>
-      <a-button type="primary" class="create-btn" @click="handleCreateAssistant">
+      <a-button v-if="checkRole(['ClawBotCreate'])" type="primary" class="create-btn" @click="handleCreateAssistant">
         <template #icon>
           <PlusOutlined />
         </template>
@@ -42,7 +42,7 @@
           </div>
         </div>
         <div class="card-desc">{{ item.robot_intro }}</div>
-        <div class="card-footer">
+        <div class="card-footer" v-if="getRobotPermission(item.id) >= 2">
           <a-tooltip :title="t('tooltip_session_history')">
             <div class="footer-action" @click.stop="handleOpenSession(item)">
               <svg-icon name="session" />
@@ -53,12 +53,12 @@
               <svg-icon name="analysis" />
             </div>
           </a-tooltip>
-          <a-tooltip :title="t('tooltip_duplicate_agent')">
+          <a-tooltip v-if="checkRole(['ClawBotCreate'])" :title="t('tooltip_duplicate_agent')">
             <div class="footer-action" @click.stop="handleCopy(item)">
               <CopyOutlined />
             </div>
           </a-tooltip>
-          <a-dropdown placement="bottomRight">
+          <a-dropdown v-if="getRobotPermission(item.id) == 4" placement="bottomRight">
             <div class="footer-action more" @click.stop>
               <svg-icon name="point-h" />
             </div>
@@ -78,16 +78,20 @@
 
 <script setup>
 import { computed, createVNode, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { Modal, message } from 'ant-design-vue'
 import { CopyOutlined, ExclamationCircleOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useClawbotStore } from '@/stores/modules/clawbot'
+import { isCustomerServiceClawbotRoute } from '@/utils/clawbot-layout'
+import { getClawbotLocation } from '@/views/clawbot/navigation'
+import { checkRole, getRobotPermission } from '@/utils/permission'
 import AddAgentAlert from '@/views/clawbot/components/add-agent-alert.vue'
 
 const { t } = useI18n('views.clawbot.assistant.index')
 const router = useRouter()
+const route = useRoute()
 const clawbotStore = useClawbotStore()
 const { assistantList, isInitializing } = storeToRefs(clawbotStore)
 
@@ -113,7 +117,8 @@ const handleCreateAssistant = () => {
 }
 
 const onAgentCreated = (data) => {
-  clawbotStore.fetchAssistants().then(() => {
+  clawbotStore.fetchAssistants().then((list) => {
+    if (!list) return
     if (data && data.id) {
       clawbotStore.selectAssistant(String(data.id))
     }
@@ -121,11 +126,11 @@ const onAgentCreated = (data) => {
 }
 
 const buildAssistantQuery = (item, query = {}) => {
-  return {
+  return getClawbotLocation(route, 'chat', {
     ...query,
     id: item.id,
     robot_key: item.robot_key
-  }
+  }).query
 }
 
 const openClawbotPage = (path, query = {}) => {
@@ -169,7 +174,7 @@ const handleDelete = (item) => {
     cancelText: t('btn_cancel'),
     okType: 'danger',
     onOk() {
-      return clawbotStore.deleteAssistant(item.id).then(() => {
+      return clawbotStore.deleteAssistant(item.id, { autoCreate: !isCustomerServiceClawbotRoute(route) }).then(() => {
         message.success(t('msg_delete_success'))
       })
     }

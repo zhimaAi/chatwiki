@@ -1,9 +1,21 @@
 function loadImage(src) {
+  if (!src) return Promise.reject(new Error('Custom avatar image is empty'));
   return new Promise((resolve, reject) => {
     let img = new Image();
+    const timeout = setTimeout(() => {
+      img.onload = null;
+      img.onerror = null;
+      reject(new Error('Custom avatar image timed out'));
+    }, 10000);
+    img.onload = () => {
+      clearTimeout(timeout);
+      resolve(img);
+    };
+    img.onerror = (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    };
     img.src = src;
-    img.onload = () => resolve(img);
-    img.onerror = reject;
   });
 }
 
@@ -48,7 +60,10 @@ async function createAvatarByType3(config) {
 
     return img;
   } catch (e) {
-    console.log(e);
+    console.warn('Custom avatar image failed; using the default avatar', e);
+    return createAvatarByType1({
+      buttonIcon: new URL('../../../chat-ai-pc/src/assets/img/sdk_float_avatar.svg', import.meta.url).href
+    });
   }
 }
 

@@ -7,7 +7,7 @@
           <div class="list-item" v-for="(item,index) in lists" :key="item.id">
             <div class="item-title">
               {{ t('label_reference') }}{{ index + 1 }}
-              <a v-if="item.page_num > 0" @click="viewSourceFile(item)">{{ t('btn_preview_original') }}</a>
+              <a v-if="item.preview_url" @click="viewSourceFile(item)">{{ t('btn_preview_original') }}</a>
             </div>
             <div class="content-body">
               <div class="content-text" v-html="item.content"></div>
@@ -33,47 +33,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { getAnswerSource } from '@/api/chat/index.js'
 import VuePdfEmbed from 'vue-pdf-embed'
-import { useChatStore } from '@/stores/modules/chat'
+import { useAnswerSourcePreview } from '@/composables/useAnswerSourcePreview'
 
 const { t } = useI18n('views.chat.components.quote-modal.index')
-const chatStore = useChatStore()
-const { user } = chatStore
 const show = ref(false)
 const baseParmas = ref({})
-const lists = ref([])
+const {
+  sources: lists, sourceUrl, viewOpen, setContext, previewSource: viewSourceFile, reset
+} = useAnswerSourcePreview(getAnswerSource)
+watch(show, value => { if (!value) reset() })
+onBeforeUnmount(reset)
 const showPopup = (data) => {
   baseParmas.value = {
     ...data
   }
-  lists.value = []
   show.value = true
-  if(data.answer_source_data && data.answer_source_data.length){
-    lists.value = data.answer_source_data
-    return
-  }
-  getLists()
-
-}
-
-const getLists = () => {
-  getAnswerSource(baseParmas.value)
-    .then((res) => {
-      lists.value = res.data || []
-    })
-    .catch(() => {
-      lists.value = []
-    })
-}
-
-const sourceUrl = ref('')
-const viewOpen = ref(false)
-const viewSourceFile = (item) => {
-  viewOpen.value = true;
-  sourceUrl.value = '/manage/getLibRawFileOnePage?id=' + baseParmas.value.file_id + '&page=' + item.page_num + '&admin_user_id=' + user.admin_user_id
+  setContext(data, data.answer_source_data)
 }
 
 defineExpose({

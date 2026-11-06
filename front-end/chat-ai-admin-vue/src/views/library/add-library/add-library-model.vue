@@ -471,10 +471,9 @@
             </a-form-item>
             <a-form-item v-if="showAiChunkEnableThinking" :label="thinkingT('label_deep_thinking')">
               <a-flex align="center" :gap="8">
-                <a-switch
-                  v-model:checked="formState.ai_chunk_enable_thinking"
-                  :checkedValue="1"
-                  :unCheckedValue="0"
+                <ReasoningEffortSelect
+                  v-model:value="formState.ai_chunk_reasoning_effort"
+                  @change="(effort) => (formState.ai_chunk_enable_thinking = effort === 'none' ? 0 : 1)"
                 />
                 <a-tooltip :title="thinkingT('tooltip_deep_thinking')">
                   <QuestionCircleOutlined />
@@ -623,6 +622,7 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
 import { reactive, ref, onMounted, computed, nextTick } from 'vue'
 import dayjs from 'dayjs'
 import { Form, message } from 'ant-design-vue'
@@ -695,6 +695,7 @@ const formState = reactive({
   ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_enable_thinking: 0, // AI大模型分段深度思考开关
+  ai_chunk_reasoning_effort: 'none',
   ai_chunk_prumpt: default_ai_chunk_prumpt, // ai大模型分段提示词设置
   group_id: 0,
   father_chunk_paragraph_type: 2,
@@ -911,6 +912,7 @@ const saveForm = () => {
   formData.append('ai_chunk_model', formState.ai_chunk_model)
   formData.append('ai_chunk_model_config_id', formState.ai_chunk_model_config_id)
   formData.append('ai_chunk_enable_thinking', formState.ai_chunk_enable_thinking)
+  formData.append('ai_chunk_reasoning_effort', formState.ai_chunk_reasoning_effort)
   formData.append('ai_chunk_prumpt', formState.ai_chunk_prumpt)
 
   formData.append('father_chunk_paragraph_type', formState.father_chunk_paragraph_type)
@@ -1001,6 +1003,7 @@ const show = ({ type, group_id, wx_app_ids }) => {
   formState.ai_chunk_model = ''
   formState.ai_chunk_model_config_id = ''
   formState.ai_chunk_enable_thinking = 0
+  formState.ai_chunk_reasoning_effort = 'none'
   formState.ai_chunk_prumpt = default_ai_chunk_prumpt
   formState.group_id = group_id || 0
   formState.is_permanent = 1

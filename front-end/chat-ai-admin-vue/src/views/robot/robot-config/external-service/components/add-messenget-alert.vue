@@ -115,7 +115,8 @@
 
 <template>
   <a-modal
-    width="700px"
+    :width="compact ? 560 : 700"
+    :centered="compact"
     v-model:open="show"
     :title="`${formState.id ? '编辑' : '创建'}Messenger接入渠道`"
     @cancel="handleCancel"
@@ -143,7 +144,7 @@
 
       <div class="alert-body">
         <div class="form-box">
-          <a-form ref="formRef" layout="vertical" :model="formState" :rules="formRules">
+          <a-form ref="formRef" layout="vertical" :size="compact ? 'large' : undefined" :model="formState" :rules="formRules">
             <a-form-item :label="t('label_robot_avatar_name')" name="app_name">
               <PageTitleInput
                 :autoUpload="false"
@@ -187,6 +188,7 @@ import PageTitleInput from './page-title-input.vue'
 
 const { t } = useI18n('views.robot.robot-config.external-service.components.add-dingding-alert')
 const emit = defineEmits(['ok'])
+defineProps({ compact: Boolean })
 const defaultAvatar = '/upload/default/facebook-messenger.png'
 
 const { robotInfo } = inject('robotInfo')

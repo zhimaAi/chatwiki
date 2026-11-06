@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 	"github.com/zhimaAi/go_tools/logs"
 )
 

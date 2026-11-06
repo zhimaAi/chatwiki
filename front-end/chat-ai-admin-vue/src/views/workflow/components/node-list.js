@@ -364,6 +364,7 @@ export const nodeList = [
           max_token: 2000,
           prompt: '',
           enable_thinking: false,
+          reasoning_effort: 'none',
           question_value: 'global.question'
         }
       })
@@ -392,6 +393,7 @@ export const nodeList = [
           prompt: '',
           prompt_tags: [],
           enable_thinking: false,
+          reasoning_effort: 'none',
           question_value: 'global.question'
         }
       })
@@ -644,6 +646,7 @@ export const nodeList = [
           max_token: 2000,
           prompt: '',
           enable_thinking: false,
+          reasoning_effort: 'none',
           question_value: 'global.question',
           categorys: [
             {
@@ -952,6 +955,7 @@ export const nodeList = [
           prompt_tags: [],
           question_value: '',
           enable_thinking: false,
+          reasoning_effort: 'none',
           output: [
             // {
             //   key: '',

@@ -39,5 +39,7 @@
   "metadata": "元数据",
   "batch_operation": "批量操作",
   "modify_metadata": "修改元数据",
-  "select_qa_to_modify": "请选择你要修改的问答"
+  "select_qa_to_modify": "请选择你要修改的问答",
+  "expand_group": "展开问答分组",
+  "total_count": "共 {total} 条"
 }

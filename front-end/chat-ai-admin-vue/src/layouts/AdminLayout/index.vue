@@ -4,7 +4,7 @@
   position: relative;
   display: flex;
   flex-flow: column nowrap;
-  background: #fff;
+  background: var(--app-bg-container);
 
   .layout-header {
     position: relative;
@@ -12,7 +12,7 @@
     align-items: center;
     height: var(--layout-header-height);
     padding: 0 16px;
-    border-bottom: 1px solid #f2f4f7;
+    border-bottom: 1px solid var(--app-border-secondary);
 
     .header-left {
       display: flex;
@@ -140,7 +140,7 @@ const pageStyle = computed(() => {
 })
 
 const bgColor = computed(() => {
-  return route.meta.bgColor || '#ffffff'
+  return route.meta.bgColor || 'var(--app-bg-container)'
 })
 
 const breadcrumb = computed(() => {

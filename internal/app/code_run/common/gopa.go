@@ -3,13 +3,16 @@
 package common
 
 import (
+	"context"
+	_ "embed"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
 )
 
@@ -67,128 +70,67 @@ func checkPythonCodeSafety(code string) error {
 	return nil
 }
 
-func RunPython(mainFunc, batchNo string, params map[string]any) (string, error) {
-	if err := checkPythonCodeSafety(mainFunc); err != nil {
-		return ``, fmt.Errorf("code safety check failed: %w", err)
-	}
+//go:embed python_runner.py
+var pythonRunner string
 
+func RunPython(mainFunc, batchNo string, params map[string]any) (string, error) {
+	return RunPythonContext(context.Background(), mainFunc, batchNo, params)
+}
+
+func RunPythonContext(parent context.Context, mainFunc, batchNo string, params map[string]any) (string, error) {
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
+		return "", fmt.Errorf("python sandbox requires Linux amd64")
+	}
+	if err := checkPythonCodeSafety(mainFunc); err != nil {
+		return "", fmt.Errorf("code safety check failed: %w", err)
+	}
 	if params == nil {
 		params = make(map[string]any)
 	}
-
-	paramsJson := tool.JsonEncodeNoError(params)
-
-	indentedMainFunc := strings.ReplaceAll(mainFunc, "\n", "\n        ")
-
-	logs.Debug("indentedMainFunc :%s", indentedMainFunc)
-
-	wrapperCode := fmt.Sprintf(`import json
-import sys
-import math
-import random
-import datetime
-import re
-from typing import Any, Dict, List, Tuple, Optional
-
-class SafeDict(dict):
-    def __setitem__(self, key, value):
-        raise PermissionError("Modifying globals is not allowed")
-
-__builtins__ = SafeDict({
-    'abs': abs,
-    'all': all,
-    'any': any,
-    'bin': bin,
-    'bool': bool,
-    'chr': chr,
-    'complex': complex,
-    'dict': dict,
-    'divmod': divmod,
-    'enumerate': enumerate,
-    'filter': filter,
-    'float': float,
-    'format': format,
-    'frozenset': frozenset,
-    'hex': hex,
-    'int': int,
-    'isinstance': isinstance,
-    'issubclass': issubclass,
-    'iter': iter,
-    'len': len,
-    'list': list,
-    'map': map,
-    'max': max,
-    'min': min,
-    'next': next,
-    'oct': oct,
-    'ord': ord,
-    'pow': pow,
-    'print': print,
-    'range': range,
-    'repr': repr,
-    'reversed': reversed,
-    'round': round,
-    'set': set,
-    'slice': slice,
-    'sorted': sorted,
-    'str': str,
-    'sum': sum,
-    'tuple': tuple,
-    'type': type,
-    'zip': zip,
-    'Exception': Exception,
-    'PermissionError': PermissionError,
-    'TypeError': TypeError,
-    'ValueError': ValueError,
-    'KeyError': KeyError,
-    'AttributeError': AttributeError,
-    'IndexError': IndexError,
-    'RuntimeError': RuntimeError,
-})
-
-def main_wrapper():
-    try:
-        input_data = json.loads(sys.stdin.buffer.read().decode("utf-8"))
-        %s
-        result = main(**input_data)
-        print(json.dumps(result))
-    except PermissionError as e:
-        print(json.dumps({"error": str(e)}))
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": str(e)}))
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main_wrapper()
-`, indentedMainFunc)
-
-	logs.Debug("wrapperCode :%s", wrapperCode)
-
-	cmd := exec.Command("python", "-c", wrapperCode)
-	cmd.Stdin = strings.NewReader(paramsJson)
-
-	var output strings.Builder
-	cmd.Stdout = &output
-	cmd.Stderr = &output
-
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Run()
-	}()
-
-	select {
-	case err := <-done:
-		if err != nil {
-			return ``, fmt.Errorf("python execution error: %s, output: %s", err, output.String())
-		}
-	case <-time.After(10 * time.Second):
-		if cmd.Process != nil {
-			cmd.Process.Kill()
-		}
-		return ``, fmt.Errorf("python execution timeout")
+	body, err := tool.JsonEncode(struct {
+		MainFunc string         `json:"main_func"`
+		Params   map[string]any `json:"params"`
+	}{mainFunc, params})
+	if err != nil {
+		return "", fmt.Errorf("encode python request: %w", err)
 	}
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "/usr/local/bin/python", "-I", "-B", "-c", pythonRunner)
+	cmd.Env = []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "HOME=/nonexistent"}
+	// Preserve the configured timezone without inheriting unrelated host variables.
+	if tz, ok := os.LookupEnv("TZ"); ok {
+		cmd.Env = append(cmd.Env, "TZ="+tz)
+	}
+	cmd.Stdin = strings.NewReader(body)
+	cmd.WaitDelay = time.Second
+	output := &pythonOutput{}
+	cmd.Stdout, cmd.Stderr = output, output
+	err = cmd.Run() // Run waits for process reaping, including cancellation.
+	if ctx.Err() != nil {
+		return "", fmt.Errorf("python execution stopped: %w", ctx.Err())
+	}
+	if output.truncated {
+		return "", fmt.Errorf("python output exceeds 1 MiB")
+	}
+	if err != nil {
+		return "", fmt.Errorf("python execution error: %w, output: %s", err, output.text.String())
+	}
+	return strings.TrimSpace(output.text.String()), nil
+}
 
-	result := strings.TrimSpace(output.String())
-	return result, nil
+type pythonOutput struct {
+	text      strings.Builder
+	truncated bool
+}
+
+func (w *pythonOutput) Write(p []byte) (int, error) {
+	n := len(p)
+	remaining := (1 << 20) - w.text.Len()
+	if len(p) > remaining {
+		w.truncated = true
+		p = p[:remaining]
+	}
+	_, _ = w.text.Write(p)
+	return n, nil
 }

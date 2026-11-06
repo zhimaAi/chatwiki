@@ -880,6 +880,7 @@ func GetSplitParagraph(c *gin.Context) {
 		AiChunkModel:               strings.TrimSpace(c.Query(`ai_chunk_model`)),
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkEnableThinking:      cast.ToInt(c.Query(`ai_chunk_enable_thinking`)),
+		AiChunkReasoningEffort:     cast.ToString(c.Query(`ai_chunk_reasoning_effort`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
 		ParagraphChunk:             true,
@@ -889,6 +890,10 @@ func GetSplitParagraph(c *gin.Context) {
 		FatherChunkChunkSize:       cast.ToInt(c.Query(`father_chunk_chunk_size`)),
 		SonChunkSeparatorsNo:       strings.TrimSpace(c.Query(`son_chunk_separators_no`)),
 		SonChunkChunkSize:          cast.ToInt(c.Query(`son_chunk_chunk_size`)),
+	}
+	if err := common.ValidateReasoningEffort(common.GetLang(c), splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		common.FmtError(c, `param_invalid`, `ai_chunk_reasoning_effort`)
+		return
 	}
 	if splitParams.ChunkType == define.ChunkTypeSemantic {
 		if splitParams.SemanticChunkModelConfigId <= 0 {
@@ -1065,7 +1070,7 @@ func GenerateSimilarQuestions(c *gin.Context) {
 		nil,
 		0.1,
 		1024,
-		common.ThinkingDisabled,
+		chat.ReasoningEffortNone,
 	)
 	if err != nil {
 		logs.Error(err.Error())
@@ -1127,7 +1132,7 @@ func GenerateAiPrompt(c *gin.Context) {
 		nil,
 		0.1,
 		maxTokens,
-		common.ThinkingDisabled,
+		chat.ReasoningEffortNone,
 	)
 	if err != nil && len(chatResp.Result()) <= 0 {
 		logs.Error(err.Error())

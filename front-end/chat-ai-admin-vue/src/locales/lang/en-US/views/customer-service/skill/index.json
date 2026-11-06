@@ -1,0 +1,18 @@
+{
+  "title": "Skill",
+  "intro_title": "Agents redefine your customer service robot",
+  "intro_description": "Go beyond Q&A. Agents plan, use tools, and connect multiple Skills to complete complex tasks that would otherwise require repeated manual follow-ups.",
+  "switch_agent": "Switch to an Agent robot",
+  "agent_only": "Only Agent robots support Skills",
+  "benefits_title": "Why choose an Agent",
+  "benefits_description": "Agents plan, use tools, and remember context to complete complex customer service tasks in one go.",
+  "planning_title": "Planning and reasoning",
+  "planning_description": "When a customer requests a return, the Agent checks the order, validates the rules, creates a return, and updates logistics without manual intervention.",
+  "tools_title": "Tools / Skills",
+  "tools_description": "Check balances, change addresses, and issue invoices in one request. Agents connect orders, logistics, and CRM systems to complete tasks across systems.",
+  "memory_title": "Long-term memory and context",
+  "memory_description": "Remember customer questions and preferences across conversations. Pass the full context to a human agent for a seamless handoff.",
+  "create_title": "Create your Agent robot now",
+  "create_description": "Start with a template, add the Skills you need, and launch your customer service Agent in minutes.",
+  "create_agent": "Add an Agent robot"
+}

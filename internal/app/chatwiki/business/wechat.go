@@ -501,10 +501,15 @@ func SendReplyMessageHandle(push *lib_define.PushMessage, message msql.Params, a
 	}
 
 	// check if there are keyword replies
-	ReplyContentListHandle(push, message, app)
+	replyContentList := ReplyContentListHandle(push, message, app)
 
 	// wecom_robot is already replied.
 	if params.AppType == lib_define.AppWecomRobot {
+		return
+	}
+
+	// finish node multi-message replies are already sent; content is only the joined fallback
+	if common.IsWorkFlowFinishReplyList(replyContentList) {
 		return
 	}
 
@@ -615,13 +620,15 @@ func parseLineVoiceMeta(voice string) (string, int64) {
 }
 
 // ReplyContentListHandle reply handling
-func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) {
+func ReplyContentListHandle(push *lib_define.PushMessage, message msql.Params, app wechat.ApplicationInterface) []common.ReplyContent {
 	replyContentListJson, isKeyword := message[`reply_content_list`]
 	if isKeyword {
 		var replyContent []common.ReplyContent
 		_ = tool.JsonDecodeUseNumber(replyContentListJson, &replyContent)
 		SendReplyContentList(push, replyContent, app)
+		return replyContent
 	}
+	return nil
 }
 
 // SendReplyContentList send reply content list
@@ -682,6 +689,29 @@ func SendReplyContentList(push *lib_define.PushMessage, replyContent []common.Re
 					break
 				}
 				errCode, err := app.SendImage(push.Openid, localThumbURL, push)
+				if err != nil {
+					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
+				}
+				break
+			case common.ReplyTypeVoice: // voice
+				if !tool.InArray(push.AppInfo[`app_type`], []string{
+					lib_define.AppWechatKefu, lib_define.AppOfficeAccount, lib_define.AppMessenger,
+					lib_define.AppLine, lib_define.AppWhatsapp,
+				}) {
+					break
+				}
+				voice := keywordReply.URL
+				if voice == `` {
+					break
+				}
+				ext := strings.ToLower(filepath.Ext(voice))
+				if tool.InArray(push.AppInfo[`app_type`], []string{lib_define.AppLine, lib_define.AppWhatsapp}) {
+					voice = common.GetCDNLinkByFile(voice)
+				}
+				if push.AppInfo[`app_type`] == lib_define.AppWechatKefu && ext == `.mp3` {
+					voice = common.Mp3ToAmr(push.AdminUserId, voice)
+				}
+				errCode, err := app.SendVoice(push.Openid, voice, push)
 				if err != nil {
 					logs.Error(`msg:%s,errcode:%d,err:%s`, push.MsgRaw, errCode, err.Error())
 				}

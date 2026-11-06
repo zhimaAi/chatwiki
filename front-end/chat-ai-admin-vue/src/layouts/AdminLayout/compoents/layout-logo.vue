@@ -42,6 +42,7 @@ const handleLogoClick = () => {
   margin-left: 4px;
   font-size: 15px;
   font-weight: 600;
+  color: var(--app-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

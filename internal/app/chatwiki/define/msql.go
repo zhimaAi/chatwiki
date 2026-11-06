@@ -43,6 +43,7 @@ const (
 	ClawBot          = `ClawBot`
 	LibraryManage    = `LibraryManage`
 	SystemManage     = `SystemManage`
+	CompanyManage    = `CompanyManage`
 	ClientSideManage = `ClientSideManage`
 )
 

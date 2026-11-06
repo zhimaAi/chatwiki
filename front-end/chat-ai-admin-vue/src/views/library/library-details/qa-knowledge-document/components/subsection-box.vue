@@ -1,20 +1,24 @@
 <template>
-  <div class="subsection-box">
+  <div class="subsection-box" :class="{ 'fixed-table-host': fixedHeight, 'compact-list': compact, 'has-selection': state.selectedRowKeys.length > 0 }" ref="tableBox">
     <a-table
       :data-source="paragraphLists"
       row-key="id"
-      :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange }"
+      :row-selection="{ selectedRowKeys: state.selectedRowKeys, onChange: onSelectChange, ...(compact ? { columnWidth: 32 } : {}) }"
       :pagination="false"
       :loading="props.isLoading"
-      :scroll="{x: 1200}"
+      :scroll="{ x: compact ? tableWidth : 1200, ...(fixedHeight ? { y: scrollY } : {}) }"
+      :table-layout="compact ? 'fixed' : undefined"
       @change="tableChange"
     >
-      <a-table-column key="id" data-index="id" :width="1148">
-        <template #title>{{ t('title_qa_total', { total: props.total }) }}</template>
+      <a-table-column key="id" data-index="id" :width="compact ? getColumnWidth('id') : 1148" class-name="qa-content-cell">
+        <template #title>
+          {{ t('title_qa_total', { total: props.total }) }}
+          <ColumnWidthHandle v-if="compact" :width="getColumnWidth('id')" :min-width="240" :label="t('resize_column', { column: t('label_question') })" @resize="columnWidths.id = $event" @reset="delete columnWidths.id" />
+        </template>
         <template #default="{ record }">
           <div class="qa-list-box" @dblclick="handleOpenEditModal(record)">
             <div class="list-item">
-              <div class="list-label">{{ t('label_question') }}</div>
+              <div v-if="!compact" class="list-label">{{ t('label_question') }}</div>
               <div class="list-content">
                 <a-tooltip placement="top" v-if="record.status == 2">
                   <template #title>
@@ -24,7 +28,7 @@
                     <span class="status-error"><ExclamationCircleFilled /> </span>
                   </span>
                 </a-tooltip>
-                <span @click="handleOpenEditModal(record)" v-html="textToHighlight(record.question, props.search)" class="question-text"></span>
+                <span @click="handleOpenEditModal(record)" @keydown.enter.prevent="handleOpenEditModal(record)" :role="compact ? 'button' : undefined" :tabindex="compact ? 0 : undefined" v-html="textToHighlight(record.question, props.search)" class="question-text"></span>
                 <template v-if="record.similar_questions && record.similar_questions.length">
                   <a-popover placement="topLeft" :overlayInnerStyle="{ 'padding-right': '2px' }">
                     <template #content>
@@ -47,10 +51,10 @@
               </div>
             </div>
             <div class="list-item list-item-answer">
-              <div class="list-label">{{ t('label_answer') }}</div>
+              <div v-if="!compact" class="list-label">{{ t('label_answer') }}</div>
               <div class="list-content" v-html="textToHighlight(record.answer, props.search)"></div>
             </div>
-            <div class="fragment-img">
+            <div v-if="record.images?.length" class="fragment-img">
               <div class="media-item" v-for="(item, index) in (record.images || [])" :key="index">
                 <div
                   v-if="isVideoUrl(item)"
@@ -70,40 +74,23 @@
           </div>
         </template>
       </a-table-column>
-      <a-table-column
-        :title="t('col_total')"
-        key="total_hits"
-        data-index="total_hits"
-        :width="108"
-        :sorter="true"
-      >
-      </a-table-column>
-      <a-table-column
-        :title="t('col_yesterday')"
-        key="yesterday_hits"
-        data-index="yesterday_hits"
-        :width="108"
-        :sorter="true"
-      >
-      </a-table-column>
-      <a-table-column
-        :title="t('col_today')"
-        key="today_hits"
-        data-index="today_hits"
-        :width="108"
-        :sorter="true"
-      >
+      <a-table-column v-for="hit in hitColumns" :key="hit.key" :data-index="hit.key" :width="compact ? getColumnWidth(hit.key) : 108" :sorter="true" class-name="qa-hit-cell">
+        <template #title>
+          <span class="hit-column-title">{{ t(hit.title) }}<span v-if="compact" class="workspace-sort-icons" :class="{ 'sort-ascending': sortState.field === hit.key && sortState.order === 'ascend', 'sort-descending': sortState.field === hit.key && sortState.order === 'descend' }"><img class="sort-up" :src="icons.sortUp" alt="" /><img class="sort-down" :src="icons.sortDown" alt="" /></span></span>
+          <ColumnWidthHandle v-if="compact" :width="getColumnWidth(hit.key)" :label="t('resize_column', { column: t(hit.title) })" @resize="columnWidths[hit.key] = $event" @reset="delete columnWidths[hit.key]" />
+        </template>
       </a-table-column>
       <a-table-column
         v-for="meta in metaData"
         :key="`meta_${meta.key}`"
         :data-index="`meta_${meta.key}`"
-        :width="160"
+        :width="compact ? getColumnWidth(`meta_${meta.key}`) : 160"
       >
         <template #title>
           <a-tooltip :title="meta.name?.length > 8 ? meta.name : '' ">
             <div class="zm-line1">{{meta.name}}</div>
           </a-tooltip>
+          <ColumnWidthHandle v-if="compact" :width="getColumnWidth(`meta_${meta.key}`)" :label="t('resize_column', { column: meta.name })" @resize="columnWidths[`meta_${meta.key}`] = $event" @reset="delete columnWidths[`meta_${meta.key}`]" />
         </template>
         <template #default="{record}">
           <a-tooltip :title="record[`meta_${meta.key}`]?.length > 8 ? record[`meta_${meta.key}`] : '' ">
@@ -111,15 +98,26 @@
           </a-tooltip>
         </template>
       </a-table-column>
-      <a-table-column :title="t('col_action')" key="action" data-index="action" :width="120" fixed="right">
-        <template #default="{ record, index }">
-          <div class="right-opration" >
-            <div class="hover-btn-box" @click="handleSetCategory(record, 0)" v-if="record.category_id > 0">
-              <StarFilled style="color: #F59A23;" />
-            </div>
-            <div class="hover-btn-box" v-else @click="handleSetCategory(record, 4)">
-              <StarOutlined />
-            </div>
+      <a-table-column :title="t('col_action')" key="action" data-index="action" :width="compact ? 56 : 120" fixed="right" class-name="qa-action-cell">
+        <template #default="{ record }">
+          <a-dropdown v-if="compact" :trigger="['click']" placement="bottomRight">
+            <button type="button" class="qa-more-button" :aria-label="t('more_actions')" :title="t('more_actions')" @click.stop><img :src="icons.more" alt="" /></button>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item key="edit" @click="handleOpenEditModal(record)">{{ t('edit') }}</a-menu-item>
+                <a-menu-item key="delete" danger @click="hanldleDelete(record.id)">{{ t('delete') }}</a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+          <div v-else class="right-opration" >
+            <template v-if="!compact">
+              <div class="hover-btn-box" @click="handleSetCategory(record, 0)" v-if="record.category_id > 0">
+                <StarFilled style="color: #F59A23;" />
+              </div>
+              <div class="hover-btn-box" v-else @click="handleSetCategory(record, 4)">
+                <StarOutlined />
+              </div>
+            </template>
             <div class="hover-btn-box" @click.stop="handleOpenEditModal(record)">
               <EditOutlined />
             </div>
@@ -134,7 +132,7 @@
   <VideoPreviewModal ref="videoPreviewModalRef" />
 </template>
 <script setup>
-import { reactive, computed, createVNode, ref } from 'vue'
+import { reactive, computed, createVNode, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ExclamationCircleOutlined,
@@ -146,12 +144,12 @@ import {
   CaretRightOutlined
 } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
-import colorLists from '@/utils/starColors.js'
+import ColumnWidthHandle from './column-width-handle.vue'
+import icons from '../knowledge-icons'
 import VideoPreviewModal from '@/components/upload-img/video-preview-modal.vue'
+import { useTableScroll } from '../../components/use-table-scroll'
 import {
   deleteParagraph,
-  editParagraph,
-  getCategoryList,
   updateParagraphCategory
 } from '@/api/library'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -166,6 +164,8 @@ const emit = defineEmits([
   'getList'
 ])
 const props = defineProps({
+  compact: { type: Boolean, default: false },
+  fixedHeight: { type: Boolean, default: false },
   paragraphLists: {
     type: Array,
     default: () => []
@@ -183,10 +183,44 @@ const props = defineProps({
     default: ''
   }
 })
+const tableBox = ref(null)
+const { scrollY } = useTableScroll(tableBox, () => props.fixedHeight)
 
 const metaData = computed(() => {
   return props.paragraphLists?.[0]?.meta_list || []
 })
+
+const hitColumns = [
+  { key: 'total_hits', title: 'col_total' },
+  { key: 'yesterday_hits', title: 'col_yesterday' },
+  { key: 'today_hits', title: 'col_today' }
+]
+const columnWidths = reactive({})
+const availableWidth = ref(932)
+const sortState = ref({})
+const getColumnWidth = key => columnWidths[key] ?? (key === 'id' ? Math.max(240, availableWidth.value - 32 - 56 - hitColumns.reduce((sum, hit) => sum + (columnWidths[hit.key] ?? 72), 0)) : key.startsWith('meta_') ? 160 : 72)
+const tableWidth = computed(() => 32 + 56 + getColumnWidth('id') + hitColumns.reduce((sum, hit) => sum + getColumnWidth(hit.key), 0) + metaData.value.reduce((sum, meta) => sum + getColumnWidth(`meta_${meta.key}`), 0))
+let widthObserver
+const measureWidth = () => {
+  if (!props.compact || !tableBox.value) return
+  const body = tableBox.value.querySelector('.ant-table-body')
+  const scrollbarWidth = body ? Math.max(0, body.offsetWidth - body.clientWidth) : 0
+  if (tableBox.value.clientWidth) availableWidth.value = tableBox.value.clientWidth - scrollbarWidth
+}
+watch(() => props.compact, async (enabled, _, onCleanup) => {
+  let active = true
+  onCleanup(() => { active = false; widthObserver?.disconnect(); window.removeEventListener('resize', measureWidth) })
+  if (!enabled) return
+  await nextTick()
+  if (!active) return
+  measureWidth()
+  if (typeof ResizeObserver === 'function') {
+    widthObserver = new ResizeObserver(measureWidth)
+    widthObserver.observe(tableBox.value)
+  } else window.addEventListener('resize', measureWidth)
+}, { immediate: true })
+watch(() => props.paragraphLists, async () => { await nextTick(); measureWidth() })
+onBeforeUnmount(() => widthObserver?.disconnect())
 
 const state = reactive({
   selectedRowKeys: []
@@ -236,6 +270,7 @@ const handleSetCategory = (item, category_id) => {
 }
 
 const tableChange = (a, b, sort) => {
+  sortState.value = sort
   let sort_field = sort.field
   let sort_type = sort.order
   if (sort_type) {
@@ -455,5 +490,59 @@ defineExpose({ handleOpenEditModal, state, resetSelect })
   &::-webkit-scrollbar-corner {
     background: #f1f1f1;
   }
+}
+
+.compact-list {
+  .qa-list-box {
+    .list-item { flex-wrap: nowrap; margin-bottom: 4px; }
+    .list-content { min-width: 0; }
+    .list-item:first-child .list-content { flex-wrap: nowrap; }
+    .question-text { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #262626; }
+    .question-text:focus-visible { outline: 2px solid #146ef5; outline-offset: -2px; }
+    .list-item-answer { margin-bottom: 0; }
+    .list-item-answer .list-content { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; min-height: 44px; max-height: 44px; overflow: hidden; color: #999; }
+    .list-item-answer :deep(p) { margin: 0; }
+    .fragment-img {
+      padding-left: 0; margin-top: 4px;
+      .media-item, .image-item, .video-item, img, video { width: 64px; height: 64px; }
+    }
+  }
+  .hit-column-title { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .workspace-sort-icons {
+    display: flex; flex-direction: column; flex-shrink: 0;
+    .sort-up { transform: rotate(180deg); }
+    &.sort-ascending .sort-up, &.sort-descending .sort-down { filter: brightness(0) saturate(100%) invert(35%) sepia(97%) saturate(2775%) hue-rotate(206deg) brightness(100%) contrast(94%); }
+  }
+  .qa-more-button {
+    display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+    &:hover { background: #e8e8e8; }
+    &:focus-visible { outline: 2px solid #146ef5; }
+  }
+  :deep(.ant-table) { font-size: 14px; line-height: 22px; border-radius: 0; }
+  :deep(.ant-table-container), :deep(.ant-table-container table > thead > tr:first-child > *:first-child), :deep(.ant-table-container table > thead > tr:first-child > *:last-child) { border-radius: 0; }
+  :deep(.ant-table-thead > tr > th) { height: 48px; padding: 0 8px; background: #fff; border-bottom-color: #d8d8d8; color: #5a5a5a; font-weight: 400; }
+  :deep(.ant-table-thead > tr > th::before) { display: none; }
+  :deep(.ant-table-column-sorter) { display: none; }
+  :deep(.ant-table-column-sorters) { position: static; justify-content: flex-start; }
+  :deep(.ant-table-column-title) { position: static; }
+  :deep(.ant-table-tbody > tr > td) { padding: 12px 8px; border-bottom-color: #d8d8d8; background: #fff; vertical-align: middle; }
+  :deep(.ant-table-tbody > tr > td.ant-table-selection-column) { padding: 12px 4px; vertical-align: top; }
+  :deep(.ant-table-thead > tr > th.ant-table-selection-column) { padding: 0 4px; }
+  :deep(.ant-table-tbody > tr > td.qa-content-cell), :deep(.ant-table-thead > tr > th.qa-content-cell) { padding-left: 0; }
+  :deep(.ant-table-tbody > tr > td.qa-hit-cell) { padding-left: 16px; }
+  :deep(.ant-table-tbody > tr > td.qa-action-cell) { padding: 0 12px; }
+  :deep(.ant-table-selection-column .ant-checkbox-wrapper) { opacity: 0; }
+  :deep(.ant-table-tbody > tr:hover > td .ant-checkbox-wrapper),
+  :deep(.ant-table-tbody > tr:focus-within > td .ant-checkbox-wrapper),
+  :deep(.ant-table-thead:focus-within .ant-checkbox-wrapper),
+  :deep(.ant-table-thead:hover .ant-checkbox-wrapper) { opacity: 1; }
+  &.has-selection :deep(.ant-table-selection-column .ant-checkbox-wrapper) { opacity: 1; }
+  :deep(.ant-table-tbody > tr:hover > td), :deep(.ant-table-tbody > tr:focus-within > td) { background: #f5f5f5; border-bottom-color: transparent; }
+  :deep(.ant-table-tbody > tr.ant-table-row-selected > td), :deep(.ant-table-tbody > tr.ant-table-row-selected:hover > td) { background: #f0f5ff; border-bottom-color: transparent; }
+  :deep(.ant-table-tbody > tr:has(+ tr:hover) > td), :deep(.ant-table-tbody > tr:has(+ tr:focus-within) > td), :deep(.ant-table-tbody > tr:has(+ tr.ant-table-row-selected) > td) { border-bottom-color: transparent; }
+  :deep(.ant-table-tbody > tr:hover > td:first-child), :deep(.ant-table-tbody > tr:focus-within > td:first-child), :deep(.ant-table-tbody > tr.ant-table-row-selected > td:first-child) { border-radius: 6px 0 0 6px; }
+  :deep(.ant-table-tbody > tr:hover > td:last-child), :deep(.ant-table-tbody > tr:focus-within > td:last-child), :deep(.ant-table-tbody > tr.ant-table-row-selected > td:last-child) { border-radius: 0 6px 6px 0; }
+  :deep(.ant-table-cell-fix-right-first::after) { box-shadow: none; }
+  @media (hover: none) { :deep(.ant-table-selection-column .ant-checkbox-wrapper) { opacity: 1; } }
 }
 </style>

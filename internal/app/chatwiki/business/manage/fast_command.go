@@ -7,7 +7,6 @@ import (
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/middlewares"
 	"chatwiki/internal/pkg/lib_redis"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +20,8 @@ const (
 )
 
 type SaveFastCommandReq struct {
-	Id      int    `form:"id" json:"id"`
-	RobotID int    `form:"robot_id" json:"robot_id" binding:"required"`
+	Id      int    `form:"id" json:"id" binding:"gte=0"`
+	RobotID int    `form:"robot_id" json:"robot_id" binding:"required,gt=0"`
 	Title   string `form:"title" json:"title" binding:"required,max=20"`
 	Typ     int    `form:"typ" json:"typ" binding:"required,oneof=1 2"`
 	Content string `form:"content" json:"content" binding:"required,max=500"`
@@ -39,19 +38,47 @@ func SaveFastCommand(c *gin.Context) {
 		return
 	}
 	adminUserId := GetAdminUserId(c)
+	if adminUserId <= 0 {
+		return
+	}
+	robot, err := msql.Model("chat_ai_robot", define.Postgres).
+		Where("id", cast.ToString(req.RobotID)).Where("admin_user_id", cast.ToString(adminUserId)).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(robot) == 0 {
+		common.FmtError(c, `no_data`)
+		return
+	}
 	m := msql.Model(define.TableFastCommand, define.Postgres)
 	var insertId = int64(req.Id)
 	if req.Id > 0 {
-		updates := msql.Datas{
-			"robot_id":      req.RobotID,
-			"title":         req.Title,
-			"typ":           req.Typ,
-			"content":       req.Content,
-			"app_id":        cast.ToString(req.AppId),
-			"admin_user_id": cast.ToString(adminUserId),
-			"update_time":   time.Now().Unix(),
+		owned, findErr := m.Where("id", cast.ToString(req.Id)).Where("admin_user_id", cast.ToString(adminUserId)).Find()
+		if findErr != nil {
+			logs.Error(findErr.Error())
+			common.FmtError(c, `sys_err`)
+			return
 		}
-		_, err = m.Where("id", cast.ToString(req.Id)).Update(updates)
+		if len(owned) == 0 {
+			common.FmtError(c, `no_data`)
+			return
+		}
+		updates := msql.Datas{
+			"robot_id":    req.RobotID,
+			"title":       req.Title,
+			"typ":         req.Typ,
+			"content":     req.Content,
+			"app_id":      cast.ToString(req.AppId),
+			"update_time": time.Now().Unix(),
+		}
+		var affected int64
+		affected, err = m.Where("id", cast.ToString(req.Id)).Where("admin_user_id", cast.ToString(adminUserId)).Update(updates)
+		if err == nil && affected == 0 {
+			common.FmtError(c, `no_data`)
+			return
+		}
 	} else {
 		insertId, err = m.Insert(msql.Datas{
 			"robot_id":      req.RobotID,
@@ -91,8 +118,13 @@ func GetFastCommandList(c *gin.Context) {
 		common.FmtError(c, `param_invalid`, `robot_key`)
 		return
 	}
-	//data check
-	robot, err := common.GetRobotInfo(req.RobotKey)
+	adminUserId := GetAdminUserId(c)
+	if adminUserId <= 0 {
+		return
+	}
+	// Management requests must resolve the robot inside the caller's tenant.
+	robot, err := msql.Model("chat_ai_robot", define.Postgres).
+		Where("robot_key", req.RobotKey).Where("admin_user_id", cast.ToString(adminUserId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
@@ -102,7 +134,9 @@ func GetFastCommandList(c *gin.Context) {
 		common.FmtError(c, `no_data`)
 		return
 	}
-	data, err := msql.Model(define.TableFastCommand, define.Postgres).Where("robot_id", cast.ToString(robot["id"])).Where("app_id", cast.ToString(req.AppId)).Order("sort asc,id desc").Select()
+	data, err := msql.Model(define.TableFastCommand, define.Postgres).
+		Where("admin_user_id", cast.ToString(adminUserId)).Where("robot_id", robot["id"]).
+		Where("app_id", cast.ToString(req.AppId)).Order("sort asc,id desc").Select()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
@@ -179,24 +213,34 @@ func UpdateFastCommandSwitch(c *gin.Context) {
 		common.FmtError(c, `param_invalid`, `robot_key`)
 		return
 	}
-	//data check
-	robot, err := common.GetRobotInfo(robotKey)
+	adminUserId := GetAdminUserId(c)
+	if adminUserId <= 0 {
+		return
+	}
+	robot, err := msql.Model("chat_ai_robot", define.Postgres).
+		Where("robot_key", robotKey).Where("admin_user_id", cast.ToString(adminUserId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
+		return
 	}
 	if len(robot) == 0 {
 		common.FmtError(c, `no_data`)
+		return
 	}
 	m := msql.Model("chat_ai_robot", define.Postgres)
-	sqlRaw := fmt.Sprintf("fast_command_switch = 1-fast_command_switch")
+	sqlRaw := "fast_command_switch = 1-fast_command_switch"
 	if req.AppId != yunH5 {
-		sqlRaw = fmt.Sprintf("yunpc_fast_command_switch = 1-yunpc_fast_command_switch")
+		sqlRaw = "yunpc_fast_command_switch = 1-yunpc_fast_command_switch"
 	}
-	data, err := m.Where("id", cast.ToString(robot["id"])).Update2(sqlRaw)
+	data, err := m.Where("id", robot["id"]).Where("admin_user_id", cast.ToString(adminUserId)).Update2(sqlRaw)
 	if err != nil {
 		logs.Error(err.Error())
 		common.FmtError(c, `sys_err`)
+		return
+	}
+	if data == 0 {
+		common.FmtError(c, `no_data`)
 		return
 	}
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})

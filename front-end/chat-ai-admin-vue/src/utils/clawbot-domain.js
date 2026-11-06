@@ -1,3 +1,5 @@
+import { isCustomerServiceClawbotRoute } from './clawbot-layout'
+
 function normalizeDomain(domain = '') {
   return String(domain || '').trim().replace(/\/+$/, '')
 }
@@ -10,6 +12,8 @@ export function isClawbotPath(path = '') {
 export function getCrossDomainTarget({
   toPath = '',
   fromPath = '',
+  toQuery = {},
+  fromQuery = {},
   adminDomain = '',
   agentDomain = '',
   currentOrigin = ''
@@ -19,8 +23,13 @@ export function getCrossDomainTarget({
     return ''
   }
 
+  // 新版框架中的 Agent 留在当前域；返回客服时也按同一框架分类，避免再次切域。
+  if (isCustomerServiceClawbotRoute({ path: toPath, query: toQuery })) {
+    return ''
+  }
   const isToClawbot = isClawbotPath(toPath)
-  const isFromClawbot = isClawbotPath(fromPath)
+  const isFromClawbot = isClawbotPath(fromPath) &&
+    !isCustomerServiceClawbotRoute({ path: fromPath, query: fromQuery })
 
   if (isToClawbot === isFromClawbot) {
     return ''

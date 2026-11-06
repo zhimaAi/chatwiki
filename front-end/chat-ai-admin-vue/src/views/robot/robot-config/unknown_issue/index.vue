@@ -1,6 +1,6 @@
 <template>
   <div class="list-wrapper">
-    <div class="content-wrapper">
+    <div class="content-wrapper"><a-alert v-if="error" type="error" :message="error" show-icon><template #action><a @click="getData">{{ commonT('retry') }}</a></template></a-alert>
       <a-alert show-icon class="alert-box">
         <template #icon>
           <div class="tip-icon">
@@ -15,13 +15,13 @@
         </template>
       </a-alert>
       <div class="search-block">
-        <DateSelect datekey="4" @dateChange="onDateChange" />
+        <DateSelect datekey="4" :start-date="props.filters.start_date" :end-date="props.filters.end_date" :preserve-query="props.embedded" @dateChange="onDateChange" />
       </div>
 
       <a-table
         class="table-list"
         :columns="columns"
-        :data-source="tableData"
+        :data-source="tableData" :loading="loading"
         :pagination="{
           current: requestParams.page,
           total: requestParams.total,
@@ -54,17 +54,21 @@ import DateSelect from './components/date.vue'
 import AiGenerate from './components/ai-generate-modal.vue'
 import { unknownIssueStats } from '@/api/chat'
 import { ExclamationCircleFilled } from '@ant-design/icons-vue'
-import { useRoute, useRouter } from 'vue-router'
-import { reactive, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useRequestState } from '@/composables/useRequestState'
+import { reactive, ref } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.robot.robot-config.unknown-issue.index')
+const { t: commonT } = useI18n('views.customer-service.index')
+const props = defineProps({ robotId: { type: [String, Number], default: '' }, filters: { type: Object, default: () => ({}) }, embedded: { type: Boolean, default: false } })
+const { loading, error, run } = useRequestState()
 const query = useRoute().query
 
 const activeKey = ref(1)
 const tableData = ref([])
 
 const requestParams = reactive({
-  robot_id: query.id,
+  robot_id: props.robotId || query.id,
   start_day: '',
   end_day: '',
   page: 1,
@@ -100,9 +104,9 @@ const onDateChange = (data) => {
 }
 
 const getData = () => {
-  unknownIssueStats({
-    ...requestParams
-  }).then((res) => {
+  run(() => unknownIssueStats({
+    ...requestParams, app_type: props.filters.app_type, app_id: props.filters.app_id
+  }), (res) => {
     let lists = res.data.list
     tableData.value = lists
     requestParams.total = +res.data.total

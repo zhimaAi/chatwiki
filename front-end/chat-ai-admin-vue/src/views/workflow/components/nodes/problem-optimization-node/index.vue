@@ -52,6 +52,7 @@
 </template>
 
 <script setup>
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { useRobotStore } from '@/stores/modules/robot'
 import { ref, reactive, watch, nextTick, onMounted, inject, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -92,7 +93,8 @@ const formState = reactive({
   prompt: '',
   prompt_tags: [],
   question_value: [],
-  enable_thinking: false
+  enable_thinking: false,
+  reasoning_effort: 'none'
 })
 
 const variableOptions = ref([])
@@ -129,7 +131,8 @@ const reset = () => {
     prompt,
     prompt_tags,
     question_value,
-    enable_thinking
+    enable_thinking,
+    reasoning_effort
   } = JSON.parse(JSON.stringify(question_optimize))
 
   formState.model_config_id = model_config_id
@@ -139,6 +142,7 @@ const reset = () => {
   formState.max_token = max_token
   formState.prompt = prompt
   formState.enable_thinking = enable_thinking
+  formState.reasoning_effort = toReasoningEffort(enable_thinking, reasoning_effort)
   formState.prompt_tags = prompt_tags || []
   formState.question_value = formatQuestionValue(question_value)
 

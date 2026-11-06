@@ -14,7 +14,10 @@
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <div class="gray-block-title">{{ t('label_input') }}</div>
-            <a-form-item :label="t('label_llm_model')" name="use_model">
+            <a-form-item class="backup-model-label-item" name="use_model">
+              <template #label>
+                <BackupModelLabel :label="t('label_llm_model')" />
+              </template>
               <div class="flex-block-item">
                 <ModelSelect
                   modelType="LLM"
@@ -113,7 +116,10 @@
                 </a-tooltip>
               </template>
               <div class="number-box">
-                <a-switch v-model:checked="formState.enable_thinking" />
+                <ReasoningEffortSelect
+                  v-model:value="formState.reasoning_effort"
+                  @change="(effort) => (formState.enable_thinking = effort !== 'none')"
+                />
               </div>
             </a-form-item>
             <a-form-item name="context_pair">
@@ -197,6 +203,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { getUuid } from '@/utils/index'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
@@ -208,6 +216,7 @@ import {
   DownOutlined,
   PlusOutlined
 } from '@ant-design/icons-vue'
+import BackupModelLabel from '@/components/model-select/backup-model-label.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -255,6 +264,7 @@ const formState = reactive({
   prompt: '',
   question_value: '',
   enable_thinking: false,
+  reasoning_effort: 'none',
   categorys: [],
   role: 1
 })
@@ -338,6 +348,8 @@ const init = () => {
     let cate = JSON.parse(dataRaw).cate || {}
 
     cate = JSON.parse(JSON.stringify(cate))
+
+    cate.reasoning_effort = toReasoningEffort(cate.enable_thinking, cate.reasoning_effort)
     
     for (let key in cate) {
       if(key === 'question_value'){

@@ -29,6 +29,7 @@
       flex-wrap: wrap;
       gap: 8px;
     }
+
   }
 
   .robot-form-box {
@@ -66,6 +67,46 @@
     .robot-name-box {
       flex: 1;
     }
+  }
+}
+
+.basic-config.profile-summary {
+  position: relative;
+  padding: 24px;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #eff7ff url('@/assets/img/customer-service/basic-settings/profile-background.png') center / cover no-repeat;
+
+  :deep(.edit-box-header) {
+    position: absolute;
+    top: 50%;
+    right: calc(20px - 1px);
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    transform: translateY(-50%);
+    .left-box { display: none; }
+  }
+  :deep(.edit-box-body) { padding: 0; }
+  .inline-summary { display: flex; align-items: center; gap: 12px; padding-right: 80px; }
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #e8f0fe;
+    cursor: pointer;
+    img { display: block; width: 48px; height: 48px; object-fit: cover; }
+    &:focus-visible { outline: 2px solid #2475fc; outline-offset: 2px; }
+  }
+  .profile-copy {
+    min-width: 0;
+    .robot-name { font-size: 16px; line-height: 24px; font-weight: 600; color: #222; }
+    .robot-intro { display: block; margin-top: 4px; color: #7a7a7a; }
+    .robot-name, .robot-intro { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   }
 }
 
@@ -121,13 +162,15 @@
 <template>
   <edit-box
     class="basic-config"
+    :class="{ 'profile-summary': inlineSummary }"
     :title="t('title_basic_config')"
     icon-name="jibenpeizhi"
-    v-model:isEdit="isEdit"
+    :is-edit="!inlineSummary && isEdit"
+    @update:isEdit="value => { if (!inlineSummary) isEdit = value }"
     @save="onSave"
     @edit="handleEdit"
   >
-    <div class="robot-form-box" v-show="isEdit">
+    <div class="robot-form-box" v-if="!inlineSummary" v-show="isEdit">
       <div>
         <div class="form-item">
           <div class="form-item-label">{{ t('label_robot_name_avatar') }}</div>
@@ -175,16 +218,28 @@
         </div>
       </div>
     </div>
-    <div class="robot-info-box" v-show="!isEdit">
+    <div class="robot-info-box" :class="{ 'inline-summary': inlineSummary }" v-show="inlineSummary || !isEdit">
+      <template v-if="inlineSummary">
+        <button type="button" class="profile-avatar" :aria-label="t('label_robot_name_avatar')" @click="handleEdit">
+          <img :src="robotInfo.robot_avatar_url || showDefaultAvatars[0]" alt="" />
+        </button>
+        <div class="profile-copy">
+          <div class="robot-name" :title="robotInfo.robot_name">{{ robotInfo.robot_name }}</div>
+          <div class="robot-intro" :title="robotInfo.robot_intro || t('msg_no_intro')">{{ robotInfo.robot_intro || t('msg_no_intro') }}</div>
+        </div>
+      </template>
+      <template v-else>
       <div class="robot-name-box">
         <img class="robot-avatar" :src="robotInfo.robot_avatar_url" alt="" />
-        <span class="robot-name">{{ robotInfo.robot_name }}</span>
+        <span class="robot-name" :title="inlineSummary ? robotInfo.robot_name : undefined">{{ robotInfo.robot_name }}</span>
       </div>
-      <div class="robot-intro">
-        <span>{{ t('label_group') }}{{ groupName }}</span>
+      <div class="robot-intro" :title="inlineSummary ? robotInfo.robot_intro || t('msg_no_intro') : undefined">
+        <span v-if="!inlineSummary">{{ t('label_group') }}{{ groupName }}</span>
         <span>{{ t('label_intro_colon') }}{{ robotInfo.robot_intro || t('msg_no_intro') }}</span>
       </div>
+      </template>
     </div>
+    <ProfileSettingsDialog v-if="inlineSummary" ref="profileDialog" />
   </edit-box>
 </template>
 <script setup>
@@ -193,13 +248,16 @@ import { ref, reactive, inject, toRaw, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
+import ProfileSettingsDialog from '@/views/customer-service/basic-settings/components/profile-settings-dialog.vue'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 import {DEFAULT_ROBOT_AVATAR, DEFAULT_ROBOT_AVATAR_LIST, DEFAULT_WORKFLOW_AVATAR} from "@/constants/index.js";
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.basic-config')
+const props = defineProps({ inlineSummary: { type: Boolean, default: false } })
 const robotStore = useRobotStore()
 const isEdit = ref(false)
+const profileDialog = ref(null)
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
 const formState = reactive({
@@ -257,6 +315,10 @@ const handleChangeAvatar = (fileList) => {
 }
 
 const handleEdit = () => {
+  if (props.inlineSummary) {
+    profileDialog.value?.open()
+    return
+  }
   formState.robot_name = robotInfo.robot_name
   formState.robot_intro = robotInfo.robot_intro
   formState.robot_avatar = robotInfo.robot_avatar

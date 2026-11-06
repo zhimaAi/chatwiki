@@ -11,6 +11,11 @@
 .model-icon {
   height: 18px;
 }
+.add-library-page.embedded { padding: 16px 8px; .form-box { width: 100%; max-width: 840px; } .select-card-box, .indexing-methods-box, .main-title-block { width: 100%; } .form-alert-tip { white-space: normal; line-height: 20px; } }
+.settings-feedback { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 40px 0; }
+.settings-error { margin-bottom: 16px; }
+.settings-saving { margin-bottom: 12px; text-align: right; color: #8c8c8c; }
+.embedded :deep(.modal-seclet-new) { max-width: 100%; }
 
 .form-item-tip {
   color: #999;
@@ -203,8 +208,12 @@
 
 <template>
   <cu-scroll>
-    <div class="add-library-page">
-      <div class="form-box">
+    <div class="add-library-page" :class="{ embedded }">
+      <div v-if="embedded && loading" class="settings-feedback"><a-spin /></div>
+      <div v-else-if="embedded && loadError" class="settings-feedback"><a-alert type="error" :message="loadError" show-icon /><a-button @click="getInfo">{{ workspaceT('retry') }}</a-button></div>
+      <div v-else class="form-box">
+        <a-alert v-if="embedded && saveError" class="settings-error" type="error" :message="saveError" show-icon><template #action><a @click="handleEdit()">{{ workspaceT('retry') }}</a></template></a-alert>
+        <div v-if="embedded && pendingSaves" class="settings-saving">{{ workspaceT('saving') }}</div>
         <a-form :label-col="{ span: 6 }">
           <a-form-item ref="name" :label="t('label_library_name')" v-bind="validateInfos.library_name">
             <a-input
@@ -545,11 +554,9 @@
               </a-form-item>
               <a-form-item v-if="showAiChunkEnableThinking" :label="thinkingT('label_deep_thinking')">
                 <a-flex align="center" :gap="8">
-                  <a-switch
-                    v-model:checked="formState.ai_chunk_enable_thinking"
-                    :checkedValue="1"
-                    :unCheckedValue="0"
-                    @change="handleEdit"
+                  <ReasoningEffortSelect
+                    v-model:value="formState.ai_chunk_reasoning_effort"
+                    @change="(effort) => { formState.ai_chunk_enable_thinking = effort === 'none' ? 0 : 1; handleEdit() }"
                   />
                   <a-tooltip :title="thinkingT('tooltip_deep_thinking')">
                     <QuestionCircleOutlined />
@@ -681,7 +688,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, h, nextTick, computed } from 'vue'
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
+import { reactive, ref, h, nextTick, computed, onBeforeUnmount } from 'vue'
 import dayjs from 'dayjs'
 import { useRoute, useRouter } from 'vue-router'
 import { Form, message, Modal } from 'ant-design-vue'
@@ -696,6 +705,16 @@ import { formatSeparatorsNo } from '@/utils/index'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.library.library-details.knowledge-config')
+const { t: workspaceT } = useI18n('views.customer-service.index')
+const props = defineProps({ libraryId: { type: [String, Number], default: '' }, embedded: { type: Boolean, default: false } })
+const emit = defineEmits(['saved', 'view-documents'])
+const loading = ref(props.embedded)
+const loadError = ref('')
+const saveError = ref('')
+const pendingSaves = ref(0)
+let alive = true
+let saveQueue = Promise.resolve()
+let saveRevision = 0
 const { t: thinkingT } = useI18n('views.robot.robot-config.basic-config.components.model-settings')
 const { t: expireT } = useI18n('components.library-expire-status.index')
 const companyStore = useCompanyStore()
@@ -732,6 +751,7 @@ const formState = reactive({
   ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
   ai_chunk_enable_thinking: 0, // AI大模型分段深度思考开关
+  ai_chunk_reasoning_effort: 'none',
   ai_chunk_prumpt: defaultAiChunkPrumpt, // ai大模型分段提示词设置
   qa_index_type: 1,
   group_id: 0,
@@ -765,7 +785,8 @@ const handleModelChange = (item) => {
 }
 
 const segmentationTags = ref([])
-getSeparatorsList().then((res) => {
+const loadSeparators = () => getSeparatorsList().then((res) => {
+  if (!alive) return
   segmentationTags.value = res.data.map((item) => {
     return {
       label: item.name,
@@ -773,11 +794,16 @@ getSeparatorsList().then((res) => {
     }
   })
 })
+if (!props.embedded) void loadSeparators()
 
 const isQaLibrary = ref(true)
 const isWxLibrary = ref(false)
-const getInfo = () => {
-  getLibraryInfo({ id: query.id }).then((res) => {
+const getInfo = async () => {
+  if (props.embedded) { loading.value = true; loadError.value = '' }
+  try {
+    const request = getLibraryInfo({ id: props.libraryId || query.id })
+    const [res] = props.embedded ? await Promise.all([request, loadSeparators()]) : [await request]
+    if (!alive) return
     libraryInfo.value = res.data
     isActive.value = libraryInfo.value.is_offline ? 2 : 1
     formState.library_name = res.data.library_name
@@ -811,6 +837,7 @@ const getInfo = () => {
     formState.ai_chunk_model = res.data.ai_chunk_model
     formState.ai_chunk_model_config_id = res.data.ai_chunk_model_config_id
     formState.ai_chunk_enable_thinking = +res.data.ai_chunk_enable_thinking || 0
+    formState.ai_chunk_reasoning_effort = toReasoningEffort(res.data.ai_chunk_enable_thinking, res.data.ai_chunk_reasoning_effort)
     formState.ai_chunk_prumpt = res.data.ai_chunk_prumpt || defaultAiChunkPrumpt
     formState.father_chunk_paragraph_type = +res.data.father_chunk_paragraph_type || 2
     formState.father_chunk_separators_no = formatSeparatorsNo(
@@ -833,7 +860,9 @@ const getInfo = () => {
 
     isWxLibrary.value = res.data.type == 3
     isQaLibrary.value = res.data.type == 2
-  })
+  } catch (err) {
+    if (alive && props.embedded) loadError.value = err.message || workspaceT('load_failed')
+  } finally { if (alive) loading.value = false }
 }
 getInfo()
 const libraryModeList = ref([
@@ -967,10 +996,9 @@ const handleOpenGrapgOk = (data) => {
         cancelText: t('modal_graph_enabled_cancel'),
         okText: t('modal_graph_enabled_ok'),
         icon: h(CheckCircleFilled, { style: { color: '#52c41a' } }),
-        onOk: () =>
-          router.push({
+        onOk: () => props.embedded ? emit('view-documents') : router.push({
             path: '/library/details/knowledge-document',
-            query: { id: query.id }
+            query: { id: props.libraryId || query.id }
           })
       })
     })
@@ -978,6 +1006,7 @@ const handleOpenGrapgOk = (data) => {
 }
 
 const handleEdit = (callback = null) => {
+  if (props.embedded && (!alive || loading.value || loadError.value)) return
   if (!formState.library_name) {
     return message.error(t('validator_library_name'))
   }
@@ -1005,6 +1034,7 @@ const handleEdit = (callback = null) => {
     ai_chunk_model: formState.ai_chunk_model,
     ai_chunk_model_config_id: formState.ai_chunk_model_config_id,
     ai_chunk_enable_thinking: formState.ai_chunk_enable_thinking,
+    ai_chunk_reasoning_effort: toReasoningEffort(formState.ai_chunk_enable_thinking, formState.ai_chunk_reasoning_effort),
     ai_chunk_prumpt: formState.ai_chunk_prumpt,
     father_chunk_paragraph_type: formState.father_chunk_paragraph_type,
     father_chunk_separators_no: JSON.stringify(formState.father_chunk_separators_no),
@@ -1015,7 +1045,7 @@ const handleEdit = (callback = null) => {
     app_id_list: formState.app_id_list,
     sync_official_history_type: formState.sync_official_history_type,
     enable_cron_sync_official_content: Number(formState.enable_cron_sync_official_content),
-    id: rotue.query.id
+    id: props.libraryId || rotue.query.id
   }
   if (isExpireConfigurable.value) {
     if (formState.is_permanent === 0 && !formState.expire_time) {
@@ -1026,6 +1056,23 @@ const handleEdit = (callback = null) => {
   }
   if (formState.avatar_file) {
     data.avatar = formState.avatar_file
+  }
+  if (props.embedded) {
+    const revision = ++saveRevision
+    pendingSaves.value++
+    // 每次提交保留当时的配置快照，串行保存，避免较早响应覆盖后续修改。
+    const request = saveQueue.catch(() => {}).then(() => editLibrary(data))
+    saveQueue = request.then(res => {
+      if (res?.res !== undefined && res.res !== 0) throw new Error(res.msg || workspaceT('save_failed'))
+      if (!alive) return
+      if (revision === saveRevision) saveError.value = ''
+      emit('saved', data.id)
+      if (typeof callback === 'function') callback()
+    })
+    void saveQueue.catch(err => {
+      if (alive && revision === saveRevision) saveError.value = err.message || workspaceT('save_failed')
+    }).finally(() => { if (alive) pendingSaves.value-- })
+    return
   }
   editLibrary(data).then((res) => {
     typeof callback === 'function' ? callback() : message.success(t('msg_edit_success'))
@@ -1064,4 +1111,6 @@ const handleChangeQaIndexType = (type) => {
   formState.qa_index_type = type
   handleEdit()
 }
+defineExpose({ waitForSave: () => saveQueue })
+onBeforeUnmount(() => { alive = false })
 </script>

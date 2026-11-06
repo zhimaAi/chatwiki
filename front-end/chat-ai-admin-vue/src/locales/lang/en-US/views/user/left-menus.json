@@ -1,4 +1,5 @@
 {
+  "system_mode": "System Mode",
   "model_management": "Model Management",
   "bind_chatclaw": "Bind ChatClaw",
   "token_usage": "Token Usage",

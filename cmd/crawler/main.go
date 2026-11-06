@@ -13,7 +13,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/gin-gonic/gin"
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 )
 
 var (
@@ -46,12 +46,6 @@ func init() {
 	}
 
 	concurrent = make(chan struct{}, cfg.Concurrent)
-
-	// install playwright
-	err := playwright.Install()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func main() {

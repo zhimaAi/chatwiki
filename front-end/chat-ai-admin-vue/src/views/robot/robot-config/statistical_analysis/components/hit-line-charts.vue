@@ -5,7 +5,7 @@
 </template>
 <script setup>
 import * as echarts from 'echarts'
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.statistical-analysis.components.hit-line-charts')
@@ -82,8 +82,10 @@ const props = defineProps({
   }
 })
 let myEchart
+let alive = true
 const timeId = ref(Math.floor(new Date().getTime() * Math.random())) // 使该图表保持唯id
 const myEchartData = () => {
+  if (!myEchart) return
   // 示例配置，需要根据实际组件调整
   const option = {
     tooltip: {
@@ -133,7 +135,7 @@ const myEchartData = () => {
         }
       }
     ],
-    series: props.yDataArray.map((series, index) => {
+    series: props.yDataArray.map((series) => {
       const translatedName = series.name.startsWith('label_') || series.name.startsWith('legend_') ? t(series.name) : series.name
       if (translatedName === t('legend_hit_rate')) {
         return {
@@ -155,9 +157,7 @@ watch(
   //监控数据变化
   () => props.xDataArray,
   () => {
-    setTimeout(() => {
-      myEchartData()
-    }, 500)
+    myEchartData()
   },
   { deep: true }
 )
@@ -165,30 +165,27 @@ watch(
   //监控数据变化
   () => props.yDataArray,
   () => {
-    setTimeout(() => {
-      myEchartData()
-    }, 500)
+    myEchartData()
   },
   { deep: true }
 )
 
-onMounted(() => {
-  setTimeout(() => {
-    const dom = document.getElementById(`echart${timeId.value}`)
-    myEchart = echarts.init(dom)
-    myEchartData()
-  }, 500)
-
-  // 当窗口发生变化时
-  window.addEventListener('resize', () => {
-    myEchart.resize()
-  })
+const resize = () => myEchart?.resize()
+onMounted(async () => {
+  await nextTick()
+  if (!alive) return
+  const dom = document.getElementById(`echart${timeId.value}`)
+  if (!dom) return
+  myEchart = echarts.init(dom)
+  myEchartData()
+  window.addEventListener('resize', resize)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', () => {
-    myEchart.resize()
-  })
+  alive = false
+  window.removeEventListener('resize', resize)
+  myEchart?.dispose()
+  myEchart = null
 })
 </script>
 <style lang="less" scoped>

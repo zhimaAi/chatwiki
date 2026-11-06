@@ -33,8 +33,8 @@
     .user-avatar,
     .robot-avatar {
       display: block;
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
     }
 
@@ -460,6 +460,7 @@
               <a-spin size="small" :spinning="item.loading">
                 <img class="robot-avatar" :src="item.robot_avatar" />
               </a-spin>
+              <span v-if="props.showSenderName" class="sender-name">{{ props.robotInfo.robot_name }}</span>
             </div>
 
             <div class="itme-right">
@@ -467,12 +468,18 @@
                 <div class="reply-list">
                   <template v-for="(rc, idx) in parseReplyList(item.reply_content_list)" :key="idx">
                     <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
-                      <div class="message-content" v-html="rc.description"></div>
+                      <div v-if="rc.send_source === 'work_flow_finish'" class="message-content">
+                        <cherry-markdown :content="rc.description || ''" />
+                      </div>
+                      <div v-else class="message-content" v-html="formatReplyText(rc)"></div>
                     </div>
                     <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
                       <div class="message-content">
                         <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
                       </div>
+                    </div>
+                    <div v-else-if="(rc.reply_type || rc.type) === 'voice'" class="reply-item reply-voice">
+                      <VoicePlayer :url="rc.url" />
                     </div>
                     <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
                       <div class="url-row">
@@ -647,7 +654,7 @@
                 </div>
               </div>
               <!-- 语音消息 -->
-              <div v-if="item.voice_content && item.voice_content.length">
+              <div v-if="item.voice_content && item.voice_content.length && !isWorkFlowFinishReplyList(item.reply_content_list)">
                 <VoiceMessage :voice_content="item.voice_content" />
               </div>
               <GuessYouWant
@@ -675,6 +682,7 @@ import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import GuessYouWant from './guess-you-want.vue'
 import VoiceMessage from './voice-message.vue'
+import VoicePlayer from './voice-player.vue'
 import TextMessage from './messages/text-message.vue'
 import MultipleMessage from './messages/multiple-message.vue'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -731,6 +739,10 @@ const props = defineProps({
   showAvatar: {
     type: Boolean,
     default: true
+  },
+  showSenderName: {
+    type: Boolean,
+    default: false
   },
   messageAlign: {
     type: String,
@@ -930,6 +942,14 @@ function parseReplyList(val) {
   }
 }
 
+const isWorkFlowFinishReplyList = (val) => {
+  return parseReplyList(val).some((rc) => rc?.send_source === 'work_flow_finish')
+}
+
+const formatReplyText = (rc) => {
+  return rc?.description || ''
+}
+
 function buildMenuLines(menu_content) {
   const out = []
   ;(Array.isArray(menu_content) ? menu_content : []).forEach((mc) => {
@@ -962,7 +982,7 @@ function onClickSmartMenuKeyword(text) {
 }
 
 const isShowBody = (item) => {
-  if(parseReplyList(item.reply_content_list).length && item.content == ''){
+  if (parseReplyList(item.reply_content_list).length && (item.content == '' || isWorkFlowFinishReplyList(item.reply_content_list))) {
     return false
   }
   return true

@@ -2,8 +2,9 @@
 .chat-conversation-bar {
   min-height: 56px;
   padding: 16px 24px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fff;
+  border-bottom: 1px solid var(--app-border-secondary);
+  background: var(--app-bg-container);
+  color: var(--app-text-primary);
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -27,7 +28,7 @@
 
 .conversation-icon {
   flex-shrink: 0;
-  color: #262626;
+  color: var(--app-text-primary);
 }
 
 .conversation-title {
@@ -36,7 +37,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #262626;
+  color: var(--app-text-primary);
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;
@@ -48,12 +49,21 @@
   max-width: 360px;
   padding: 2px 6px;
   border: 0;
-  border-radius: 6px;
-  background: #f2f4f7;
+  border-radius: var(--app-radius-control);
+  background: var(--app-bg-hover);
   display: inline-flex;
   align-items: center;
   min-width: 0;
   cursor: pointer;
+
+  &:hover {
+    background: var(--app-fill-secondary);
+  }
+
+  &:active,
+  &[aria-expanded='true'] {
+    background: var(--app-selected);
+  }
 }
 
 .knowledge-trigger-prefix,
@@ -65,7 +75,7 @@
 
 .knowledge-trigger-prefix,
 .knowledge-trigger-name {
-  color: #7a8699;
+  color: var(--app-text-secondary);
 }
 
 .knowledge-trigger-name {
@@ -77,7 +87,7 @@
 
 .knowledge-trigger-count {
   flex-shrink: 0;
-  color: #2475fc;
+  color: var(--app-primary);
 }
 
 :deep(.chat-knowledge-dropdown-overlay) {
@@ -92,12 +102,9 @@
 .knowledge-dropdown-menu {
   min-width: 312px;
   padding: 2px;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow:
-    0 6px 30px 5px rgba(0, 0, 0, 0.05),
-    0 16px 24px 2px rgba(0, 0, 0, 0.04),
-    0 8px 10px -5px rgba(0, 0, 0, 0.08);
+  border-radius: var(--app-radius-popover);
+  background: var(--app-bg-elevated);
+  box-shadow: var(--app-shadow-popover);
   box-sizing: border-box;
 }
 
@@ -105,7 +112,7 @@
   width: 100%;
   padding: 5px 16px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--app-radius-control);
   background: transparent;
   display: flex;
   align-items: center;
@@ -115,13 +122,25 @@
   transition: background-color 0.2s ease;
 
   &:hover {
-    background: #f7f7f7;
+    background: var(--app-bg-hover);
+  }
+
+  &:active {
+    background: var(--app-selected);
+  }
+}
+
+.knowledge-trigger,
+.knowledge-dropdown-item {
+  &:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: -2px;
   }
 }
 
 .knowledge-dropdown-item-icon {
   flex-shrink: 0;
-  color: #262626;
+  color: var(--app-text-primary);
   font-size: 14px;
 }
 
@@ -130,7 +149,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #262626;
+  color: var(--app-text-primary);
   font-size: 14px;
   line-height: 22px;
 }
@@ -150,7 +169,7 @@
         placement="bottomLeft"
         overlay-class-name="chat-knowledge-dropdown-overlay"
       >
-        <button type="button" class="knowledge-trigger">
+        <button type="button" class="knowledge-trigger" :aria-expanded="dropdownOpen">
           <span class="knowledge-trigger-prefix">{{ t('label_knowledge_base') }}</span>
           <span class="knowledge-trigger-name">{{ primaryLibrary.library_name }}</span>
           <span v-if="extraLibraryCount > 0" class="knowledge-trigger-count">（+{{ extraLibraryCount }}）</span>

@@ -67,7 +67,7 @@ const formItemContext = Form.useInjectFormItemContext()
 const triggerChange = () => {
   let data = {
     imageUrl: imageUrl.value,
-    file: fileList.value[0].originFileObj
+    file: fileList.value[0]?.originFileObj || fileList.value[0]
   }
 
   emit('change', data)

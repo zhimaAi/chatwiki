@@ -20,7 +20,7 @@ type ReplyContent struct {
 	Pic             string               `json:"pic,omitempty" form:"pic,omitempty"`
 	SmartMenuId     string               `json:"smart_menu_id" form:"smart_menu_id"`
 	SmartMenu       lib_define.SmartMenu `json:"smart_menu,omitempty" form:"smart_menu"` // Smart menu, passed when outputting
-	SendSource      string               `json:"send_source" form:"send_source"`
+	SendSource      string               `json:"send_source,omitempty" form:"send_source"`
 }
 
 const (
@@ -28,9 +28,25 @@ const (
 	ReplyTypeText      = `text`      // Text
 	ReplyTypeUrl       = `url`       // URL
 	ReplyTypeImg       = `image`     // Image
+	ReplyTypeVoice     = `voice`     // Voice
 	ReplyTypeCard      = `card`      // Mini program card
 	ReplyTypeSmartMenu = `smartMenu` // Smart menu
 )
+
+const (
+	// SendSourceWorkFlowFinish marks replies split from finish node messages
+	SendSourceWorkFlowFinish = `work_flow_finish`
+)
+
+// IsWorkFlowFinishReplyList checks whether the list contains finish node replies
+func IsWorkFlowFinishReplyList(list []ReplyContent) bool {
+	for _, item := range list {
+		if item.SendSource == SendSourceWorkFlowFinish {
+			return true
+		}
+	}
+	return false
+}
 
 const (
 	TypeText  = `text`

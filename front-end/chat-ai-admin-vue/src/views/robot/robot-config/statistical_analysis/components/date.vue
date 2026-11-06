@@ -21,6 +21,8 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.robot.robot-config.statistical-analysis.components.date')
 
 const props = defineProps({
+  startDate: { type: String, default: '' },
+  endDate: { type: String, default: '' },
   datekey: {
     type: String,
     default: '1'
@@ -104,8 +106,16 @@ const search = () => {
 }
 
 onMounted(() => {
-  create_time_type.value = parseInt(props.datekey)
-  handleTagChange()
+  if (props.startDate && props.endDate) {
+    range.value = [dayjs(props.startDate), dayjs(props.endDate)]
+    start_time.value = props.startDate
+    end_time.value = props.endDate
+    create_time_type.value = 1
+    search()
+  } else {
+    create_time_type.value = parseInt(props.datekey)
+    handleTagChange()
+  }
 })
 
 watch(() => props.datekey, (newval, oldVla) => {

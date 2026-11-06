@@ -4,6 +4,7 @@
   "label_thinking": "深度思考中...",
   "label_thinking_completed": "已完成深度思考",
   "label_stopped": "已停止",
+  "label_error_info": "异常信息",
   "msg_disable_reasoning_tooltip": "在应用设置中关闭推理过程开关，将不再显示推理过程",
   "library_featured": "精选"
 }

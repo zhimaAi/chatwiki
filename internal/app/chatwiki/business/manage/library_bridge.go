@@ -277,6 +277,7 @@ type BridgeCreateLibraryReq struct {
 	AiChunkModel                     string `form:"ai_chunk_model"`
 	AiChunkModelConfigId             string `form:"ai_chunk_model_config_id"`
 	AiChunkEnableThinking            int    `form:"ai_chunk_enable_thinking"`
+	AiChunkReasoningEffort           string `form:"ai_chunk_reasoning_effort"`
 	AiChunkSize                      string `form:"ai_chunk_size"`
 	QaIndexType                      string `form:"qa_index_type"`
 	FatherChunkParagraphType         string `form:"father_chunk_paragraph_type"`
@@ -290,6 +291,21 @@ type BridgeCreateLibraryReq struct {
 }
 
 func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeCreateLibraryReq) (map[string]any, int, error) {
+	data, err := prepareLibraryCreation(adminUserId, loginUserId, lang, req)
+	if err != nil {
+		return nil, -1, err
+	}
+	libraryId, err := msql.Model("chat_ai_library", define.Postgres).Insert(data, "id")
+	if err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, "sys_err"))
+	}
+	finishLibraryCreation(adminUserId, loginUserId, int(libraryId), data)
+	return map[string]any{"id": cast.ToString(libraryId), "library_key": common.BuildLibraryKey(int(libraryId), cast.ToInt(data["create_time"]))}, 0, nil
+}
+
+// Reuse creation validation so the first normal library and its robot binding can share one transaction.
+func prepareLibraryCreation(adminUserId, loginUserId int, lang string, req *BridgeCreateLibraryReq) (msql.Datas, error) {
 	//get params
 	libraryName := strings.TrimSpace(req.LibraryName)
 	libraryIntro := strings.TrimSpace(req.LibraryIntro)
@@ -316,6 +332,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	AiChunkModel := strings.TrimSpace(req.AiChunkModel)
 	AiChunkModelConfigId := cast.ToInt(req.AiChunkModelConfigId)
 	AiChunkEnableThinking := cast.ToInt(cast.ToBool(req.AiChunkEnableThinking))
+	AiChunkReasoningEffort := req.AiChunkReasoningEffort
 	AiChunkSize := cast.ToInt(req.AiChunkSize)
 	qaIndexType := cast.ToInt(req.QaIndexType)
 	groupId := cast.ToInt(req.GroupId)
@@ -333,24 +350,24 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		isPermanent = cast.ToInt(req.IsPermanent)
 	}
 	if !tool.InArrayInt(isPermanent, []int{define.SwitchOff, define.SwitchOn}) {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `is_permanent`))
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `is_permanent`))
 	}
 	expireTime := cast.ToInt64(req.ExpireTime)
 	if isPermanent == define.SwitchOn {
 		expireTime = 0
 	} else if expireTime <= 0 {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `expire_time`))
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `expire_time`))
 	} else {
 		expireTime = normalizeLibraryExpireTime(expireTime)
 	}
 	if len(libraryName) == 0 || !tool.InArrayInt(typ, define.LibraryTypes[:]) {
-		return nil, -1, errors.New(i18n.Show(lang, `param_lack`))
+		return nil, errors.New(i18n.Show(lang, `param_lack`))
 	}
 	if typ != define.OpenLibraryType && cast.ToInt(modelConfigId) == 0 {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `model_config_id`))
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `model_config_id`))
 	}
 	if typ != define.OpenLibraryType && useModel == `` {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `use_model`))
+		return nil, errors.New(i18n.Show(lang, `param_invalid`, `use_model`))
 	}
 	chunkParam := define.ChunkParam{
 		ChunkType:                        req.ChunkType,
@@ -365,6 +382,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		AiChunkModel:                     AiChunkModel,
 		AiChunkModelConfigId:             req.AiChunkModelConfigId,
 		AiChunkEnableThinking:            req.AiChunkEnableThinking,
+		AiChunkReasoningEffort:           req.AiChunkReasoningEffort,
 		AiChunkSize:                      req.AiChunkSize,
 		QaIndexType:                      req.QaIndexType,
 		FatherChunkParagraphType:         req.FatherChunkParagraphType,
@@ -375,11 +393,11 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	}
 	err := ValidateChunkParam(adminUserId, &chunkParam, cast.ToString(typ), lang)
 	if err != nil {
-		return nil, -1, err
+		return nil, err
 	}
 	if summaryModelConfigId > 0 {
 		if ok := common.CheckModelIsValid(adminUserId, summaryModelConfigId, aiSummaryModel, common.Llm); !ok {
-			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `ai_summary_model`))
+			return nil, errors.New(i18n.Show(lang, `param_invalid`, `ai_summary_model`))
 		}
 	}
 	//headImg uploaded
@@ -392,7 +410,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		_, err := common.GetModelConfigInfo(modelConfigId, adminUserId)
 		if err != nil {
 			logs.Error(err.Error())
-			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+			return nil, errors.New(i18n.Show(lang, `sys_err`))
 		}
 		useModelSwitch = define.SwitchOn
 	}
@@ -427,6 +445,7 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 		`ai_chunk_model`:                       AiChunkModel,
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_enable_thinking`:             AiChunkEnableThinking,
+		`ai_chunk_reasoning_effort`:            AiChunkReasoningEffort,
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
 		`group_id`:                             groupId,
@@ -442,23 +461,24 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	if len(avatar) > 0 {
 		data[`avatar`] = avatar
 	}
-	libraryId, err := msql.Model(`chat_ai_library`, define.Postgres).Insert(data, `id`)
-	if err != nil {
-		logs.Error(err.Error())
-		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
-	}
+	return data, nil
+}
+
+func finishLibraryCreation(adminUserId, loginUserId, libraryId int, data msql.Datas, waitPermission ...bool) {
 	//set use guide finish
-	if isDefault == define.NotDefault {
+	if cast.ToInt(data[`is_default`]) == define.NotDefault {
 		_ = common.SetStepFinish(adminUserId, define.StepCreateLibrary)
 	}
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.LibraryCacheBuildHandler{LibraryId: int(libraryId)})
-	if cast.ToInt(typ) == define.OpenLibraryType {
+	if cast.ToInt(data[`type`]) == define.OpenLibraryType {
 		partner := []string{cast.ToString(adminUserId)}
 		if adminUserId != loginUserId {
 			partner = append(partner, cast.ToString(loginUserId))
 		}
 		_ = common.SaveLibDocPartner(loginUserId, int(libraryId), define.PartnerRightsManage, 1, partner)
+	} else if len(waitPermission) > 0 && waitPermission[0] {
+		AddDefaultPermissionManage(adminUserId, loginUserId, int(libraryId), define.ObjectTypeLibrary)
 	} else {
 		go AddDefaultPermissionManage(adminUserId, loginUserId, int(libraryId), define.ObjectTypeLibrary)
 	}
@@ -469,8 +489,6 @@ func BridgeCreateLibrary(adminUserId, loginUserId int, lang string, req *BridgeC
 	//	return
 	//}
 	// _ = AddUserMangedData(loginUserId, `managed_library_list`, libraryId)
-	return map[string]any{`id`: cast.ToString(libraryId),
-		`library_key`: common.BuildLibraryKey(cast.ToInt(libraryId), cast.ToInt(data[`create_time`]))}, 0, nil
 }
 
 type BridgeEditLibraryReq struct {
@@ -504,6 +522,7 @@ type BridgeEditLibraryReq struct {
 	AiChunkModel                     string `form:"ai_chunk_model"`
 	AiChunkModelConfigId             string `form:"ai_chunk_model_config_id"`
 	AiChunkEnableThinking            int    `form:"ai_chunk_enable_thinking"`
+	AiChunkReasoningEffort           string `form:"ai_chunk_reasoning_effort"`
 	AiChunkSize                      string `form:"ai_chunk_size"`
 	QaIndexType                      string `form:"qa_index_type"`
 	FatherChunkParagraphType         string `form:"father_chunk_paragraph_type"`
@@ -548,6 +567,7 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 	AiChunkModel := strings.TrimSpace(req.AiChunkModel)
 	AiChunkModelConfigId := cast.ToInt(req.AiChunkModelConfigId)
 	AiChunkEnableThinking := cast.ToInt(cast.ToBool(req.AiChunkEnableThinking))
+	AiChunkReasoningEffort := req.AiChunkReasoningEffort
 	AiChunkSize := cast.ToInt(req.AiChunkSize)
 	qaIndexType := cast.ToInt(req.QaIndexType)
 	iconTemplateConfigId := cast.ToInt(req.IconTemplateConfigId)
@@ -597,6 +617,7 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 		AiChunkModel:                     AiChunkModel,
 		AiChunkModelConfigId:             req.AiChunkModelConfigId,
 		AiChunkEnableThinking:            req.AiChunkEnableThinking,
+		AiChunkReasoningEffort:           req.AiChunkReasoningEffort,
 		AiChunkSize:                      req.AiChunkSize,
 		QaIndexType:                      req.QaIndexType,
 		FatherChunkParagraphType:         req.FatherChunkParagraphType,
@@ -677,6 +698,7 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 		`ai_chunk_model`:                       AiChunkModel,
 		`ai_chunk_model_config_id`:             AiChunkModelConfigId,
 		`ai_chunk_enable_thinking`:             AiChunkEnableThinking,
+		`ai_chunk_reasoning_effort`:            AiChunkReasoningEffort,
 		`ai_chunk_size`:                        AiChunkSize,
 		`qa_index_type`:                        qaIndexType,
 		`icon_template_config_id`:              iconTemplateConfigId,
@@ -723,6 +745,11 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 }
 
 func ValidateChunkParam(adminUserId int, chunkParam *define.ChunkParam, typ string, lang string) error {
+	if chunkParam != nil {
+		if err := common.ValidateReasoningEffort(lang, chunkParam.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+			return err
+		}
+	}
 	if cast.ToInt(typ) == define.QALibraryType || cast.ToInt(typ) == define.OpenLibraryType {
 		return nil
 	}

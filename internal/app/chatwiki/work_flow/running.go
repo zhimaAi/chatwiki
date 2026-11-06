@@ -11,8 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -88,6 +90,7 @@ type WorkFlow struct {
 	isStopped        bool
 	LoopIntermediate LoopIntermediate //Intermediate variable; currently only for loop nodes, used in variable assignment
 	isStorage        bool
+	replyContentList []common.ReplyContent // child replies survive replacement of the current node output
 }
 
 func (flow *WorkFlow) Logs(format string, a ...any) {
@@ -130,7 +133,7 @@ func (flow *WorkFlow) BuildContextPair(contextPair int) []map[string]string {
 		return list
 	}
 	var openid = cast.ToString(flow.global[`openid`].GetVal(common.TypString))
-	return common.BuildChatContextPair(openid, cast.ToInt(flow.params.Robot[`id`]),
+	return common.BuildChatContextPair(openid, common.ChatHistoryRobotID(flow.params.ChatRequestParam),
 		flow.params.DialogueId, flow.params.SessionId, flow.params.CurMsgId, contextPair)
 }
 
@@ -143,6 +146,9 @@ func (flow *WorkFlow) Running() (err error) {
 		flow.VersionId = flow.getLastVersionId()
 	}
 	for {
+		if flow.applyManualTransfer() {
+			break
+		}
 		var nodeInfo msql.Params
 		flow.Logs(`Current running node:%s`, flow.curNodeKey)
 		flow.curNode, nodeInfo, err = GetNodeByKey(flow, cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
@@ -169,6 +175,9 @@ func (flow *WorkFlow) Running() (err error) {
 			flow.output, nextNodeKey, err = BatchNodeRunning(nodeInfo, flow)
 		} else {
 			flow.output, nextNodeKey, err = flow.curNode.Running(flow)
+		}
+		if flow.applyManualTransfer() {
+			nextNodeKey, err = ``, nil
 		}
 		flow.outputs[flow.curNodeKey] = flow.output //record variables output by each node
 
@@ -220,7 +229,7 @@ flowExit:
 
 func (flow *WorkFlow) getLastVersionId() int {
 	versionId, err := msql.Model(`work_flow_version`, define.Postgres).
-		Where(`robot_id`, cast.ToString(flow.params.Robot[`id`])).
+		Where(`robot_id`, cast.ToString(flow.params.RealRobot[`id`])).
 		Where(`admin_user_id`, cast.ToString(flow.params.AdminUserId)).
 		Order(`id desc`).Limit(1).Value(`id`)
 	if err != nil {
@@ -464,7 +473,11 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 	} else {
 		err = flow.Running() //run workflow
 	}
-	if err == nil { //additional validation logic
+	transferred := flow.applyManualTransfer()
+	if transferred {
+		err = nil
+	}
+	if err == nil && !transferred { //additional validation logic
 		if flow.isTimeout {
 			err = errors.New(i18n.Show(flow.params.Lang, "workflow_execution_timeout"))
 		} else if !flow.isFinish && !flow.isStopped {
@@ -499,9 +512,14 @@ func RunningWorkFlow(params *WorkFlowParams, startNodeKey string) (*WorkFlow, er
 }
 
 func BaseCallWorkFlow(params *WorkFlowParams) (flow *WorkFlow, nodeLogs []common.NodeLog, err error) {
+	if params.ManualTransfer == nil {
+		params.ManualTransfer = define.NewManualTransferState(params.Robot)
+	}
+	params.ManualTransfer.SetSource(params.ChatRequestParam, params.SessionId)
 	if len(params.RealRobot) == 0 { //If not provided, use params.Robot
 		params.RealRobot = params.Robot
 	}
+	params.RealRobot = maps.Clone(params.RealRobot)
 	var startNodeKey string
 	if params.Draft.IsDraft {
 		startNodeKey = params.Draft.StartNodeKey
@@ -531,12 +549,22 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	if monitor != nil && flow != nil && len(flow.nodeLogs) > 0 {
 		monitor.NodeLogs = flow.nodeLogs //record monitoring data
 	}
+	manualContent, transferred := params.ManualTransfer.Result()
+	if transferred {
+		err = nil
+		if isSwitchManual != nil {
+			*isSwitchManual = true
+		}
+	}
 	if flow == nil || err != nil {
+		if transferred {
+			content = manualContent
+		}
 		return
 	}
 
 	content, replyContentList = TakeOutputReply(flow)
-	if len(content) == 0 && len(replyContentList) == 0 {
+	if !transferred && len(content) == 0 && len(replyContentList) == 0 {
 		if flow.isStopped {
 			// pause-feature: paused workflow has no finish-node output; the partial
 			// content lives in caller's out.replyContentList (via ImmediatelyReplyHandle).
@@ -555,6 +583,9 @@ func CallWorkFlow(params *WorkFlowParams, debugLog *[]any, monitor *common.Monit
 	}
 	if isSwitchManual != nil && cast.ToBool(flow.output[`special.is_switch_manual`].GetVal()) {
 		*isSwitchManual = true
+	}
+	if transferred {
+		content, replyContentList = manualContent, nil
 	}
 	return
 }
@@ -636,26 +667,34 @@ func ChooseWorkFlowRobot(adminUserId string, functionTools []chat.ToolCall) (_ m
 	return
 }
 
-func BuildWorkFlowParams(params define.ChatRequestParam, workFlowRobot msql.Params, workFlowGlobal map[string]any, curMsgId, dialogueId, sessionId int) *WorkFlowParams {
-	params.WorkFlowGlobal = workFlowGlobal
-	return &WorkFlowParams{ChatRequestParam: &params, RealRobot: workFlowRobot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
+func BuildWorkFlowParams(parent *define.ChatRequestParam, workFlowRobot msql.Params, workFlowGlobal map[string]any, curMsgId, dialogueId, sessionId int) *WorkFlowParams {
+	params := common.BuildRobotCallParams(parent, workFlowRobot, parent.Question, workFlowGlobal, dialogueId)
+	return &WorkFlowParams{ChatRequestParam: params, RealRobot: params.Robot, CurMsgId: curMsgId, DialogueId: dialogueId, SessionId: sessionId}
 }
 
 func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
+	if flow.params != nil && flow.params.ChatRequestParam != nil {
+		if content, ok := flow.params.ManualTransfer.Result(); ok {
+			return content, nil
+		}
+	}
 	//add reply content list
-	var replyContentList []common.ReplyContent
+	replyContentList := append([]common.ReplyContent(nil), flow.replyContentList...)
 	if len(flow.output) <= 0 {
 		return ``, replyContentList
 	}
 	replyContentListJson := cast.ToString(flow.output[`special.reply_content_list`].GetVal(common.TypString))
 	if len(replyContentListJson) > 0 {
-		err := tool.JsonDecode(replyContentListJson, &replyContentList)
+		var nodeReplies []common.ReplyContent
+		err := tool.JsonDecodeUseNumber(replyContentListJson, &nodeReplies)
 		if err != nil {
 			logs.Warning(`output reply content list json error: %s`, err.Error())
 		}
+		replyContentList = append(replyContentList, nodeReplies...)
 	}
 	//finish node to string
 	outputSlice := make([]string, 1000)
+	finishReplyList := make(map[int][]common.ReplyContent)
 	for outputKey := range flow.output {
 		if !strings.HasPrefix(outputKey, define.FinishReplyPrefixKey) {
 			continue
@@ -674,11 +713,21 @@ func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
 		}
 		if params[0] == lib_define.MsgTypeText {
 			outputSlice[cast.ToInt(cast.ToString(messageIdx)+`0`)] = takeContent
+			finishReplyList[messageIdx] = append(finishReplyList[messageIdx], common.ReplyContent{
+				ReplyType:   common.ReplyTypeText,
+				Description: takeContent,
+				SendSource:  common.SendSourceWorkFlowFinish,
+			})
 		} else if params[0] == lib_define.MsgTypeImage {
 			urls := common.TakeUrls(&takeContent)
 			if len(urls) > 0 {
 				for idx, url := range urls {
 					outputSlice[cast.ToInt(cast.ToString(messageIdx)+cast.ToString(idx))] = fmt.Sprintf(`![%s](%s)`, url, url)
+					finishReplyList[messageIdx] = append(finishReplyList[messageIdx], common.ReplyContent{
+						ReplyType:  common.ReplyTypeImg,
+						ThumbURL:   url,
+						SendSource: common.SendSourceWorkFlowFinish,
+					})
 				}
 			}
 		} else if params[0] == lib_define.MsgTypeVoice {
@@ -691,6 +740,11 @@ func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
 						continue
 					}
 					outputSlice[cast.ToInt(cast.ToString(messageIdx)+cast.ToString(idx))] = fmt.Sprintf(`!voice[](%s)`, url)
+					finishReplyList[messageIdx] = append(finishReplyList[messageIdx], common.ReplyContent{
+						ReplyType:  common.ReplyTypeVoice,
+						URL:        url,
+						SendSource: common.SendSourceWorkFlowFinish,
+					})
 				}
 			}
 		}
@@ -702,6 +756,17 @@ func TakeOutputReply(flow *WorkFlow) (string, []common.ReplyContent) {
 		}
 	}
 	if len(contents) > 0 {
+		// Split into multiple replies only when the finish node configures at least two non-empty messages
+		if len(finishReplyList) >= 2 {
+			messageIndexes := make([]int, 0, len(finishReplyList))
+			for messageIdx := range finishReplyList {
+				messageIndexes = append(messageIndexes, messageIdx)
+			}
+			sort.Ints(messageIndexes)
+			for _, messageIdx := range messageIndexes {
+				replyContentList = append(replyContentList, finishReplyList[messageIdx]...)
+			}
+		}
 		return strings.Join(contents, "\n"), replyContentList
 	}
 	//default reply
@@ -794,7 +859,7 @@ func (flow *WorkFlow) getNodeInputs() {
 			if flow.params.Draft.IsDraft {
 				info = flow.params.Draft.NodeMaps[nodeKey]
 			} else {
-				info, err = common.GetRobotNode(cast.ToUint(flow.params.Robot[`id`]), nodeKey)
+				info, err = common.GetRobotNode(cast.ToUint(flow.params.RealRobot[`id`]), nodeKey)
 				if err != nil {
 					logs.Error(err.Error())
 					continue

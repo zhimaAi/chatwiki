@@ -20,7 +20,7 @@
       </cu-upload>
     </div>
 
-    <a-input size="large" :value="props.value" :placeholder="placeholder" @input="onInput" />
+    <a-input :size="size" :value="props.value" :placeholder="placeholder" @input="onInput" />
   </div>
 </template>
 
@@ -42,6 +42,10 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '请输入标题'
+  },
+  size: {
+    type: String,
+    default: 'large'
   },
   autoUpload: {
     type: Boolean,

@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import {
   ref,
   reactive,
@@ -154,6 +155,7 @@ const formState = reactive({
   prompt_tags: [],
   question_value: [],
   enable_thinking: false,
+  reasoning_effort: 'none',
   output: []
 })
 
@@ -191,6 +193,7 @@ const reset = () => {
     params_extractor = {}
   }
   params_extractor = JSON.parse(JSON.stringify(params_extractor))
+  params_extractor.reasoning_effort = toReasoningEffort(params_extractor.enable_thinking, params_extractor.reasoning_effort)
 
   getVlaueVariableList()
   getOptions()

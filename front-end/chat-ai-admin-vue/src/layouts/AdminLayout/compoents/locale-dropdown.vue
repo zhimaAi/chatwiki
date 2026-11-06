@@ -11,7 +11,7 @@
     line-height: 22px;
     padding: 0 8px;
     font-size: 14px;
-    color: #3a4559;
+    color: var(--app-text-secondary);
   }
 }
 </style>

@@ -4,7 +4,7 @@
     <Teleport :to="popupContainer">
       <div
         class="dropdown-list"
-        :class="dropdownPositionClass"
+        :class="[dropdownPositionClass, { 'dropdown-list-semantic': semanticTags }]"
         ref="dropdownList"
         v-if="showDropdown"
         :style="positionStyle"
@@ -19,19 +19,21 @@
         </slot>
       </div>
     </Teleport>
-    <div class="mention-input-warpper mention-promt-input" :class="{'no-border': noBorder}" ref="JMentionContainer">
+    <div class="mention-input-warpper mention-promt-input" :class="{'no-border': noBorder, 'semantic-mention': semanticTags}" ref="JMentionContainer">
       <div
         ref="JMention"
         :style="[inputStyle]"
         class="j-mention"
         :class="[{ 'show-placeholder': localValue.length == 0 }, 'type-' + type]"
-        contenteditable="plaintext-only"
+        :contenteditable="readonly ? 'false' : semanticTags ? 'true' : 'plaintext-only'"
+        :aria-readonly="readonly"
         :placeholder="placeholder"
         @focus="onFocus"
         @input="debouncedUpdate"
         @click="clickJMention"
         @blur="handleBlur"
         @keydown="handleKeydown"
+        @paste="handlePaste"
       ></div>
       <span class="placeholder" v-if="localValue.length == 0 || localValue == '\n'">{{ placeholder }}</span>
     </div>
@@ -41,6 +43,7 @@
 <script>
 import { useI18n } from '@/hooks/web/useI18n'
 import CascadePanel from './cascade-panel.vue'
+import { createPromptToken, ensurePromptCaretSlots, getPromptSelection, readPromptText, renderPromptText, restorePromptSelection, tokenizePrompt } from '@/views/customer-service/basic-settings/prompt-tokens'
 
 // 把树状的options抓换成编排的数组
 const getTreeOptions = (options) => {
@@ -63,6 +66,8 @@ export default {
   inject: [],
   emits: ['input', 'change', 'update:selectedList', 'focus', 'open'],
   props: {
+    semanticTags: { type: Boolean, default: false },
+    readonly: { type: Boolean, default: false },
     type: {
       type: String,
       default: 'input', // input, textarea
@@ -149,6 +154,9 @@ export default {
     }
   },
   watch: {
+    readonly(value) {
+      if (value) this.hideDropdownMenus()
+    },
     defaultValue(val) {
       if (val.trim() != this.localValue.trim()) {
         this.refresh()
@@ -156,10 +164,17 @@ export default {
     },
     showDropdown(val) {
       this.onOpen(val)
+      if (this.semanticTags) {
+        this.popupResizeObserver?.disconnect()
+        if (val) this.$nextTick(() => {
+          const popup = this.$refs.dropdownList
+          if (popup) this.popupResizeObserver?.observe(popup.firstElementChild || popup)
+          this.positionSemanticDropdown()
+        })
+      }
     },
-    options() {
-      this.initShowOptionList()
-    }
+    options: { deep: true, handler() { this.initShowOptionList(); this.refreshSemanticLabels() } },
+    cardOptions: { deep: true, handler() { this.refreshSemanticLabels() } }
   },
   mounted() {
     this.initShowOptionList()
@@ -169,13 +184,45 @@ export default {
     document.addEventListener('scroll', this.onScroll, true)
 
     this.initData()
+    if (this.semanticTags) {
+      window.addEventListener('resize', this.positionSemanticDropdown)
+      if (typeof ResizeObserver !== 'undefined') this.popupResizeObserver = new ResizeObserver(this.positionSemanticDropdown)
+    }
   },
   beforeUnmount() {
+    if (this.semanticTags) clearTimeout(this.timer)
+    this.popupResizeObserver?.disconnect()
+    window.removeEventListener('resize', this.positionSemanticDropdown)
     document.removeEventListener('dragstart', this.handleDragstart)
     document.removeEventListener('click', this.handleClick)
     document.removeEventListener('scroll', this.onScroll, true)
   },
   methods: {
+    refreshSemanticLabels() {
+      if (this.semanticTags && this.$refs.JMention) this.renderSemanticValue(readPromptText(this.$refs.JMention))
+    },
+    renderSemanticValue(value) {
+      const options = [...getTreeOptions(this.options), ...getTreeOptions(this.cardOptions)]
+      renderPromptText(this.$refs.JMention, value, options)
+      this.selectedList = tokenizePrompt(value, options).filter(part => part.token).map(part => part.token)
+      this.selectedIdSet = new Set(this.selectedList.map(option => option.value))
+      this.localValue = value
+    },
+    handlePaste(event) {
+      if (!this.semanticTags) return
+      event.preventDefault()
+      const selection = window.getSelection()
+      if (!selection.rangeCount || !this.$refs.JMention.contains(selection.anchorNode)) return
+      const range = selection.getRangeAt(0)
+      const text = document.createTextNode(event.clipboardData.getData('text/plain'))
+      range.deleteContents()
+      range.insertNode(text)
+      range.setStartAfter(text)
+      range.collapse(true)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      this.updateValue()
+    },
     resolvePopupContainer() {
       const container = this.getPopupContainer ? this.getPopupContainer() : null
       return container instanceof HTMLElement ? container : document.body
@@ -193,7 +240,11 @@ export default {
       }
     },
     onScroll(event) {
-      if (!this.isBodyPopupContainer) {
+      if (this.semanticTags) {
+        if (!this.$refs.dropdownList?.contains(event.target)) this.positionSemanticDropdown()
+        return
+      }
+      if (!this.isBodyPopupContainer && !this.semanticTags) {
         return
       }
       if (this.$refs.dropdownList?.contains(event.target)) {
@@ -204,6 +255,29 @@ export default {
     hideDropdownMenus() {
       this.showDropdown = false
     },
+    positionSemanticDropdown() {
+      const popup = this.$refs.dropdownList
+      const range = this.dropdownAnchorRange
+      if (!this.semanticTags || !this.showDropdown || !popup || !range || !this.$refs.JMention?.contains(range.startContainer)) return
+      const raw = range.getBoundingClientRect()
+      const rect = raw.bottom > raw.top ? raw : this.$refs.JMention.getBoundingClientRect()
+      const margin = 8
+      const gap = 4
+      const width = Math.min(popup.offsetWidth, window.innerWidth - margin * 2)
+      const height = popup.scrollHeight || popup.offsetHeight
+      const below = Math.max(0, window.innerHeight - margin - rect.bottom - gap)
+      const above = Math.max(0, rect.top - margin - gap)
+      const useBelow = height <= below || below >= above
+      const maxHeight = Math.min(useBelow ? below : above, window.innerHeight - margin * 2)
+      const fittedHeight = Math.min(height, maxHeight)
+      const top = useBelow ? rect.bottom + gap : rect.top - gap - fittedHeight
+      this.positionStyle = {
+        left: `${Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin))}px`,
+        top: `${Math.max(margin, Math.min(top, window.innerHeight - fittedHeight - margin))}px`,
+        maxHeight: `${maxHeight}px`,
+        maxWidth: `calc(100vw - ${margin * 2}px)`
+      }
+    },
     onFocus() {
       this.$emit('focus')
     },
@@ -213,6 +287,7 @@ export default {
     getText(htmlStr) {
       const div = document.createElement('div')
       div.innerHTML = htmlStr
+      if (this.semanticTags) return readPromptText(div)
       let text = ''
       // 遍历子节点
       Array.from(div.childNodes).forEach((node) => {
@@ -282,6 +357,10 @@ export default {
     },
     initData() {
       const JMention = this.$refs.JMention
+      if (this.semanticTags) {
+        this.renderSemanticValue(String(this.defaultValue ?? ''))
+        return
+      }
       // let html = this.defaultValue;
       let html = this.defaultValue.toString().replace(/</g, '&lt;').replace(/>/g, '&gt;')
       let defaultSelectedList = this.defaultSelectedList || []
@@ -323,7 +402,7 @@ export default {
     initShowOptionList() {
       this.showOptions = this.options.filter((opt) => {
         if (this.atText) {
-          return opt.label.startsWith(this.atText)
+          return this.semanticTags ? `${opt.label} ${opt.description || ''}`.includes(this.atText) : opt.label.startsWith(this.atText)
         }
         if (this.canRepeat) return true
         return !this.selectedIdSet.has(opt.id + '')
@@ -387,6 +466,7 @@ export default {
       if (selection.rangeCount <= 0) return { top: 0, left: 0 }
       const range = selection.getRangeAt(0)
       const rect = range.getBoundingClientRect()
+      if (this.semanticTags) this.dropdownSelection = getPromptSelection(this.$refs.JMention)
       const dropdownListRect = await this.getDropdownListSize()
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
@@ -462,6 +542,7 @@ export default {
       this.initShowOptionList()
     },
     checkStartWith(text) {
+      if (this.semanticTags) return [...this.options, ...this.cardOptions].some(option => `${option.label} ${option.description || ''}`.includes(text))
       const list = this.options.filter((opt) => {
         return opt.label.startsWith(text)
       })
@@ -470,7 +551,26 @@ export default {
     updateValue() {
       this.onChange()
     },
-    clickJMention() {
+    clickJMention(event) {
+      if (this.semanticTags) {
+        const editor = this.$refs.JMention
+        const token = event.target.closest('.j-mention-at')
+        const selection = window.getSelection()
+        let slot
+        if (token && editor.contains(token)) {
+          ensurePromptCaretSlots(editor)
+          const rect = token.getBoundingClientRect()
+          if (event.clientX >= rect.left + rect.width / 2) slot = token.nextSibling
+        } else if (selection.anchorNode === editor && selection.anchorOffset === editor.childNodes.length) slot = editor.lastChild
+        if (slot?.dataset?.promptCaret) {
+          editor.focus()
+          const range = document.createRange()
+          range.setStart(slot.firstChild, 1)
+          range.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+      }
       if (this.showDropdown) {
         this.showDropdown = false
       }
@@ -496,6 +596,7 @@ export default {
         clearTimeout(this.timer)
       }
       this.updateValue()
+      if (this.semanticTags && !this.showDropdown) this.refreshSemanticLabels()
     },
     async handleDropdownLogic(e) {
       // 获取光标前的最后一个字符。此操作依赖于当前的DOM状态，应在任何DOM修改前执行。
@@ -527,12 +628,48 @@ export default {
         return
       }
 
+      if (this.semanticTags) {
+        const selection = window.getSelection()
+        if (!selection.rangeCount || !this.$refs.JMention?.contains(selection.anchorNode)) return
+        this.dropdownSelection = getPromptSelection(this.$refs.JMention)
+        this.dropdownAnchorRange = selection.getRangeAt(0).cloneRange()
+        await this.$nextTick()
+        this.positionSemanticDropdown()
+        return
+      }
+
       // --- 定位并最终显示下拉菜单 ---
       const { top, left } = await this.getCaretPosition()
       this.showDropdown = true
       this.positionStyle = `left:${left}px; top:${top}px;`
     },
     insertAtCaret(text, dataSet) {
+      if (this.semanticTags) {
+        const editor = this.$refs.JMention
+        const value = readPromptText(editor)
+        const offsets = this.dropdownSelection || getPromptSelection(editor)
+        if (!offsets) return
+        const trigger = '/' + this.atText
+        if (value.slice(0, offsets.start).endsWith(trigger)) offsets.start -= trigger.length
+        // 浮层搜索框获得焦点后，仍在原编辑位置插入，并保持编码用于保存。
+        renderPromptText(editor, value, [...this.options, ...this.cardOptions])
+        restorePromptSelection(editor, offsets)
+        const selection = window.getSelection()
+        const range = selection.getRangeAt(0)
+        const caretSlot = range.startContainer.parentElement
+        if (caretSlot?.dataset?.promptCaret) range.setStartAfter(caretSlot)
+        range.deleteContents()
+        const token = createPromptToken({ ...dataSet, label: text }, document)
+        range.insertNode(token)
+        ensurePromptCaretSlots(editor)
+        editor.focus()
+        range.setStart(token.nextSibling.firstChild, 1)
+        range.collapse(true)
+        selection.removeAllRanges()
+        selection.addRange(range)
+        this.dropdownSelection = null
+        return
+      }
       let len = this.atText.length + 1
       const lastChar = this.getLastChar(len)
       if (lastChar !== '/' + this.atText) len = 0
@@ -686,6 +823,30 @@ export default {
       this.positionStyle = `left:${newLeft}px; top:${currentTop}px;`
     },
     handleKeydown(event) {
+      if (this.semanticTags && ['Backspace', 'Delete'].includes(event.key)) {
+        const editor = this.$refs.JMention
+        const selection = window.getSelection()
+        const slot = selection.anchorNode?.parentElement
+        if (selection.isCollapsed && slot?.dataset?.promptCaret && selection.anchorOffset <= 1) {
+          const token = event.key === 'Backspace' ? slot.previousSibling : slot.nextSibling
+          if (token?.classList?.contains('j-mention-at')) {
+            event.preventDefault()
+            const offsets = getPromptSelection(editor)
+            const position = offsets.start - (event.key === 'Backspace' ? token.dataset.value.length : 0)
+            token.remove()
+            this.renderSemanticValue(readPromptText(editor))
+            restorePromptSelection(editor, { start: position, end: position })
+            this.updateValue()
+            return
+          }
+        }
+      }
+      if (this.semanticTags && this.showDropdown && event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        this.hideDropdownMenus()
+        return
+      }
       // 当type为input时，阻止回车键换行
       if (this.type === 'input' && event.key === 'Enter') {
         event.preventDefault();
@@ -799,6 +960,11 @@ export default {
     background: rgb(191, 191, 191);
   }
 }
+.mention-input-warpper.semantic-mention {
+  .j-mention { padding-top: 2px; padding-bottom: 2px; }
+  :deep(.j-mention-at) { display: inline-flex; align-items: center; min-height: 24px; box-sizing: border-box; padding: 0 8px; line-height: 22px; vertical-align: baseline; cursor: text; }
+  :deep(.j-mention-at.mini-card-tag) { min-height: 22px; line-height: 20px; }
+}
 .placeholder {
   position: absolute;
   top: 0;
@@ -868,6 +1034,10 @@ export default {
 
 .dropdown-list-fixed {
   position: fixed;
+}
+.dropdown-list-semantic {
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dropdown-list-absolute {

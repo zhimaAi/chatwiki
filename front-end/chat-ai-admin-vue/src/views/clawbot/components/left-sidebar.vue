@@ -27,8 +27,13 @@
                   <img v-if="getAssistantAvatar(item)" :src="getAssistantAvatar(item)" alt="" />
                   <span v-else class="brand-fallback">🔥</span>
                 </div>
-                <span class="assistant-option-name">{{ item.robot_name || t('label_agent_fallback') }}</span>
-                <CheckOutlined v-if="item.id === currentAssistantId" class="assistant-option-check" />
+                <span class="assistant-option-name">{{
+                  item.robot_name || t('label_agent_fallback')
+                }}</span>
+                <CheckOutlined
+                  v-if="item.id === currentAssistantId"
+                  class="assistant-option-check"
+                />
               </button>
             </div>
           </template>
@@ -51,13 +56,19 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="footer-btn primary" type="button" @click="handleCreateAssistant">
+      <button
+        v-if="checkRole(['ClawBotCreate'])"
+        class="footer-btn primary"
+        type="button"
+        @click="handleCreateAssistant"
+      >
         <PlusOutlined class="footer-icon" />
         <span>{{ t('btn_new_agent') }}</span>
       </button>
-      <button class="footer-btn" type="button" @click="handleBackChatwiki">
-        <LeftOutlined class="footer-icon" />
-        <span>{{ t('btn_back_chatwiki') }}</span>
+      <button class="footer-btn" type="button" @click="handleFooterNavigation">
+        <SettingOutlined v-if="isAgentMode" class="footer-icon" />
+        <LeftOutlined v-else class="footer-icon" />
+        <span>{{ t(isAgentMode ? 'btn_system_settings' : 'btn_back_chatwiki') }}</span>
       </button>
     </div>
 
@@ -66,57 +77,87 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   DownOutlined,
   PlusOutlined,
   LeftOutlined,
-  CheckOutlined,
+  SettingOutlined,
+  CheckOutlined
 } from '@ant-design/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useClawbotStore } from '@/stores/modules/clawbot'
+import { useCompanyStore } from '@/stores/modules/company'
+import { SYSTEM_MODES, useSystemModeStore } from '@/stores/modules/system-mode'
+import { checkRole, getRobotPermission } from '@/utils/permission'
 import AddAgentAlert from '@/views/clawbot/components/add-agent-alert.vue'
 
 const { t } = useI18n('views.clawbot.components.left-sidebar')
 const route = useRoute()
 const router = useRouter()
 const clawbotStore = useClawbotStore()
+const companyStore = useCompanyStore()
+const modeStore = useSystemModeStore()
+const isAgentMode = computed(() => {
+  const entryMode = Array.isArray(route.query.system_mode)
+    ? route.query.system_mode[0]
+    : route.query.system_mode
+  // 分域入口标记只决定页脚文案和去向，不能据此写入本地模式或改变业务权限。
+  return entryMode === SYSTEM_MODES.AGENT || modeStore.currentMode === SYSTEM_MODES.AGENT
+})
 const { currentAssistant, currentAssistantId, robotInfo, assistantList } = storeToRefs(clawbotStore)
 const currentAssistantData = computed(() => {
   const currentData = currentAssistant.value || {}
   const robotDetail =
-    robotInfo.value && String(robotInfo.value.id || '') === String(currentAssistantId.value || '') ? robotInfo.value : {}
+    robotInfo.value && String(robotInfo.value.id || '') === String(currentAssistantId.value || '')
+      ? robotInfo.value
+      : {}
 
   return {
     ...currentData,
-    ...robotDetail,
+    ...robotDetail
   }
 })
-const currentAssistantName = computed(() => currentAssistantData.value.robot_name || t('label_agent_fallback'))
+const currentAssistantName = computed(
+  () => currentAssistantData.value.robot_name || t('label_agent_fallback')
+)
 const currentAssistantAvatar = computed(() => {
-  return currentAssistantData.value.robot_avatar_url || currentAssistantData.value.robot_avatar || ''
+  return (
+    currentAssistantData.value.robot_avatar_url || currentAssistantData.value.robot_avatar || ''
+  )
 })
 
 const addAgentAlertRef = ref(null)
 
-const navItems = computed(() => ([
-  { label: t('nav_chat'), path: '/clawbot/chat', icon: 'chat-menu' },
-  { label: t('nav_agent'), path: '/clawbot/assistant', icon: 'agent-menu' },
-  { label: t('nav_skill'), path: '/clawbot/skills', icon: 'skill-menu' },
-  { label: t('nav_knowledge_base'), path: '/clawbot/knowledge', icon: 'knowledge-menu' },
-  { label: t('nav_external_services'), path: '/clawbot/services', icon: 'service-menu' },
-  { label: t('nav_analytics'), path: '/clawbot/stats', icon: 'analytics-menu' },
-  { label: t('nav_settings'), path: '/clawbot/settings', icon: 'settings-menu', query: { menu: 'basic' } },
-]))
+const navItems = computed(() =>
+  [
+    { label: t('nav_chat'), path: '/clawbot/chat', icon: 'chat-menu' },
+    { label: t('nav_agent'), path: '/clawbot/assistant', icon: 'agent-menu' },
+    { label: t('nav_skill'), path: '/clawbot/skills', icon: 'skill-menu' },
+    { label: t('nav_knowledge_base'), path: '/clawbot/knowledge', icon: 'knowledge-menu' },
+    { label: t('nav_external_services'), path: '/clawbot/services', icon: 'service-menu' },
+    { label: t('nav_analytics'), path: '/clawbot/stats', icon: 'analytics-menu' },
+    {
+      label: t('nav_settings'),
+      path: '/clawbot/settings',
+      icon: 'settings-menu',
+      query: { menu: 'basic' }
+    }
+  ].filter(
+    (item) =>
+      getRobotPermission(currentAssistantId.value) != 1 ||
+      ['/clawbot/chat', '/clawbot/assistant', '/clawbot/stats'].includes(item.path)
+  )
+)
 
 const handleCreateAssistant = () => {
   addAgentAlertRef.value.open()
 }
 
-const handleBackChatwiki = () => {
-  router.replace('/robot/list')
+const handleFooterNavigation = () => {
+  router.replace(isAgentMode.value ? '/user/enterprise' : '/robot/list')
 }
 
 const getAssistantAvatar = (item) => {
@@ -139,6 +180,7 @@ const handleNavigate = (item) => {
     path: item.path,
     query: {
       ...buildAssistantQuery(),
+      ...(isAgentMode.value ? { system_mode: SYSTEM_MODES.AGENT } : {}),
       ...(item.query || {})
     }
   })
@@ -177,6 +219,14 @@ const onAgentCreated = (data) => {
     }
   })
 }
+
+watch(
+  () => companyStore.id,
+  () => {
+    modeStore.loadForScope({ companyId: companyStore.id })
+  },
+  { immediate: true }
+)
 </script>
 
 <style lang="less" scoped>
@@ -307,7 +357,9 @@ const onAgentCreated = (data) => {
   gap: 8px;
   color: #262626;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background: #f5f5f5;
@@ -368,7 +420,10 @@ const onAgentCreated = (data) => {
   padding: 7px 17px;
   border-radius: 8px;
   color: #262626;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background: #e4e6eb;

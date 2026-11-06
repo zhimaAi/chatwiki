@@ -10,6 +10,7 @@
 *.json    text eol=lf
 *.txt      text eol=lf
 *.ini     text eol=lf
+*.sh      text eol=lf
 
 # 二进制文件（不进行任何转换）
 *.png       binary

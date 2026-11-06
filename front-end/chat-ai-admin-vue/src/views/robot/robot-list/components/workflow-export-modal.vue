@@ -43,7 +43,7 @@ const libraryList = ref([])
 function handle(r = {}) {
   reset()
   robotInfo.value = r
-  robotImportDataInfo({id: r?.id}).then(res => {
+  return robotImportDataInfo({id: r?.id}).then(res => {
     let data = res?.data || {}
     dbList.value = data?.databaseList || []
     libraryList.value = data?.library || []

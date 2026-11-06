@@ -3,6 +3,9 @@
     <div class="page-title">{{ t('title_invoke_logs') }}</div>
     <div class="list-wrapper">
       <div class="content-wrapper">
+        <a-alert v-if="loadError" type="error" :message="loadError" show-icon>
+          <template #action><a-button size="small" @click="getData()">{{ commonT('retry') }}</a-button></template>
+        </a-alert>
         <div class="search-block">
           <a-range-picker
             v-model:value="dates"
@@ -73,7 +76,7 @@
           </template>
         </a-table>
       </div>
-      <LogsDetail ref="logsDetailRef" />
+      <LogsDetail ref="logsDetailRef" :robot-key="props.robotKey" />
     </div>
   </div>
 </template>
@@ -90,6 +93,8 @@ import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.invoke-logs.index')
+const { t: commonT } = useI18n('views.customer-service.index')
+const props = defineProps({ robotId: { type: [String, Number], default: '' }, robotKey: { type: String, default: '' } })
 const query = useRoute().query
 
 const WORKFLOW_STATUS_RUNNING = 0
@@ -106,9 +111,12 @@ const loading = ref(false)
 const stoppingLogIds = ref(new Set())
 let statusPollingTimer = null
 let fastPollingTimer = null
+let alive = true
+let requestSequence = 0
+const loadError = ref('')
 
 const requestParams = reactive({
-  robot_id: query.id,
+  robot_id: props.robotId || query.id,
   page: 1,
   size: 20,
   total: 0,
@@ -151,6 +159,7 @@ const clearStatusPolling = () => {
 }
 
 const refreshPollingStatus = () => {
+  if (!alive) return
   if (hasRunningRecord()) {
     if (!statusPollingTimer) {
       statusPollingTimer = setInterval(() => {
@@ -170,6 +179,7 @@ const clearFastPolling = () => {
 }
 
 const startFastPollingAfterStop = () => {
+  if (!alive) return
   clearFastPolling()
   let times = 0
   fastPollingTimer = setInterval(() => {
@@ -192,6 +202,8 @@ const getStatusInfo = (status) => {
 }
 
 const getData = (showLoading = true) => {
+  if (!alive) return Promise.resolve()
+  const sequence = ++requestSequence
   if (showLoading) {
     loading.value = true
   }
@@ -199,6 +211,8 @@ const getData = (showLoading = true) => {
     ...requestParams
   })
     .then((res) => {
+      if (!alive || sequence !== requestSequence) return
+      loadError.value = ''
       let lists = res.data.list || []
 
       tableData.value = lists.map((item) => {
@@ -213,8 +227,11 @@ const getData = (showLoading = true) => {
       requestParams.total = +res.data.total || 0
       refreshPollingStatus()
     })
+    .catch((err) => {
+      if (alive && sequence === requestSequence) loadError.value = err.message || commonT('load_failed')
+    })
     .finally(() => {
-      if (showLoading) {
+      if (alive && sequence === requestSequence) {
         loading.value = false
       }
     })
@@ -229,6 +246,7 @@ const handleStop = async (record) => {
   stoppingLogIds.value.add(record.id)
   try {
     const res = await stopWorkFlow({ log_id: record.id })
+    if (!alive) return
     if (res?.data?.stopped) {
       record.status = WORKFLOW_STATUS_STOPPED
       message.success(t('msg_stop_success'))
@@ -301,6 +319,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  alive = false
+  requestSequence++
   clearStatusPolling()
   clearFastPolling()
 })

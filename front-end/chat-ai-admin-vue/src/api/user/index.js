@@ -49,6 +49,14 @@ export const getCompany = () => {
   return request.get({ url: '/manage/getCompany' })
 }
 
+export const getSystemMode = () => {
+  return request.get({ url: '/manage/getSystemMode' })
+}
+
+export const saveSystemMode = (data) => {
+  return request.post({ url: '/manage/saveSystemMode', data })
+}
+
 export const saveCompany = (data) => {
   return request.post({ url: '/manage/saveCompany', data })
 }

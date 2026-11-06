@@ -35,6 +35,9 @@ const query = useRoute().query
 const router = useRouter()
 
 const props = defineProps({
+  startDate: { type: String, default: '' },
+  endDate: { type: String, default: '' },
+  preserveQuery: { type: Boolean, default: false },
   datekey: {
     type: String,
     default: ''
@@ -114,13 +117,15 @@ const search = () => {
 }
 
 onMounted(() => {
-  if(query.start_date && query.end_date){
+  const start = props.startDate || query.start_date
+  const end = props.endDate || query.end_date
+  if(start && end){
     create_time_type.value = 5
-    range.value = [dayjs(query.start_date), dayjs(query.end_date)]
-    start_time.value = dayjs(query.start_date).format('YYYYMMDD')
-    end_time.value = dayjs(query.end_date).format('YYYYMMDD')
+    range.value = [dayjs(start), dayjs(end)]
+    start_time.value = dayjs(start).format('YYYYMMDD')
+    end_time.value = dayjs(end).format('YYYYMMDD')
     search()
-    setTimeout(() => {
+    if (!props.preserveQuery) setTimeout(() => {
       router.push({
         path: router.path,
         query: {

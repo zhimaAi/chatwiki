@@ -80,7 +80,10 @@
             </a-tooltip>
           </template>
           <div class="number-box">
-            <a-switch v-model:checked="formState.enable_thinking" />
+            <ReasoningEffortSelect
+              v-model:value="formState.reasoning_effort"
+              @change="(effort) => (formState.enable_thinking = effort !== 'none')"
+            />
           </div>
         </a-form-item>
         <a-form-item name="context_pair">
@@ -216,6 +219,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import {
   ref,
   reactive,
@@ -290,6 +295,7 @@ const formState = reactive({
   prompt: '',
   question_value: '',
   enable_thinking: false,
+  reasoning_effort: 'none',
   output: [
     // {
     //   key: '',
@@ -349,6 +355,8 @@ watch(
       let params_extractor = JSON.parse(dataRaw).params_extractor || {}
 
       params_extractor = JSON.parse(JSON.stringify(params_extractor))
+
+      params_extractor.reasoning_effort = toReasoningEffort(params_extractor.enable_thinking, params_extractor.reasoning_effort)
 
       for (let key in params_extractor) {
         if (key == 'output') {

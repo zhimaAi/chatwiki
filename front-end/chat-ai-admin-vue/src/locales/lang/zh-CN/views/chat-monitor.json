@@ -2,5 +2,11 @@
   "all_apps": "全部应用",
   "search_placeholder": "搜索客户昵称或openld，按enter搜索",
   "select_conversation_tip": "请在左侧列表先选择会话",
-  "feature_description": "通过本功能，可以实时查看机器人接待中的会话消息，监控机器人回复效果"
+  "feature_description": "通过本功能，可以实时查看机器人接待中的会话消息，监控机器人回复效果",
+  "btn_session_setting": "会话设置",
+  "title_session_setting": "会话设置",
+  "label_auto_end": "自动结束：",
+  "label_hour": "小时",
+  "desc_auto_end": "内未对话，自动结束并从列表移除",
+  "msg_invalid_session_hours": "请输入 0.1 到 48 之间的小时数"
 }

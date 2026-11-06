@@ -7,12 +7,15 @@
 
 a {
   cursor: pointer;
-  color: #2475fc;
+  color: var(--app-link, #2475fc);
   text-decoration: none;
 }
 a:hover {
-  color: #2475fc;
+  color: var(--app-link-hover, #2475fc);
   outline: none;
+}
+a:active {
+  color: var(--app-link-active, #2475fc);
 }
 .window-hidden {
   height: 100vh;

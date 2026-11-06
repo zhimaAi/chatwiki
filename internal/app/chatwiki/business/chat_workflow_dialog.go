@@ -224,9 +224,15 @@ func runCallWorkFlowDialog(params *work_flow.WorkFlowParams, chanStream chan sse
 	content, replyContentList := work_flow.TakeOutputReply(flow)
 	if len(replyContentList) > 0 {
 		currentReplyJSON := tool.JsonEncodeNoError(replyContentList)
-		if shouldSendWorkflowDialogFinalReplyList(currentReplyJSON, state.lastReplyJSON, state.hasCurrentRunStructuredReply) {
+		// finish node multi-message replies are not pushed by node log callbacks,
+		// so they must be sent when the workflow ends
+		if shouldSendWorkflowDialogFinalReplyList(currentReplyJSON, state.lastReplyJSON, state.hasCurrentRunStructuredReply || state.hasExplicitFinishText) {
 			state.replyContentList = append(state.replyContentList, replyContentList...)
 			chanStream <- sse.Event{Event: `reply_content_list`, Data: state.replyContentList}
+			// keep the joined text for the test page context while the list is displayed
+			if len(content) > 0 && common.IsWorkFlowFinishReplyList(replyContentList) {
+				chanStream <- sse.Event{Event: `sending`, Data: content}
+			}
 		}
 	} else if (state.hasCurrentRunTextReply || state.hasExplicitFinishText) &&
 		shouldSendWorkflowDialogFinalText(content, state.lastPushedText, state.hasPushedReply, replyContentList) {

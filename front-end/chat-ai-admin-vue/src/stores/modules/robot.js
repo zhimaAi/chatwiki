@@ -1,3 +1,4 @@
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import {reactive, ref} from 'vue'
 import {defineStore} from 'pinia'
 import {getChatVariables, getRobotGroupList, getRobotInfo, getRobotList} from '@/api/robot/index'
@@ -83,6 +84,7 @@ export const useRobotStore = defineStore('robot', () => {
     optimize_question_model_config_id: '',
     optimize_question_use_model: '',
     optimize_question_enable_thinking: 0,
+    optimize_question_reasoning_effort: 'none',
     rerank_status: 0,
     rerank_use_model: undefined,
     rerank_model_config_id: undefined,
@@ -144,12 +146,14 @@ export const useRobotStore = defineStore('robot', () => {
     unknown_summary_use_model: '',
     unknown_summary_model_config_id: '',
     default_library_id: '',
+    normal_library_id: '',
     cache_config: {
       cache_switch: 0,
       valid_time: 86400,
     },
     prompt_role_type: '0',
     enable_thinking: 0,
+    reasoning_effort: 'none',
     wechat_not_verify_hand_get_reply: '正在思考中，请稍后点击下方蓝字\r\n获取回复👇👇👇',
     wechat_not_verify_hand_get_word: '👉👉点我获取回复👈👈',
     wechat_not_verify_hand_get_next: '内容较多，点此查看下文',
@@ -227,6 +231,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.optimize_question_model_config_id = data.optimize_question_model_config_id
     robotInfo.optimize_question_use_model = data.optimize_question_use_model
     robotInfo.optimize_question_enable_thinking = +data.optimize_question_enable_thinking || 0
+    robotInfo.optimize_question_reasoning_effort = toReasoningEffort(data.optimize_question_enable_thinking, data.optimize_question_reasoning_effort)
     robotInfo.rerank_status = Number(data.rerank_status)
     robotInfo.rerank_use_model = data.rerank_use_model
     robotInfo.rerank_model_config_id = data.rerank_model_config_id
@@ -275,6 +280,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.question_guide_workflow_key = data.question_guide_workflow_key || ''
     robotInfo.question_multiple_switch = +data.question_multiple_switch
     robotInfo.enable_thinking = +data.enable_thinking || 0
+    robotInfo.reasoning_effort = toReasoningEffort(data.enable_thinking, data.reasoning_effort)
 
     robotInfo.start_node_key = data.start_node_key
 
@@ -282,6 +288,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.draft_save_time = data.draft_save_time
 
     robotInfo.default_library_id = data.default_library_id
+    robotInfo.normal_library_id = data.normal_library_id || 0
 
     robotInfo.unknown_summary_status = data.unknown_summary_status
     robotInfo.unknown_summary_similarity = data.unknown_summary_similarity
@@ -453,9 +460,11 @@ export const useRobotStore = defineStore('robot', () => {
 
   const chatVariables = ref([])
   const fetchChatVariables = ()=>{
+    const robotKey = robotInfo.robot_key
     getChatVariables({
-      robot_key: robotInfo.robot_key
+      robot_key: robotKey
     }).then(res=>{
+      if (robotKey !== robotInfo.robot_key) return
       chatVariables.value = (res.data || []).map(item=>{
         let options = item.options ? JSON.parse(item.options) : []
         return {
@@ -468,6 +477,7 @@ export const useRobotStore = defineStore('robot', () => {
 
   return {
     robotInfo,
+    setRobotInfo,
     getRobot,
     external_config_h5,
     external_config_pc,

@@ -131,7 +131,7 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, computed, createVNode, watch, watchEffect } from 'vue'
+import { ref, reactive, computed, createVNode, watch, watchEffect, inject } from 'vue'
 import { Form, message, Modal } from 'ant-design-vue'
 import draggable from 'vuedraggable'
 import {
@@ -145,6 +145,7 @@ import { languageMapList } from './languageMap'
 
 import { useRobotStore } from '@/stores/modules/robot'
 import { saveRobotLangConfigs } from '@/api/robot/index'
+const customerContext = inject('customerRobotContext', null)
 
 import { useI18n } from '@/hooks/web/useI18n'
 
@@ -331,6 +332,7 @@ const handleSave = () => {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
+  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) show.value = false })
   saveRobotLangConfigs(parmas).then(() => {
     message.success('保存成功')
     show.value = false

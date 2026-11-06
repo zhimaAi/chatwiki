@@ -2,12 +2,18 @@
   <div class="reply-list" v-if="replyItems.length">
     <template v-for="(rc, idx) in replyItems" :key="idx">
       <div v-if="getReplyType(rc) === 'text'" class="reply-item reply-text">
-        <div class="message-content" v-html="rc.description"></div>
+        <div v-if="rc.send_source === 'work_flow_finish'" class="message-content">
+          <cherry-markdown :content="rc.description || ''"></cherry-markdown>
+        </div>
+        <div v-else class="message-content" v-html="formatReplyText(rc)"></div>
       </div>
       <div v-else-if="getReplyType(rc) === 'image'" class="reply-item reply-image">
         <div class="message-content">
           <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
         </div>
+      </div>
+      <div v-else-if="getReplyType(rc) === 'voice'" class="reply-item reply-voice">
+        <audio class="reply-audio" :src="rc.url" controls preload="metadata"></audio>
       </div>
       <div v-else-if="getReplyType(rc) === 'url'" class="reply-item reply-url">
         <div class="url-row">
@@ -63,6 +69,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 
 const emit = defineEmits(['clickMsgMeun'])
 
@@ -88,6 +95,10 @@ const replyItems = computed(() => parseReplyList(props.replyContentList))
 
 const getReplyType = (item) => {
   return item?.reply_type || item?.type || ''
+}
+
+const formatReplyText = (rc) => {
+  return rc?.description || ''
 }
 
 function buildMenuLines(menu_content) {
@@ -165,6 +176,10 @@ function onClickSmartMenuKeyword(text) {
 
 .reply-image .msg-img {
   max-width: 500px;
+}
+
+.reply-voice .reply-audio {
+  max-width: 240px;
 }
 
 .reply-url .url-link {

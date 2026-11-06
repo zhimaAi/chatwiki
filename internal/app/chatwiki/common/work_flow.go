@@ -454,22 +454,22 @@ type BatchTestParams struct {
 
 const WorkFlowEnNameRegex = `[a-zA-Z0-9_\-\.]{1,50}`
 
-func CheckEnName(adminUserId, enName string, id string) bool {
+func CheckEnName(adminUserId, enName string, id string) error {
 	re := regexp.MustCompile(`^` + WorkFlowEnNameRegex + `$`)
 	if !re.MatchString(enName) {
-		return false
+		return errors.New(`workflow_en_name_invalid`)
 	}
 	id, err := msql.Model(`chat_ai_robot`, define.Postgres).
 		Where(`admin_user_id`, adminUserId).
 		Where(`en_name`, enName).Where(`id`, `!=`, id).Value(`id`)
 	if err != nil {
 		logs.Error(err.Error())
-		return false
+		return errors.New(`sys_err`)
 	}
 	if len(id) == 0 {
-		return true
+		return nil
 	}
-	return false
+	return errors.New(`workflow_en_name_exists`)
 }
 
 func TakeWorkFlowTestUseToken(flowOutputs []NodeLog) (int, int64) {

@@ -818,12 +818,18 @@
         <div class="reply-list">
           <template v-for="(rc, idx) in parseReplyList(props.msg.reply_content_list)" :key="idx">
             <div v-if="(rc.reply_type || rc.type) === 'text'" class="reply-item reply-text">
-              <div class="message-content" v-html="rc.description"></div>
+              <div v-if="rc.send_source === 'work_flow_finish'" class="message-content">
+                <cherry-markdown :content="rc.description || ''" />
+              </div>
+              <div v-else class="message-content" v-html="formatReplyText(rc)"></div>
             </div>
             <div v-else-if="(rc.reply_type || rc.type) === 'image'" class="reply-item reply-image">
               <div class="message-content">
                 <img v-viewer class="msg-img" :src="rc.pic || rc.thumb_url" />
               </div>
+            </div>
+            <div v-else-if="(rc.reply_type || rc.type) === 'voice'" class="reply-item reply-voice">
+              <VoicePlayer :url="rc.url" />
             </div>
             <div v-else-if="(rc.reply_type || rc.type) === 'url'" class="reply-item reply-url">
               <div class="url-row">
@@ -1099,7 +1105,7 @@
         </template>
       </div>
         <!-- 语音消息 -->
-      <div :style="{'margin-top': props.msg.content == '' ? '-24px' : ''}" v-if="props.msg.voice_content && props.msg.voice_content.length">
+      <div :style="{'margin-top': props.msg.content == '' ? '-24px' : ''}" v-if="props.msg.voice_content && props.msg.voice_content.length && !isWorkFlowFinishReplyList(props.msg.reply_content_list)">
         <VoiceMessage :voice_content="props.msg.voice_content" />
       </div>
     </div>
@@ -1118,6 +1124,7 @@ import useClipboard from 'vue-clipboard3'
 import QuoteModal from '../quote-modal/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import VoiceMessage from './voice-message.vue'
+import VoicePlayer from './voice-player.vue'
 import MultipleMessage from './multiple-message.vue'
 import ProcessTimeline from './process-timeline.vue'
 
@@ -1353,6 +1360,14 @@ function parseReplyList(val) {
   }
 }
 
+const isWorkFlowFinishReplyList = (val) => {
+  return parseReplyList(val).some((rc) => rc?.send_source === 'work_flow_finish')
+}
+
+const formatReplyText = (rc) => {
+  return rc?.description || ''
+}
+
 const hasProcessSteps = (item: any) => {
   if (!Array.isArray(item?.process_steps)) {
     return false
@@ -1416,7 +1431,7 @@ const isShowMessageBody = (item: any) => {
   if (shouldShowProcessTimeline(item) || shouldShowQuoteProgress.value) {
     return true
   }
-  if(parseReplyList(item.reply_content_list).length && item.content == ''){
+  if (parseReplyList(item.reply_content_list).length && (item.content == '' || isWorkFlowFinishReplyList(item.reply_content_list))) {
     return false
   }
   return true

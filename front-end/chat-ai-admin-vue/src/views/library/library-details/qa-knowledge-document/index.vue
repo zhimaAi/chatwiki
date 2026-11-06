@@ -1,7 +1,9 @@
 <template>
-  <div class="qa-list-wrapper">
+  <div class="qa-list-wrapper" :class="{ 'workspace-document': compact }">
     <div
       class="group-content-box"
+      :inert="compact && isHiddenGroup ? '' : undefined"
+      :aria-hidden="compact && isHiddenGroup ? true : undefined"
       :class="[{ collapsed: isHiddenGroup }, { 'no-transition': isDragging }]"
       :style="
         isHiddenGroup
@@ -15,7 +17,10 @@
     >
       <div class="group-head-box">
         <div class="head-title">
-          <a-tooltip :title="t('collapse_group')">
+          <button v-if="compact" type="button" class="workspace-icon-button collapse-group" :aria-label="t('collapse_group')" :title="t('collapse_group')" :aria-expanded="!isHiddenGroup" @click="handleChangeHideStatus">
+            <img :src="icons.collapse" alt="" />
+          </button>
+          <a-tooltip v-if="!compact" :title="t('collapse_group')">
             <div class="hover-btn-wrap" @click="handleChangeHideStatus">
               <svg-icon name="put-away"></svg-icon>
             </div>
@@ -23,7 +28,8 @@
           <div class="flex-between-box">
             <div>{{ t('qa_group') }}</div>
             <a-tooltip :title="t('create_group')">
-              <div class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
+              <button v-if="compact" type="button" class="workspace-icon-button" :aria-label="t('create_group')" @click="openGroupModal({})"><img :src="icons.addGroup" alt="" /></button>
+              <div v-else class="hover-btn-wrap" @click="openGroupModal({})"><PlusOutlined /></div>
             </a-tooltip>
           </div>
         </div>
@@ -34,20 +40,25 @@
             :placeholder="t('search_group')"
             style="width: 100%"
           >
-            <template #suffix>
+            <template v-if="compact" #prefix><img class="workspace-icon" :src="icons.search" alt="" /></template>
+            <template v-if="!compact" #suffix>
               <SearchOutlined @click.stop="" />
             </template>
           </a-input>
         </div>
       </div>
       <div class="classify-box">
-        <cu-scroll style="padding-right: 24px">
+        <cu-scroll :style="{ paddingRight: compact ? '0' : '24px' }">
           <div
             class="classify-item"
             @click="handleChangeGroup(item)"
             :class="{ active: item.id == groupId }"
             v-for="item in filterGroupLists"
             :key="item.id"
+            :role="compact ? 'button' : undefined"
+            :tabindex="compact ? 0 : undefined"
+            @keydown.enter.prevent="compact && handleChangeGroup(item)"
+            @keydown.space.prevent="compact && handleChangeGroup(item)"
           >
             <div class="classify-title">{{ item.group_name }}</div>
             <div class="right-content">
@@ -76,12 +87,26 @@
       <div v-if="!isHiddenGroup" class="resize-bar" @mousedown="handleResizeMouseDown"></div>
     </div>
     <div class="main-content-box">
-      <cu-scroll
-        :scrollbar="{ minSize: 80, fade: false, interactive: true, scrollbarTrackClickable: true }"
+      <component
+        :is="compact ? 'div' : CuScroll"
+        :class="{ 'document-main-layout': compact }"
+        :scrollbar="compact ? undefined : { minSize: 80, fade: false, interactive: true, scrollbarTrackClickable: true }"
       >
         <div class="head-content">
           <div class="title">
-            <a-popover :title="null" placement="bottom" v-if="isHiddenGroup">
+            <a-popover v-if="compact && isHiddenGroup" v-model:open="groupPopoverOpen" :trigger="['hover', 'focus']" placement="bottomLeft" :arrow="false" :overlay-inner-style="{ padding: '6px' }" overlay-class-name="workspace-qa-group-popover">
+              <template #content>
+                <div class="workspace-group-options">
+                  <button v-for="item in groupLists" :key="item.id" type="button" class="workspace-group-option" :class="{ active: item.id == groupId }" @click="selectPopoverGroup(item)">
+                    <span>{{ item.group_name }}</span><span>{{ item.total }}</span>
+                  </button>
+                </div>
+              </template>
+              <button type="button" class="workspace-icon-button expand-group" :aria-label="t('expand_group')" :aria-expanded="!isHiddenGroup" @click="handleChangeHideStatus" @keydown.esc="groupPopoverOpen = false">
+                <img :src="icons.collapse" alt="" />
+              </button>
+            </a-popover>
+            <a-popover :title="null" placement="bottom" v-if="isHiddenGroup && !compact">
               <template #content>
                 <div class="pover-group-content-box">
                   <div class="group-head-box">
@@ -147,8 +172,27 @@
                 <svg-icon name="expand"></svg-icon>
               </div>
             </a-popover>
-            <div>{{ currentGroupItem.group_name }}</div>
-            <div class="btn-right-box">
+            <div class="current-group-name" :title="currentGroupItem.group_name">{{ currentGroupItem.group_name }}</div>
+            <div v-if="compact" class="btn-right-box workspace-tools">
+              <a-input class="workspace-qa-search" @change="search" v-model:value="filterData.search" :placeholder="t('search_qa')" :aria-label="t('search_qa')">
+                <template #prefix><img class="workspace-icon" :src="icons.search" alt="" /></template>
+              </a-input>
+              <a-button type="text" class="workspace-tool" :title="t('metadata')" :aria-label="t('metadata')" @click="showMetaModal(1)"><img class="workspace-icon" :src="icons.metadata" alt="" /><span class="tool-label">{{ t('metadata') }}</span></a-button>
+              <a-dropdown :trigger="['click']">
+                <a-button type="text" class="workspace-tool" :title="t('batch_operation')" :aria-label="t('batch_operation')"><span class="workspace-batch-icon"><img :src="icons.batch" alt="" /></span><span class="tool-label">{{ t('batch_operation') }}</span></a-button>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item key="delete" @click="handleBathDel">{{ t('batch_delete') }}</a-menu-item>
+                    <a-menu-item key="move" @click="handleOpenMoveModal">{{ t('batch_move') }}</a-menu-item>
+                    <a-menu-item key="metadata" @click="showMetaModal(2)">{{ t('modify_metadata') }}</a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
+              <a-button type="text" class="workspace-tool" :title="t('batch_import')" :aria-label="t('batch_import')" @click="handleOpenFileUploadModal()"><img class="workspace-icon" :src="icons.upload" alt="" /><span class="tool-label">{{ t('batch_import') }}</span></a-button>
+              <a-button type="text" class="workspace-tool" :title="t('batch_export')" :aria-label="t('batch_export')" @click="handleSyncDownload()"><img class="workspace-icon" :src="icons.download" alt="" /><span class="tool-label">{{ t('batch_export') }}</span></a-button>
+              <a-button type="primary" class="workspace-tool" :title="t('qa')" :aria-label="t('qa')" @click="openEditSubscription({})"><img class="workspace-icon" :src="icons.add" alt="" /><span class="tool-label">{{ t('qa') }}</span></a-button>
+            </div>
+            <div v-else class="btn-right-box">
               <div>
                 <a-input @change="search" v-model:value="filterData.search" :placeholder="t('search_qa')">
                   <template #suffix>
@@ -177,7 +221,7 @@
               >
             </div>
           </div>
-          <div class="des-content-block">
+          <div v-if="!compact || exception_total > 0" class="des-content-block">
             <div class="alert-icon-box" v-if="exception_total > 0">
               <svg-icon name="alert-icon"></svg-icon>
               <div>{{ exception_total }}{{ t('learn_failed') }}</div>
@@ -188,6 +232,8 @@
         <div class="content-block">
           <SubsectionBox
             ref="subsectionBoxRef"
+            :compact="compact"
+            :fixed-height="compact"
             :total="total"
             :isLoading="isLoading"
             :paragraphLists="paragraphLists"
@@ -197,7 +243,8 @@
             @getList="getParagraphLists"
             @handleSort="handleSort"
           ></SubsectionBox>
-          <div class="pagination-box">
+          <div class="pagination-box" :class="{ 'document-pagination': compact }">
+            <span v-if="compact" class="pagination-total">{{ t('total_count', { total }) }}</span>
             <a-pagination
               v-model:current="paginations.page"
               v-model:page-size="paginations.size"
@@ -209,7 +256,7 @@
             </a-pagination>
           </div>
         </div>
-      </cu-scroll>
+      </component>
     </div>
   </div>
   <EditSubscription
@@ -270,9 +317,11 @@ import {
   SettingOutlined,
 } from '@ant-design/icons-vue'
 import SubsectionBox from './components/subsection-box.vue'
+import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
 import EditSubscription from '@/views/library/library-preview/components/edit-subsection.vue'
 import QaUploadModal from '../components/qa-upload-modal.vue'
 import AddGroup from './components/add-group.vue'
+import icons from './knowledge-icons'
 import router from '@/router'
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 import { useI18n } from '@/hooks/web/useI18n'
@@ -288,6 +337,7 @@ const query = route.query
 const groupSearchKey = ref('')
 const groupLists = ref([])
 const groupId = ref(-1)
+const groupPopoverOpen = ref(false)
 const qaIds = ref([])
 
 const currentGroupItem = computed(() => {
@@ -299,6 +349,7 @@ const filterGroupLists = computed(() => {
 })
 
 const props = defineProps({
+  compact: { type: Boolean, default: false },
   library_id: {
     type: [Number, String],
     default: () => ''
@@ -311,7 +362,8 @@ const libraryId = computed(() => {
 
 const paragraphLists = ref([])
 
-const isHiddenGroup = ref(localStorage.getItem('qa_document_group_hide_key') == 1)
+const GROUP_HIDE_KEY = props.compact ? 'customer_service_qa_document_group_hide_key' : 'qa_document_group_hide_key'
+const isHiddenGroup = ref(localStorage.getItem(GROUP_HIDE_KEY) == 1)
 
 const total = ref(0)
 const exception_total = ref(0)
@@ -358,8 +410,9 @@ const onShowSizeChange = (current, pageSize) => {
 }
 
 const handleChangeHideStatus = () => {
+  groupPopoverOpen.value = false
   isHiddenGroup.value = !isHiddenGroup.value
-  localStorage.setItem('qa_document_group_hide_key', isHiddenGroup.value ? 1 : 2)
+  localStorage.setItem(GROUP_HIDE_KEY, isHiddenGroup.value ? 1 : 2)
 }
 
 const reEmbeddingVectors = () => {
@@ -423,6 +476,11 @@ const getParagraphLists = () => {
     isLoading.value = false
     let data = res.data
     let list = data.list || []
+    const lastPage = Math.max(1, Math.ceil(Number(data.total) / paginations.value.size))
+    if (paginations.value.page > lastPage) {
+      paginations.value.page = lastPage
+      return getParagraphLists()
+    }
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
       if (item.similar_questions) {
@@ -487,6 +545,11 @@ const handleChangeGroup = (item) => {
   search()
 }
 
+const selectPopoverGroup = (item) => {
+  groupPopoverOpen.value = false
+  handleChangeGroup(item)
+}
+
 const handleDelGroup = (item) => {
   Modal.confirm({
     title: `${t('confirm_delete_group')}${item.group_name}`,
@@ -541,10 +604,10 @@ const handleBathDel = () => {
     icon: createVNode(ExclamationCircleOutlined),
     content: t('confirm_delete_selected'),
     onOk() {
-      deleteParagraph({ id: subsectionBoxRef.value.state.selectedRowKeys.join(',') }).then(
+      return deleteParagraph({ id: subsectionBoxRef.value.state.selectedRowKeys.join(',') }).then(
         (res) => {
           message.success(t('delete_success'))
-          getParagraphLists()
+          initData()
         }
       )
     },
@@ -553,7 +616,7 @@ const handleBathDel = () => {
 }
 
 const handleMove = () => {
-  if (!moveState.group_id) {
+  if (moveState.group_id === undefined || moveState.group_id === null) {
     return message.error(t('select_group_tip'))
   }
   setParagraphGroup({
@@ -565,9 +628,9 @@ const handleMove = () => {
   })
 }
 
-const GROUP_BOX_WIDTH_KEY = 'qa_document_group_box_width'
+const GROUP_BOX_WIDTH_KEY = props.compact ? 'customer_service_qa_document_group_box_width' : 'qa_document_group_box_width'
 const minGroupBoxWidth = 200
-const maxGroupBoxWidth = 256
+const maxGroupBoxWidth = props.compact ? 320 : 256
 
 const groupBoxWidth = ref(minGroupBoxWidth)
 const isDragging = ref(false) // 新增
@@ -611,6 +674,8 @@ const handleResizeMouseUp = () => {
   document.removeEventListener('mouseup', handleResizeMouseUp)
 }
 
+onUnmounted(handleResizeMouseUp)
+
 
 const downLoadModalOpen = ref(false)
 const handleSyncDownload = () => {
@@ -649,6 +714,51 @@ const showMetaModal = (type) => {
 </script>
 
 <style lang="less" scoped>
+.workspace-icon { flex-shrink: 0; vertical-align: middle; }
+.workspace-icon-button {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  &:hover { background: #f0f0f0; }
+  &:focus-visible { outline: 2px solid #146ef5; outline-offset: 2px; }
+}
+.workspace-group-options { width: 228px; max-height: 360px; overflow-y: auto; }
+.workspace-group-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 36px; padding: 6px 12px;
+  border: 0; border-radius: 4px; background: transparent; color: #242424; text-align: left; cursor: pointer;
+  span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  span:last-child { color: #666; }
+  &:hover { background: #f5f5f5; }
+  &.active { color: #1456f0; background: #e8eeff; }
+  &:focus-visible { outline: 2px solid #146ef5; outline-offset: -2px; }
+}
+.qa-list-wrapper.workspace-document {
+  .group-content-box .head-title { gap: 8px; height: 24px; }
+  .head-content .title { gap: 8px; }
+  .current-group-name { flex-shrink: 1; min-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .expand-group { margin-right: 0; img { transform: scaleX(-1); } }
+  .classify-item.active { color: #146ef5; background: #e8efff; }
+  .classify-item:focus-visible { outline: 2px solid #146ef5; outline-offset: -2px; }
+  .classify-item .num { color: #666; }
+  .head-content .workspace-tools { min-width: 0; flex-shrink: 1; font-weight: 400; }
+  .workspace-qa-search { flex: 0 1 208px; min-width: 120px; width: 208px; height: 32px; border-radius: 6px; font-weight: 400; }
+  .workspace-tool {
+    display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 6px; color: #5a5a5a; box-shadow: none;
+    :deep(> span) { margin-inline-start: 0; }
+    &.ant-btn-primary { color: #fff; background: #146ef5; border-color: #146ef5; }
+    &.ant-btn-primary:hover { background: #3686ff; border-color: #3686ff; }
+  }
+  .workspace-batch-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; }
+  .main-content-box .content-block { margin-top: 16px; }
+  .pagination-total { color: #666; font-size: 12px; line-height: 20px; }
+  :deep(.ant-input-affix-wrapper) { height: 32px; padding: 4px 10px; border-color: #d8d8d8; border-radius: 6px; box-shadow: none; }
+  :deep(.ant-input-prefix) { margin-inline-end: 8px; }
+  :deep(.ant-input::placeholder) { color: #ababab; }
+  :deep(.ant-pagination) { display: flex; align-items: center; margin-bottom: 0; }
+}
+@media (max-width: 1439.98px) {
+  .qa-list-wrapper.workspace-document .workspace-tool { width: 32px; padding: 0; .tool-label { display: none; } }
+}
+
 .qa-list-wrapper {
   height: 100%;
   overflow: hidden;

@@ -35,10 +35,9 @@
         </a-form-item>
         <a-form-item v-if="showChunkEnableThinking" :label="thinkingT('label_deep_thinking')">
           <a-flex align="center" :gap="8">
-            <a-switch
-              v-model:checked="formState.chunk_enable_thinking"
-              :checkedValue="1"
-              :unCheckedValue="0"
+            <ReasoningEffortSelect
+              v-model:value="formState.chunk_reasoning_effort"
+              @change="(effort) => (formState.chunk_enable_thinking = effort === 'none' ? 0 : 1)"
             />
             <a-tooltip :title="thinkingT('tooltip_deep_thinking')">
               <QuestionCircleOutlined />
@@ -96,6 +95,8 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ref, reactive, nextTick, computed } from 'vue'
 import {addFAQFile, getFAQConfig } from '@/api/library/index'
@@ -127,6 +128,7 @@ const formState = reactive({
   chunk_model: '',
   chunk_model_config_id: '',
   chunk_enable_thinking: 0,
+  chunk_reasoning_effort: 'none',
   chunk_type: 1,
   chunk_size: 8000,
   chunk_prompt: defaultPromt,
@@ -156,6 +158,7 @@ const show = () => {
       chunk_model: '',
       chunk_model_config_id: '',
       chunk_enable_thinking: 0,
+      chunk_reasoning_effort: 'none',
       chunk_type: 1,
       chunk_size: 8000,
       chunk_prompt: defaultPromt,
@@ -165,6 +168,7 @@ const show = () => {
     formState.chunk_model = data.chunk_model
     formState.chunk_model_config_id = data.chunk_model_config_id
     formState.chunk_enable_thinking = +data.chunk_enable_thinking || 0
+    formState.chunk_reasoning_effort = toReasoningEffort(data.chunk_enable_thinking, data.chunk_reasoning_effort)
     formState.chunk_type = 1
     formState.chunk_size = data.chunk_size || 8000
     formState.chunk_prompt = data.chunk_prompt || defaultPromt
@@ -203,6 +207,7 @@ const saveForm = () => {
   formData.append('chunk_model', formState.chunk_model)
   formData.append('chunk_model_config_id', formState.chunk_model_config_id)
   formData.append('chunk_enable_thinking', formState.chunk_enable_thinking)
+  formData.append('chunk_reasoning_effort', formState.chunk_reasoning_effort)
   formData.append('chunk_prompt', formState.chunk_prompt)
   formData.append('separators_no', JSON.stringify(formState.separators_no))
   confirmLoading.value = true

@@ -1,23 +1,37 @@
 <template>
   <div>
-    <a-modal
-      v-model:open="open"
+    <component
+      :is="compact ? SettingsDialog : AntModal"
+      :open="open"
       :title="t('title_field_detail')"
       @ok="handleOk"
-      :width="648"
-      wrapClassName="no-padding-modal"
-      :bodyStyle="{ 'max-height': '70vh', 'overflow-y': 'auto', 'padding-right': '12px' }"
+      :width="compact ? 560 : 648"
+      :wrapClassName="compact ? undefined : 'no-padding-modal'"
+      :bodyStyle="compact ? undefined : { 'max-height': '70vh', 'overflow-y': 'auto', 'padding-right': '12px' }"
+      :ok-text="compact ? commonT('confirm') : undefined"
+      :cancel-text="compact ? commonT('cancel') : undefined"
+      :confirm-loading="compact && saving"
+      :closable="!compact || !saving"
+      :mask-closable="!compact || !saving"
+      :keyboard="!compact || !saving"
+      :cancel-button-props="{ disabled: compact && saving }"
+      @cancel="handleCancel"
     >
+      <template v-if="compact" #closeIcon><img src="@/assets/img/customer-service/basic-settings/prompt/close.svg" alt="" /></template>
       <a-form
+        :class="{ 'workspace-variable-form': compact }"
+        :inert="compact && saving ? '' : null"
+        :disabled="compact && saving"
         :model="form"
         ref="formRef"
         layout="vertical"
-        :label-col="{ span: 4 }"
+        :label-col="{ span: compact ? 24 : 4 }"
         :wrapper-col="{ span: 24 }"
       >
         <!-- 字段类型 -->
         <a-form-item :label="t('label_field_type')" name="variable_type">
           <a-select
+            :aria-label="t('label_field_type')"
             @change="handleTypChange"
             v-model:value="form.variable_type"
             :placeholder="t('ph_select_field_type')"
@@ -58,6 +72,7 @@
             v-model:value="form.max_input_length"
             :placeholder="t('ph_input')"
             :precision="0"
+            :controls="!compact"
             :min="1"
             :max="50"
           />
@@ -71,6 +86,7 @@
           <div v-if="form.variable_type == 'input_number'">
             <a-input-number
               :maxLength="50"
+              :controls="!compact"
               style="width: 100%"
               stringMode
               v-model:value="form.default_value"
@@ -79,7 +95,7 @@
           </div>
           <div v-if="form.variable_type == 'select_one'" :placeholder="t('ph_select_default_value')">
             <a-select v-model:value="form.default_value" style="width: 100%">
-              <a-select-option v-for="item in filtersOptions" :value="item.label">{{
+              <a-select-option v-for="item in filtersOptions" :key="item.label" :value="item.label">{{
                 item.label
               }}</a-select-option>
             </a-select>
@@ -93,7 +109,7 @@
         </a-form-item>
 
         <!-- 是否必填 -->
-        <a-form-item :label="null" name="must_input" v-if="form.variable_type != 'checkbox_switch'">
+        <a-form-item class="required-field" :label="null" name="must_input" v-if="form.variable_type != 'checkbox_switch'">
           <a-checkbox v-model:checked="form.must_input">{{ t('label_required') }}</a-checkbox>
         </a-form-item>
 
@@ -122,29 +138,37 @@
           </a-form-item-rest>
         </a-form-item>
       </a-form>
-    </a-modal>
+      <a-alert v-if="compact && saveFailed" type="error" :message="commonT('save_failed')" show-icon />
+    </component>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, inject, nextTick } from 'vue'
 import { createChatVariable } from '@/api/robot/index'
 import { useRoute } from 'vue-router'
 import draggable from 'vuedraggable'
-import { message } from 'ant-design-vue'
+import { message, Modal as AntModal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
+import SettingsDialog from '@/views/customer-service/basic-settings/components/settings-dialog.vue'
+import { cloneConfig } from '@/views/customer-service/config-session'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.variable-setting.add-variable-modal')
+const { t: commonT } = useI18n('views.customer-service.index')
 
 const route = useRoute()
+const customerContext = inject('customerRobotContext', null)
 const props = defineProps({
+  compact: { type: Boolean, default: false },
   robotKey: {
     type: String,
     default: ''
   }
 })
-const currentRobotKey = computed(() => props.robotKey || route.query.robot_key || '')
+const currentRobotKey = computed(() => props.robotKey || (props.compact ? customerContext?.robotInfo?.robot_key : '') || route.query.robot_key || '')
 const open = ref(false)
+const saving = ref(false)
+const saveFailed = ref(false)
 
 const emit = defineEmits(['ok'])
 
@@ -165,6 +189,7 @@ const filtersOptions = computed(() => {
 })
 
 const show = (data = {}) => {
+  if (props.compact && saving.value) return
   form.robot_key = currentRobotKey.value
   form.id = data.id || ''
   form.variable_type = data.variable_type || 'input_string'
@@ -173,8 +198,14 @@ const show = (data = {}) => {
   form.max_input_length = data.max_input_length || 10
   form.default_value = data.default_value || ''
   form.must_input = data.must_input == '1'
-  form.options = data.options || [{ label: '' }]
+  form.options = props.compact ? cloneConfig(data.options || [{ label: '' }]) : data.options || [{ label: '' }]
+  saveFailed.value = false
   open.value = true
+  if (props.compact) nextTick(() => formRef.value?.clearValidate())
+}
+
+const handleCancel = () => {
+  if (!props.compact || !saving.value) open.value = false
 }
 
 const checkKey = (rule, value) => {
@@ -190,31 +221,42 @@ const checkKey = (rule, value) => {
 }
 
 const formRef = ref()
-const handleOk = () => {
-  formRef.value.validate().then(() => {
-    // 验证成功，可以提交表单
-    let options = []
-    if (form.variable_type == 'select_one') {
-      options = form.options.filter((item) => item.label != '')
-      if (options.length == 0) {
-        return message.error(t('msg_fill_options'))
-      }
+const handleOk = async () => {
+  if (props.compact && saving.value) return
+  try {
+    await formRef.value.validate()
+  } catch { return }
+  if (props.compact && (!open.value || saving.value)) return
+  let options = []
+  if (form.variable_type == 'select_one') {
+    options = form.options.filter((item) => item.label != '')
+    if (options.length == 0) {
+      return message.error(t('msg_fill_options'))
     }
-    let max_input_length = form.max_input_length
-    if (form.variable_type == 'select_one' || form.variable_type == 'checkbox_switch') {
-      max_input_length = 1
-    }
-    createChatVariable({
-      ...form,
-      max_input_length,
-      must_input: form.must_input ? 1 : 0,
-      options: JSON.stringify(options)
-    }).then((res) => {
-      message.success(form.id ? t('msg_update_success') : t('msg_create_success'))
-      open.value = false
-      emit('ok')
-    })
-  })
+  }
+  let max_input_length = form.max_input_length
+  if (form.variable_type == 'select_one' || form.variable_type == 'checkbox_switch') {
+    max_input_length = 1
+  }
+  const params = {
+    ...form,
+    max_input_length,
+    must_input: form.must_input ? 1 : 0,
+    options: JSON.stringify(options)
+  }
+  if (props.compact) { saving.value = true; saveFailed.value = false }
+  try {
+    const res = await (customerContext ? customerContext.saveAction(() => createChatVariable(params)) : createChatVariable(params))
+    if (props.compact && (res === false || (res?.res !== undefined && res.res !== 0))) { saveFailed.value = true; return }
+    if (res === false) return
+    message.success(form.id ? t('msg_update_success') : t('msg_create_success'))
+    open.value = false
+    emit('ok')
+  } catch {
+    if (props.compact) saveFailed.value = true
+  } finally {
+    saving.value = false
+  }
 }
 
 const addOption = () => {
@@ -250,5 +292,27 @@ defineExpose({
   .drag-btn {
     cursor: grab;
   }
+}
+.workspace-variable-form {
+  padding: 8px 19px 8px 8px;
+  color: #222;
+  font-size: 14px;
+  line-height: 22px;
+  :deep(.ant-form-item) { margin-bottom: 24px; }
+  :deep(.ant-form-item:last-child) { margin-bottom: 0; }
+  :deep(.ant-form-item-label) { padding-bottom: 8px; }
+  :deep(.ant-form-item-label > label) { height: 22px; color: #222; font-size: 14px; }
+  :deep(.ant-form-item-required::before) { color: #ee1d36 !important; }
+  :deep(.required-field .ant-form-item-control-input) { min-height: 24px; }
+  :deep(.ant-input), :deep(.ant-input-number), :deep(.ant-select-selector) { min-height: 32px; border-radius: 6px; border-color: #d8d8d8; box-shadow: none; }
+  :deep(.ant-input) { padding: 4px 12px; line-height: 22px; }
+  :deep(.ant-input-number) { width: 100%; }
+  :deep(.ant-input-number-input) { height: 30px; padding: 0 12px; }
+  :deep(.ant-select-single .ant-select-selector) { height: 32px; padding: 0 12px; }
+  :deep(.ant-checkbox-wrapper) { min-height: 24px; align-items: center; line-height: 22px; }
+  :deep(.ant-checkbox) { top: 0; margin: 0 4px; }
+  :deep(.ant-checkbox + span) { padding-inline-end: 0; }
+  :deep(.ant-checkbox-inner) { border-radius: 4px; border-color: #d8d8d8; }
+  :deep(.ant-checkbox-checked .ant-checkbox-inner) { border-color: #146ef5; background: #146ef5; }
 }
 </style>

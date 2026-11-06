@@ -98,6 +98,12 @@
   }
 
   .btn-wrapper-box {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
     position: absolute;
     width: 24px;
     height: 24px;
@@ -112,15 +118,66 @@
       background: #e4e6eb;
     }
   }
+
+  &.compact {
+    display: flex;
+    align-items: center;
+    width: auto;
+    min-width: 0;
+    min-height: 128px;
+    padding: 20px;
+    border-radius: 8px;
+    border-color: var(--app-border);
+    background: var(--app-bg-container);
+    cursor: default;
+
+    .item-body {
+      flex: 1;
+      min-width: 0;
+      padding-right: 36px;
+    }
+
+    .app-avatar {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .app-name {
+      color: var(--app-text-primary);
+    }
+
+    .app-desc {
+      color: var(--app-text-secondary);
+    }
+
+    .btn-wrapper-box {
+      top: 50%;
+      right: 20px;
+      bottom: auto;
+      width: 32px;
+      height: 32px;
+      transform: translateY(-50%);
+
+      &:hover,
+      &:focus-visible {
+        color: var(--app-primary);
+        background: var(--app-selected);
+      }
+    }
+  }
 }
 </style>
 
 <template>
-  <div class="wechat-app-item">
+  <div class="wechat-app-item" :class="{ compact }">
     <div class="item-body">
       <img class="app-avatar" :src="item.app_avatar" alt="" />
       <div class="app-info">
-        <div class="app-name">{{ item.app_name }}</div>
+        <div class="app-name" :title="item.app_name">{{ item.app_name }}</div>
         <div class="app-desc" v-if="item.app_type == 'whatsapp'">通道ID：{{ item.cust_space_id }}</div>
         <div class="app-desc" v-else-if="item.app_type == 'messenger'">主页ID：{{ item.app_id }}</div>
         <div class="app-desc" v-else-if="item.app_type == 'telegram_robot'">Telegram令牌：{{ item.app_id }}</div>
@@ -150,17 +207,19 @@
       </div>
     </template>
 
-    <a-dropdown v-if="showMenu && showMenu.length">
-      <div class="btn-wrapper-box">
+    <a-dropdown v-if="showMenu && showMenu.length" :trigger="compact ? ['click'] : ['hover']">
+      <button type="button" class="btn-wrapper-box" :aria-label="item.app_name + ' · ' + t('edit') + ' / ' + t('delete')">
         <EllipsisOutlined />
-      </div>
+      </button>
       <template #overlay>
         <a-menu>
           <a-menu-item v-if="showMenu.includes('edit')" @click="handleEdit">
+            <template v-if="compact" #icon><EditOutlined /></template>
             <a>{{ t('edit') }}</a>
           </a-menu-item>
           <a-menu-item v-if="showMenu.includes('del')" @click="handleDelete">
-            <a style="color: #fb363f">{{ t('delete') }}</a>
+            <template v-if="compact" #icon><DeleteOutlined /></template>
+            <a :style="{ color: compact ? 'inherit' : '#fb363f' }">{{ t('delete') }}</a>
           </a-menu-item>
         </a-menu>
       </template>
@@ -169,7 +228,7 @@
 </template>
 
 <script setup>
-import { CheckCircleFilled, ExclamationCircleFilled, EllipsisOutlined } from '@ant-design/icons-vue'
+import { CheckCircleFilled, ExclamationCircleFilled, EllipsisOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 const emit = defineEmits(['edit', 'delete', 'refresh'])
 const showExtTypeList = ['mini_program', 'official_account']
@@ -177,6 +236,7 @@ const showExtTypeList = ['mini_program', 'official_account']
 const { t } = useI18n('views.robot.robot-config.external-service.components.wechat-app-item')
 
 const props = defineProps({
+  compact: Boolean,
   item: {
     type: Object,
     default: () => ({})

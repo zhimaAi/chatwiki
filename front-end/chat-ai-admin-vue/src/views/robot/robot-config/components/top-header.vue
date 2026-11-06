@@ -1,11 +1,11 @@
 <template>
   <div class="robot-name-box" ref="robotNameBoxRef">
     <addRobotAlert @addRobot="handleAddRobot" @editRobot="handleEditRobot" ref="addRobotAlertRef" />
-    <div class="left-icon hover-block" @click="goBack">
+    <div v-if="!isCustomerServiceEntry" class="left-icon hover-block" @click="goBack">
       <HomeOutlined />
     </div>
-    <div class="select-robot-block">
-      <a-popover placement="bottomLeft" trigger="click" :overlayInnerStyle="{ 'padding-right': 0 }">
+    <div class="select-robot-block" :class="{ 'navigation-disabled': isCustomerServiceEntry }">
+      <a-popover v-if="!isCustomerServiceEntry" placement="bottomLeft" trigger="click" :overlayInnerStyle="{ 'padding-right': 0 }">
         <template #content>
           <RobotGroup ref="robotGroupRef" v-model:value="robotId" @change="handleChangeRobot" />
         </template>
@@ -16,12 +16,16 @@
           <DownOutlined class="down-icon" />
         </div>
       </a-popover>
+      <div v-else class="robot-option-block show-block-item">
+        <img class="robot-avatar" :src="currentRobotItem.robot_avatar" alt="" />
+        <div class="robot-name">{{ currentRobotItem.robot_name }}</div>
+      </div>
     </div>
     <a-tooltip v-if="routeName == 'robotWorkflow'">
       <template #title>{{ t('title_edit_robot') }}</template>
       <div class="hover-block" @click="toEditRobot()"><EditOutlined /></div>
     </a-tooltip>
-    <a-dropdown v-if="robotCreate">
+    <a-dropdown v-if="robotCreate && !isCustomerServiceEntry">
       <a-tooltip>
         <template #title>{{ t('title_create_robot') }}</template>
         <div class="hover-block" @click.prevent=""><PlusCircleOutlined /></div>
@@ -63,6 +67,8 @@ const { t } = useI18n('views.robot.robot-config.components.top-header')
 
 const router = useRouter()
 const route = useRoute()
+// 功能中心打开的工作流保留自身上下文，禁用返回列表、切换及新增应用入口。
+const isCustomerServiceEntry = computed(() => route.query.source === 'customer-service')
 
 const robotGroupRef = ref(null)
 
@@ -186,6 +192,11 @@ onMounted(() => {})
     }
     &:hover {
       background: var(--07, #e4e6eb);
+    }
+    &.navigation-disabled {
+      padding-left: 0;
+      cursor: default;
+      &:hover { background: transparent; }
     }
     &::v-deep(.ant-select) {
       .ant-select-selector {

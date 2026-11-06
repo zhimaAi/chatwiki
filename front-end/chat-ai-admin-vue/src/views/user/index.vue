@@ -9,8 +9,8 @@
   .page-left {
     height: 100%;
     width: 255px;
-    background-color: #fff;
-    border-right: 1px solid #f2f4f7;
+    background-color: var(--app-bg-container);
+    border-right: 1px solid var(--app-border-secondary);
   }
   .page-body {
     flex: 1;

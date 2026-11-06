@@ -14,7 +14,10 @@
         <a-form ref="formRef" layout="vertical" :model="formState">
           <div class="gray-block">
             <div class="gray-block-title">{{ t('label_input') }}</div>
-            <a-form-item :label="t('label_llm_model')" name="use_model">
+            <a-form-item class="backup-model-label-item" name="use_model">
+              <template #label>
+                <BackupModelLabel :label="t('label_llm_model')" />
+              </template>
               <div class="flex-block-item">
                 <ModelSelect
                   modelType="LLM"
@@ -114,7 +117,10 @@
                 </a-tooltip>
               </template>
               <div class="number-box">
-                <a-switch v-model:checked="formState.enable_thinking" />
+                <ReasoningEffortSelect
+                  v-model:value="formState.reasoning_effort"
+                  @change="(effort) => (formState.enable_thinking = effort !== 'none')"
+                />
               </div>
             </a-form-item>
             <a-form-item name="context_pair">
@@ -204,11 +210,14 @@
 </template>
 
 <script setup>
+import ReasoningEffortSelect from '@/components/reasoning-effort-select/index.vue'
+import { toReasoningEffort } from '@/utils/reasoning-effort'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import { ref, reactive, watch, computed, nextTick, onMounted } from 'vue'
 import { QuestionCircleOutlined, UpOutlined, DownOutlined } from '@ant-design/icons-vue'
 import AtInput from '../at-input/at-input.vue'
+import BackupModelLabel from '@/components/model-select/backup-model-label.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
 import ImportPrompt from '@/components/import-prompt/index.vue'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -312,6 +321,7 @@ const formState = reactive({
   prompt_tags: [],
   question_value: '',
   enable_thinking: false,
+  reasoning_effort: 'none',
   role: 1
 })
 
@@ -366,6 +376,7 @@ const init = () => {
       prompt_tags,
       question_value,
       enable_thinking,
+      reasoning_effort,
       role
     } = question_optimize
     
@@ -379,6 +390,7 @@ const init = () => {
     formState.max_token = max_token
     formState.prompt = prompt
     formState.enable_thinking = enable_thinking
+    formState.reasoning_effort = toReasoningEffort(enable_thinking, reasoning_effort)
     formState.prompt_tags = prompt_tags || []
     formState.question_value = formatQuestionValue(question_value)
     if (!formState.model_config_id && modelList.value.length > 0) {

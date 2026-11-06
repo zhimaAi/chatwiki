@@ -178,7 +178,7 @@
           <div  v-if="formState.application_type != 0"  class="form-item-tip">{{ t('msg_remark_name_tip') }}</div>
         </a-form-item>
 
-        <a-form-item  ref="group_id" :label="t('label_group')" v-bind="validateInfos.group_id">
+        <a-form-item v-if="!hideGroup" ref="group_id" :label="t('label_group')" v-bind="validateInfos.group_id">
           <a-select v-model:value="formState.group_id" style="width: 100%" :placeholder="t('ph_select_group')">
             <a-select-option v-for="item in groupLists" :value="item.id">{{ item.group_name }}</a-select-option>
           </a-select>
@@ -221,6 +221,10 @@ const robotStore = useRobotStore()
 
 const { setStorage } = useStorage('localStorage')
 
+const props = defineProps({
+  createRedirect: { type: String, default: 'auto' },
+  hideGroup: { type: Boolean, default: false }
+})
 const emit = defineEmits(['addRobot', 'editRobot', 'ok'])
 let default_avatar = ''
 
@@ -229,6 +233,7 @@ const router = useRouter()
 const useForm = Form.useForm
 
 const isEdit = ref(false)
+const editTarget = ref(null)
 const show = ref(false)
 
 const saveLoading = ref(false)
@@ -311,7 +316,7 @@ const saveForm = () => {
   let tipVal = 'msg_robot_created'
   if (isEdit.value) {
     requertUrl = editBaseInfo
-    formData.id = route.query.id
+    formData.id = editTarget.value?.id || route.query.id
     tipVal = 'msg_robot_edited'
     if (formData.robot_avatar == default_avatar) {
       delete formData.robot_avatar
@@ -327,7 +332,13 @@ const saveForm = () => {
       }
 
       message.success(t(tipVal))
-      if(!isEdit.value && route.query.robot_key){
+      if (!isEdit.value && props.createRedirect === 'none') {
+        show.value = false
+        emit('ok', res.data)
+        return
+      }
+      // 应用选择入口显式沿用列表页的新标签页行为，不受当前应用query影响。
+      if(!isEdit.value && route.query.robot_key && props.createRedirect !== 'new-tab'){
         emit('addRobot')
         show.value = false
         return
@@ -339,17 +350,18 @@ const saveForm = () => {
           // )
           window.open('/#/robot/config/basic-config?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
           show.value = false
-          emit('ok')
+          emit('ok', res.data)
         } else {
           // message.info('按住Shift 滚动鼠标可左右移动画布，按住Ctrl 滚动鼠标可放大缩小画布', 6)
           window.open('/#/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key + '&show_tips=1')
           show.value = false
-          emit('ok')
+          emit('ok', res.data)
           // router.push('/robot/config/workflow?id=' + res.data.id + '&robot_key=' + res.data.robot_key)
         }
       } else {
         // 弹窗关闭 刷新数据
-        getRobot(route.query.id)
+        // 功能中心编辑的是工作流卡片，不能把当前客服机器人替换为工作流详情。
+        if (!editTarget.value) getRobot(route.query.id)
         emit('editRobot')
         show.value = false
       }
@@ -386,7 +398,7 @@ const checkLLM = async () => {
   return true
 }
 
-const open = async (type, is_edit) => {
+const open = async (type, is_edit, target = null) => {
   if(type == 0){
     default_avatar = DEFAULT_ROBOT_AVATAR
   } else {
@@ -394,6 +406,7 @@ const open = async (type, is_edit) => {
   }
   showDefaultAvatars.value = [default_avatar, ...DEFAULT_ROBOT_AVATAR_LIST]
   isEdit.value = is_edit
+  editTarget.value = is_edit && target ? { ...target } : null
   // 验证是否有LLM
   let state = await checkLLM()
   getGroupList()
@@ -406,11 +419,13 @@ const open = async (type, is_edit) => {
     formState.application_type = type
     show.value = true
 
-    if (isEdit.value && robotInfo.value) {
-      formState.robot_name = robotInfo.value.robot_name
-      formState.en_name = robotInfo.value.en_name
-      formState.robot_intro = robotInfo.value.robot_intro
-      formState.robot_avatar_url = robotInfo.value.robot_avatar_url
+    const info = editTarget.value || robotInfo.value
+    if (isEdit.value && info) {
+      formState.robot_name = info.robot_name
+      formState.en_name = info.en_name
+      formState.robot_intro = info.robot_intro
+      formState.robot_avatar_url = info.robot_avatar_url || info.robot_avatar
+      if (editTarget.value) formState.group_id = info.group_id || '0'
     }
   }
   if(type == 0) {

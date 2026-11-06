@@ -39,5 +39,7 @@
   "metadata": "Metadata",
   "batch_operation": "Batch Operation",
   "modify_metadata": "Modify Metadata",
-  "select_qa_to_modify": "Please select the Q&A to modify"
+  "select_qa_to_modify": "Please select the Q&A to modify",
+  "expand_group": "Expand Q&A groups",
+  "total_count": "{total} items"
 }

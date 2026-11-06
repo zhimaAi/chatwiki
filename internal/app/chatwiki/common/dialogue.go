@@ -57,8 +57,12 @@ func GetSessionId(params *define.ChatRequestParam, dialogueId int) (int, error) 
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return 0, err
 	}
-	if sessionId := cast.ToInt(sessionId); sessionId > 0 {
-		return sessionId, nil
+	cachedSessionId := cast.ToInt(sessionId)
+	if cachedSessionId > 0 {
+		if params == nil || params.ChatBaseParam == nil || sessionStillOpen(dialogueId, cachedSessionId, params.ChatBaseParam.AdminUserId) {
+			return cachedSessionId, nil
+		}
+		closeExpiredSession(dialogueId, cachedSessionId)
 	}
 	//create new session
 	var appId string
@@ -132,11 +136,32 @@ func UpChatPromptVariables(dialogueId, sessionId int, upData msql.Datas) {
 		logs.Error(err.Error())
 		return
 	}
-	//update session_id ttl
 	_, err = define.Redis.Expire(context.Background(), SessionCacheKey(dialogueId), GetSessionTtl()).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 	}
+}
+
+func sessionStillOpen(dialogueId, sessionId, adminUserId int) bool {
+	if dialogueId <= 0 || sessionId <= 0 {
+		return false
+	}
+	info, err := msql.Model(`chat_ai_session`, define.Postgres).
+		Where(`id`, cast.ToString(sessionId)).
+		Field(`dialogue_id,last_chat_time`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return true
+	}
+	if len(info) == 0 || cast.ToInt(info[`dialogue_id`]) != dialogueId {
+		return false
+	}
+	return SessionRemainingSeconds(cast.ToInt(info[`last_chat_time`]), tool.Time2Int(), GetSessionSecond(adminUserId)) > 0
+}
+
+func closeExpiredSession(dialogueId, sessionId int) {
+	clearSessionCache(dialogueId, sessionId)
+	deleteReceiverBySession(sessionId)
 }
 
 func GetDialogueIdNoCreate(chatBaseParam *define.ChatBaseParam) (int, error) {

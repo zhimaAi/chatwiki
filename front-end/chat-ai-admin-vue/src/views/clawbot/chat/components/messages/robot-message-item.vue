@@ -50,7 +50,7 @@
           :quote-loading-visible="shouldShowQuoteFileProgress(item) && item.quote_loading"
         />
         <FinalAnswerCard
-          v-if="item.msg_type == 1"
+          v-if="item.msg_type == 1 && !hasWorkFlowFinishReply"
           :item="item"
           :robot-info="robotInfo"
           :should-indent="hasProcessSteps(item)"
@@ -83,8 +83,16 @@
         </template>
       </div>
 
-      <div v-if="item.voice_content && item.voice_content.length">
+      <div v-if="item.voice_content && item.voice_content.length && !hasWorkFlowFinishReply">
         <VoiceMessage :voice_content="item.voice_content" />
+      </div>
+
+      <div v-if="errorText" class="message-error" role="status">
+        <ExclamationCircleOutlined class="message-error-icon" />
+        <div class="message-error-body">
+          <div class="message-error-title">{{ t('label_error_info') }}</div>
+          <div class="message-error-content">{{ errorText }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -92,7 +100,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { LoadingOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, LoadingOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import VoiceMessage from '../voice-message.vue'
@@ -140,6 +148,16 @@ const parseReplyList = (val) => {
 }
 
 const hasReplyList = computed(() => parseReplyList(props.item.reply_content_list).length > 0)
+
+const errorText = computed(() => {
+  const error = props.item.error
+  if (typeof error !== 'string') return ''
+  return error.trim()
+})
+
+const hasWorkFlowFinishReply = computed(() => {
+  return parseReplyList(props.item.reply_content_list).some((rc) => rc?.send_source === 'work_flow_finish')
+})
 
 const getVisibleProcessSteps = (item) => {
   if (!Array.isArray(item?.process_steps)) {
@@ -255,6 +273,42 @@ const onClickMeun = (item) => {
   color: #262626;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.message-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  background: #fff2f0;
+  color: #a8071a;
+  font-size: 14px;
+  line-height: 22px;
+
+  .message-error-icon {
+    flex-shrink: 0;
+    margin-top: 4px;
+    color: #ff4d4f;
+  }
+
+  .message-error-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .message-error-title {
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .message-error-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
 }
 
 .stopped-label {

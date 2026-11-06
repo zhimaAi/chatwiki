@@ -221,6 +221,7 @@ func DisposeQuoteFile(adminUserId int, list []msql.Params) ([]msql.Params, strin
 				`admin_user_id`: adminUserId,
 				`file_id`:       one[`file_id`],
 				`paragraph_id`:  one[`id`],
+				`page_num`:      one[`page_num`],
 				`word_total`:    one[`word_total`],
 				`similarity`:    one[`similarity`],
 				`title`:         one[`title`],
@@ -276,8 +277,8 @@ func CheckQaDirectReply(list []msql.Params, robot msql.Params) (string, bool) {
 	}
 	if len(list) > 0 && cast.ToBool(robot[fieldSwitch]) &&
 		cast.ToInt(list[0][`type`]) != define.ParagraphTypeNormal &&
-		len(list[0][`similarity`]) > 0 &&
-		cast.ToFloat32(list[0][`similarity`]) >= cast.ToFloat32(robot[fieldScore]) {
+		len(list[0][`vector_similarity`]) > 0 &&
+		cast.ToFloat32(list[0][`vector_similarity`]) >= cast.ToFloat32(robot[fieldScore]) {
 		content := list[0][`answer`]
 		if len(list[0][`images`]) > 0 { // Library paragraph contains images
 			images := make([]string, 0)
@@ -432,10 +433,10 @@ func CheckQaDirectReplyList(list []msql.Params, robot msql.Params, count int) (a
 		if len(answers) >= count {
 			break
 		}
-		// Only take QA-type segments that meet the similarity threshold (same condition as the original CheckQaDirectReply)
+		// Only take QA-type segments with an actual vector score that meets the direct-reply threshold.
 		if cast.ToInt(item[`type`]) != define.ParagraphTypeNormal &&
-			len(item[`similarity`]) > 0 &&
-			cast.ToFloat32(item[`similarity`]) >= cast.ToFloat32(robot[fieldScore]) {
+			len(item[`vector_similarity`]) > 0 &&
+			cast.ToFloat32(item[`vector_similarity`]) >= cast.ToFloat32(robot[fieldScore]) {
 
 			content := cast.ToString(item[`answer`])
 
@@ -505,6 +506,10 @@ func GetRandomSliceReply(replyList []ReplyContent, num int) []ReplyContent {
 func BuildKeywordReplyMessage(params *define.ChatRequestParam) ([]ReplyContent, bool, error) {
 	//part0:init messages
 	var replyList []ReplyContent
+	question := GetFirstQuestionByInput(params.Question, true)
+	if len(question) == 0 {
+		return replyList, false, nil // Skip keyword matching when input has no text
+	}
 	// Check if keyword should skip AI reply
 	var keywordSkipAI = false
 
@@ -526,9 +531,6 @@ func BuildKeywordReplyMessage(params *define.ChatRequestParam) ([]ReplyContent, 
 
 	// Whether keyword reply skips AI
 	keywordSkipAI = cast.ToInt(robotAbilityConfig[`ai_reply_status`]) != define.SwitchOn
-
-	// Question check
-	question := GetFirstQuestionByInput(params.Question) // Special handling for multimodal input
 
 	// Loop check and construct message
 	for _, robotKeywordReply := range robotKeywordReplyList {

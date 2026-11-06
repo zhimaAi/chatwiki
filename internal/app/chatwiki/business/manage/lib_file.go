@@ -653,6 +653,7 @@ func setChunkParam(chunkParam *define.ChunkParam, splitParams *define.SplitParam
 			splitParams.AiChunkModel = cast.ToString(libraryInfo[`ai_chunk_model`])
 			splitParams.AiChunkModelConfigId = cast.ToInt(libraryInfo[`ai_chunk_model_config_id`])
 			splitParams.AiChunkEnableThinking = cast.ToInt(libraryInfo[`ai_chunk_enable_thinking`])
+			splitParams.AiChunkReasoningEffort = cast.ToString(libraryInfo[`ai_chunk_reasoning_effort`])
 			splitParams.AiChunkPrumpt = cast.ToString(libraryInfo[`ai_chunk_prumpt`])
 			splitParams.AiChunkSize = cast.ToInt(libraryInfo[`ai_chunk_size`])
 			splitParams.AiChunkNew = !isTableFile
@@ -682,6 +683,7 @@ func setChunkParam(chunkParam *define.ChunkParam, splitParams *define.SplitParam
 		splitParams.AiChunkModel = cast.ToString(chunkParam.AiChunkModel)
 		splitParams.AiChunkModelConfigId = cast.ToInt(chunkParam.AiChunkModelConfigId)
 		splitParams.AiChunkEnableThinking = chunkParam.AiChunkEnableThinking
+		splitParams.AiChunkReasoningEffort = chunkParam.AiChunkReasoningEffort
 		splitParams.AiChunkPrumpt = cast.ToString(chunkParam.AiChunkPrumpt)
 		splitParams.AiChunkSize = cast.ToInt(chunkParam.AiChunkSize)
 		splitParams.AiChunkNew = !isTableFile
@@ -787,6 +789,7 @@ func GetLibFileInfo(c *gin.Context) {
 	if info[`ai_chunk_model`] == "" {
 		info[`ai_chunk_model`] = library[`ai_chunk_model`]
 		info[`ai_chunk_enable_thinking`] = library[`ai_chunk_enable_thinking`]
+		info[`ai_chunk_reasoning_effort`] = library[`ai_chunk_reasoning_effort`]
 	}
 	if cast.ToInt(info[`ai_chunk_model_config_id`]) == 0 {
 		info[`ai_chunk_model_config_id`] = library[`ai_chunk_model_config_id`]
@@ -934,23 +937,33 @@ func GetLibRawFile(c *gin.Context) {
 }
 
 func GetLibRawFileOnePage(c *gin.Context) {
-	adminUserId := cast.ToInt(c.Query(`admin_user_id`))
+	c.Header("Cache-Control", "no-store")
+	adminUserId := GetAdminUserId(c)
+	if adminUserId <= 0 {
+		return
+	}
 	id := cast.ToInt(c.Query(`id`))
 	page := cast.ToInt(c.Query(`page`))
-	if adminUserId == 0 || id <= 0 || page <= 0 {
+	if id <= 0 || page <= 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	info, err := common.GetLibFileInfo(id, adminUserId)
+	info, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).Where(`delete_time`, `0`).Find()
 	if err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
 	if len(info) == 0 {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `file_deleted`))))
+		common.FmtError(c, `no_data`)
 		return
 	}
+	serveLibRawFileOnePage(c, info, page)
+}
+
+// Both callers must finish authorization before touching the original PDF.
+func serveLibRawFileOnePage(c *gin.Context, info msql.Params, page int) {
 	if !common.LinkExists(info[`file_url`]) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
@@ -973,7 +986,6 @@ func GetLibRawFileOnePage(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf(item)
 	c.File(item)
 	return
 }
@@ -1030,6 +1042,7 @@ func unifyGetLibFileSplit(c *gin.Context, chunkPreview bool) {
 		AiChunkModel:               strings.TrimSpace(c.Query(`ai_chunk_model`)),
 		AiChunkModelConfigId:       cast.ToInt(c.Query(`ai_chunk_model_config_id`)),
 		AiChunkEnableThinking:      cast.ToInt(c.Query(`ai_chunk_enable_thinking`)),
+		AiChunkReasoningEffort:     cast.ToString(c.Query(`ai_chunk_reasoning_effort`)),
 		AiChunkSize:                cast.ToInt(c.Query(`ai_chunk_size`)),
 		AiChunkTaskId:              strings.TrimSpace(c.Query(`ai_chunk_task_id`)),
 		NotMergedText:              cast.ToBool(c.Query(`not_merged_text`)),
@@ -1128,6 +1141,10 @@ func SaveLibFileSplit(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `split_params`))))
 		return
 	}
+	if err := common.ValidateReasoningEffort(common.GetLang(c), splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		common.FmtError(c, `param_invalid`, `ai_chunk_reasoning_effort`)
+		return
+	}
 	if splitParams.ChunkAsync {
 		saveLibFileSplitAsync(c)
 		return
@@ -1200,6 +1217,10 @@ func saveLibFileSplitAsync(c *gin.Context) {
 	err := tool.JsonDecodeUseNumber(c.PostForm(`split_params`), &splitParams)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `split_params`))))
+		return
+	}
+	if err := common.ValidateReasoningEffort(common.GetLang(c), splitParams.AiChunkReasoningEffort, `ai_chunk_reasoning_effort`); err != nil {
+		common.FmtError(c, `param_invalid`, `ai_chunk_reasoning_effort`)
 		return
 	}
 	if splitParams.ChunkType == define.ChunkTypeAi {

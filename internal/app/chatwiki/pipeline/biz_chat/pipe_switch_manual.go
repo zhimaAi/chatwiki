@@ -3,8 +3,11 @@
 package biz_chat
 
 import (
+	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
+
+	"github.com/spf13/cast"
 )
 
 // CheckManualReplyPauseRobotReply manual intervention + pause robot reply after manual reply
@@ -18,6 +21,9 @@ func CheckManualReplyPauseRobotReply(in *ChatInParam, out *ChatOutParam) pipelin
 
 // CheckKeywordSwitchManual keyword switch to manual
 func CheckKeywordSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+		return pipeline.PipeContinue
+	}
 	if msg, ok := IsKeywordSwitchManual(in.params, in.sessionId, in.dialogueId, in.chanStream); ok {
 		out.AiMessage = msg
 		return pipeline.PipeStop
@@ -27,6 +33,9 @@ func CheckKeywordSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.PipeR
 
 // CheckIntentionSwitchManual switch to manual based on user intention
 func CheckIntentionSwitchManual(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeFlow {
+		return pipeline.PipeContinue
+	}
 	if len(in.params.AppInfo) > 0 && len(in.params.ReceivedMessageType) > 0 && in.params.ReceivedMessageType != lib_define.MsgTypeText {
 		return pipeline.PipeContinue // wechat and other apps, skip intention switch for non-text messages
 	}

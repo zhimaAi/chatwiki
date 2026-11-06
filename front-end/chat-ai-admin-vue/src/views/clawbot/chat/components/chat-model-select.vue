@@ -6,6 +6,7 @@
     </button>
 
     <div v-if="open" class="chat-model-panel">
+      <BackupModelLabel v-if="modelType === 'LLM'" label="" class="panel-backup-notice" />
       <div class="panel-search">
         <SearchOutlined class="panel-search-icon" />
         <input
@@ -79,6 +80,7 @@ import { CheckOutlined, DownOutlined, PlusOutlined, SearchOutlined } from '@ant-
 import { useI18n } from '@/hooks/web/useI18n'
 import { getModelConfigOption } from '@/api/model/index'
 import { getModelOptionsList } from '@/components/model-select/index.js'
+import BackupModelLabel from '@/components/model-select/backup-model-label.vue'
 
 const { t } = useI18n('views.clawbot.chat.components.chat-model-select')
 const emit = defineEmits(['update:modeId', 'update:modeName', 'update:useConfigId', 'change'])
@@ -341,6 +343,8 @@ onUnmounted(() => {
 }
 
 .chat-model-panel {
+  display: flex;
+  flex-direction: column;
   position: absolute;
   left: 0;
   bottom: calc(100% + 12px);
@@ -355,7 +359,14 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
+.panel-backup-notice {
+  flex-shrink: 0;
+  width: auto;
+  margin: 8px 12px 0;
+}
+
 .panel-search {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -386,8 +397,9 @@ onUnmounted(() => {
 
 .panel-content {
   display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: stretch;
-  height: calc(100% - 43px);
 }
 
 .provider-list-wrapper {

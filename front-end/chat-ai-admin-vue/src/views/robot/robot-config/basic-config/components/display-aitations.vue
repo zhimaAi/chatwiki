@@ -2,6 +2,7 @@
 
 <template>
   <SwitchBox
+    :compact="compact"
     :title="t('title_show_citations')"
     icon-name="jibenpeizhi"
     v-model:value="value"
@@ -11,7 +12,8 @@
       <span></span>
     </template>
 
-    <div>{{ t('desc_show_citations') }}</div>
+    <span v-if="compact" :title="t('desc_show_citations')">{{ t('desc_show_citations') }}</span>
+    <div v-else>{{ t('desc_show_citations') }}</div>
   </SwitchBox>
 </template>
 
@@ -21,6 +23,7 @@ import SwitchBox from './switch-box.vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.display-aitations')
+defineProps({ compact: { type: Boolean, default: false } })
 
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 

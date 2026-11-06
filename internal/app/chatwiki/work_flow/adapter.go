@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,8 +80,8 @@ const (
 )
 
 // AgentCaller is registered by the biz_chat package (init) to synchronously
-// run a clawbot and return its full reply. nil until registered.
-var AgentCaller func(robotInfo msql.Params, question string, lang string) (string, error)
+// run a clawbot and return its text and structured replies. nil until registered.
+var AgentCaller func(robotInfo msql.Params, question string, params *WorkFlowParams) (string, []common.ReplyContent, bool, error)
 
 var NodeTypes = [...]int{
 	NodeTypeRemark,
@@ -242,8 +243,16 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	for key, field := range common.SimplifyFields(workFlowGlobal) {
 		flow.global[key] = field
 	}
+	if flow.params.IsFromWorkflow {
+		if _, exists := flow.global[`openid`]; !exists {
+			flow.global[`openid`] = common.SimpleField{Key: `openid`, Typ: common.TypString}.SetVals(flow.params.Openid)
+		}
+		if _, exists := flow.global[`question`]; !exists {
+			flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(flow.params.Question)
+		}
+	}
 	if flow.params.Draft.IsDraft { // Draft debugging scenario
-		flow.params.Robot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
+		flow.params.RealRobot[`question_multiple_switch`] = cast.ToString(cast.ToUint(flow.params.Draft.QuestionMultipleSwitch))
 		if flow.params.IsDialogMode {
 			if field, ok := flow.global[`question`]; (!ok || cast.ToString(field.GetVal(common.TypString)) == ``) && strings.TrimSpace(flow.params.Question) != "" {
 				question := strings.TrimSpace(flow.params.Question)
@@ -251,7 +260,7 @@ func (n *StartNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 					var qm any
 					_ = tool.JsonDecodeUseNumber(tool.JsonEncodeNoError(common.ContentPartsAppendImageDomain(questionMultiple)), &qm)
 					flow.global[`question_multiple`] = common.SimpleField{Key: `question_multiple`, Typ: common.TypArrObject}.SetVals(qm)
-					flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(common.GetQuestionByContentParts(questionMultiple))
+					flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(common.GetQuestionByContentParts(questionMultiple, true))
 				} else {
 					flow.global[`question`] = common.SimpleField{Key: `question`, Typ: common.TypString}.SetVals(question)
 				}
@@ -333,7 +342,7 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 		n.params.Role -= 1
 	}
 	// question_multiple_switch
-	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+	if cast.ToBool(flow.params.RealRobot[`question_multiple_switch`]) {
 		//when question_multiple_switch is true, we will use system role to classify question
 		n.params.Role = define.PromptRoleTypeSystem
 	}
@@ -375,9 +384,9 @@ func (n *CateNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	//request chat
 	chatResp, requestTime, err := common.RequestChat(
 		flow.context,
-		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.RealRobot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
-		common.ThinkingSwitch(n.params.EnableThinking),
+		common.ToReasoningEffort(n.params.EnableThinking, n.params.ReasoningEffort),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
 	// Record deep thinking content to debug log if available
@@ -582,7 +591,7 @@ type LibsNode struct {
 func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeKey string, err error) {
 	flow.Logs(`Executing knowledge base retrieval logic...`)
 	//guise robot
-	robot := flow.params.Robot
+	robot := maps.Clone(flow.params.RealRobot)
 	robot[`library_ids`] = n.params.LibraryIds
 	robot[`search_type`] = cast.ToString(n.params.SearchType)
 	robot[`library_search_type`] = n.params.LibrarySearchType
@@ -633,7 +642,7 @@ func (n *LibsNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 	)
 	isBackground := len(flow.params.Customer) > 0 && cast.ToInt(flow.params.Customer[`is_background`]) > 0
 	if !isBackground && len(list) == 0 { // Unknown question statistics
-		common.SaveUnknownIssueRecord(flow.params.Lang, flow.params.AdminUserId, flow.params.Robot, question, common.UnknownIssueRelation{
+		common.SaveUnknownIssueRecord(flow.params.Lang, flow.params.AdminUserId, flow.params.RealRobot, question, common.UnknownIssueRelation{
 			Openid:     openid,
 			RelUserId:  flow.params.RelUserId,
 			DialogueId: flow.params.DialogueId,
@@ -674,7 +683,7 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 		n.params.Role -= 1
 	}
 	// question_multiple_switch
-	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+	if cast.ToBool(flow.params.RealRobot[`question_multiple_switch`]) {
 		//when question_multiple_switch is true, we will use system role to classify question
 		n.params.Role = define.PromptRoleTypeSystem
 	}
@@ -726,9 +735,9 @@ func (n *LlmNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNodeK
 	//request chat
 	chatResp, requestTime, err := common.RequestChat(
 		flow.context,
-		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.RealRobot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
-		common.ThinkingSwitch(n.params.EnableThinking),
+		common.ToReasoningEffort(n.params.EnableThinking, n.params.ReasoningEffort),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
 	// Record deep thinking content to debug log if available
@@ -941,7 +950,7 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 		n.params.Role -= 1
 	}
 	// question_multiple_switch
-	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+	if cast.ToBool(flow.params.RealRobot[`question_multiple_switch`]) {
 		//when question_multiple_switch is true, we will use system role to classify question
 		n.params.Role = define.PromptRoleTypeSystem
 	}
@@ -989,9 +998,9 @@ func (n *QuestionOptimizeNode) Running(flow *WorkFlow) (output common.SimpleFiel
 	//request chat
 	chatResp, requestTime, err := common.RequestChat(
 		flow.context,
-		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.RealRobot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
-		common.ThinkingSwitch(n.params.EnableThinking),
+		common.ToReasoningEffort(n.params.EnableThinking, n.params.ReasoningEffort),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
 	// Record deep thinking content to debug log if available
@@ -1038,7 +1047,7 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 		n.params.Role -= 1
 	}
 	// question_multiple_switch
-	if cast.ToBool(flow.params.Robot[`question_multiple_switch`]) {
+	if cast.ToBool(flow.params.RealRobot[`question_multiple_switch`]) {
 		//when question_multiple_switch is true, we will use system role to classify question
 		n.params.Role = define.PromptRoleTypeSystem
 	}
@@ -1089,9 +1098,9 @@ func (n *ParamsExtractorNode) Running(flow *WorkFlow) (outputs common.SimpleFiel
 	//request chat
 	chatResp, requestTime, err := common.RequestChat(
 		flow.context,
-		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.Robot, flow.params.AppType,
+		flow.params.Lang, flow.params.AdminUserId, openid, flow.params.RealRobot, flow.params.AppType,
 		n.params.ModelConfigId.Int(), n.params.UseModel, messages, nil, n.params.Temperature, n.params.MaxToken.Int(),
-		common.ThinkingSwitch(n.params.EnableThinking),
+		common.ToReasoningEffort(n.params.EnableThinking, n.params.ReasoningEffort),
 	)
 	flow.LlmCallLogs(LlmCallInfo{Params: n.params.LlmBaseParams, Messages: messages, ChatResp: chatResp, RequestTime: requestTime, Error: err})
 	// Record deep thinking content to debug log if available
@@ -1804,7 +1813,7 @@ func (n *ImageGeneration) Running(flow *WorkFlow) (output common.SimpleFields, n
 	if imageNum := cast.ToInt(n.params.ImageNum); imageNum > 0 {
 		imageRequest.N = tea.Int(imageNum)
 	}
-	res, err := common.RequestImageGenerate(flow.context, flow.params.Lang, flow.params.AdminUserId, flow.params.Openid, flow.params.Robot, flow.params.AppType,
+	res, err := common.RequestImageGenerate(flow.context, flow.params.Lang, flow.params.AdminUserId, flow.params.Openid, flow.params.RealRobot, flow.params.AppType,
 		cast.ToInt(n.params.ModelConfigId), n.params.UseModel, imageRequest, inputImages)
 	if err != nil {
 		output[`msg`] = common.SimpleField{
@@ -2465,22 +2474,20 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 	}
 
 	// Execute the next workflow
-	subParams := &WorkFlowParams{
-		ChatRequestParam:  flow.params.ChatRequestParam,
-		RealRobot:         robotInfo,
-		IsTestLoopNodeRun: false,
-		TriggerParams:     TriggerParams{},
-		IsFromWorkflow:    true,
-	}
-	subParams.WorkFlowGlobal = make(map[string]any)
-	subParams.Robot = robotInfo
-	subParams.ImmediatelyReplyHandle = nil // Do not continue nesting (Immediate Reply Node)
-
-	// Variable replacement
+	global := make(map[string]any)
 	for _, p := range n.params.Params {
-		subParams.WorkFlowGlobal[p.Key] = flow.VariableReplace(p.Variable)
+		global[p.Key] = flow.VariableReplace(p.Variable)
 	}
+	flow.params.ManualTransfer.SetSource(flow.params.ChatRequestParam, flow.params.SessionId)
+	subParams := BuildWorkFlowParams(flow.params.ChatRequestParam, robotInfo, global, flow.params.CurMsgId, flow.params.DialogueId, flow.params.SessionId)
+	subParams.IsFromWorkflow = true
 	subWorkflow, _, err := BaseCallWorkFlow(subParams)
+	if output = manualTransferOutput(flow.params.ManualTransfer); output != nil {
+		if subWorkflow != nil {
+			output = mergeManualTransferOutput(subWorkflow.output, flow.params.ManualTransfer)
+		}
+		return output, ``, nil
+	}
 	if err != nil {
 		flow.Logs(err.Error())
 		nextNodeKey = n.params.Exception
@@ -2489,10 +2496,14 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 
 	// Extract specified reply content
 	var replyArr []string
-	var result string
+	currentReply, childReplies := TakeOutputReply(subWorkflow)
+	flow.replyContentList = append(flow.replyContentList, childReplies...)
 
 	for key, out := range subWorkflow.outputs {
 		if key == subWorkflow.curNodeKey { // Special handling for end node
+			if subWorkflow.isStorage {
+				continue
+			}
 			for specialKey, specialVal := range out {
 				if strings.HasPrefix(specialKey, "special.finish_reply_") {
 					for _, val := range specialVal.Vals {
@@ -2512,7 +2523,10 @@ func (n *WorkflowNode) Running(flow *WorkFlow) (output common.SimpleFields, next
 			}
 		}
 	}
-	result = strings.Join(replyArr, "\n")
+	if subWorkflow.isStorage && len(currentReply) > 0 {
+		replyArr = append(replyArr, currentReply)
+	}
+	result := strings.Join(replyArr, "\n")
 
 	output = common.SimpleFields{}
 	output[`data`] = common.SimpleField{
@@ -2628,7 +2642,11 @@ func (n *AgentNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNod
 	// variable replacement on the question content
 	question := flow.VariableReplace(n.params.QuestionValue)
 	// synchronously run the clawbot, no C-side chat trace
-	reply, err := AgentCaller(robotInfo, question, flow.params.Lang)
+	reply, replyContentList, isSwitchManual, err := AgentCaller(robotInfo, question, flow.params)
+	flow.replyContentList = append(flow.replyContentList, replyContentList...)
+	if isSwitchManual {
+		return manualTransferOutput(flow.params.ManualTransfer), ``, nil
+	}
 	if err != nil {
 		flow.Logs(err.Error())
 		return

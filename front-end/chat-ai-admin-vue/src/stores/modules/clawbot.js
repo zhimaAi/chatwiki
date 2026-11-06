@@ -4,6 +4,8 @@ import { message } from 'ant-design-vue'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants'
 import { deleteRobot, getRobotList, getRobotInfo, robotCopy, saveRobot } from '@/api/robot'
 import { saveClawbotConf } from '@/api/clawbot'
+import { checkRole, getRobotPermission } from '@/utils/permission'
+import { usePermissionStore } from '@/stores/modules/permission'
 
 // 默认助手配置
 const DEFAULT_ASSISTANT_NAME = 'Agent'
@@ -57,7 +59,7 @@ const normalizeAssistant = (item = {}) => ({
  * 生命周期：进入 /clawbot 模块时初始化，切换子页面不丢失
  *
  * 模块进入时通过 initModule() 锁定一个机器人：
- * - 拉取助手列表，若为空则自动创建默认助手
+ * - 拉取助手列表，独立入口默认在列表为空时创建助手，新版入口按 URL 指定应用
  * - 初始化完成后 isReady=true，网关组件据此决定是否渲染子路由
  */
 export const useClawbotStore = defineStore('clawbot', () => {
@@ -66,6 +68,9 @@ export const useClawbotStore = defineStore('clawbot', () => {
   const isInitializing = ref(false)    // 是否正在执行 initModule
   const loading = ref(false)           // 助手列表加载中
   const creating = ref(false)          // 助手创建中
+  let moduleInitialization = null
+  // 每次请求捕获发起时的判断函数，避免布局切换后使用新上下文接收旧请求结果。
+  let contextIsCurrent = () => true
 
   // ===== 助手管理 =====
   const assistantList = ref([])        // 当前用户的助手列表
@@ -84,7 +89,7 @@ export const useClawbotStore = defineStore('clawbot', () => {
       robotInfo.value = null
     }
     // 模块就绪后切换助手时重新获取详细配置
-    if (isReady.value && val) {
+    if (isReady.value && !isInitializing.value && val) {
       fetchRobotInfo(val)
     }
   })
@@ -96,11 +101,13 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
   /**
    * 应用助手列表：标准化数据 + 校正当前选中项
-   * 如果当前选中的助手不在新列表中，自动回退到第一个
+   * 默认在当前助手失效时回退到第一个；新版初始化保留选中项，交由 URL 校验决定是否进入。
    */
-  function applyAssistantList(list = []) {
+  function applyAssistantList(list = [], { preserveSelection = false } = {}) {
     const normalizedList = (list || []).map(normalizeAssistant).filter((item) => item.id)
     assistantList.value = normalizedList
+
+    if (preserveSelection) return
 
     if (!normalizedList.length) {
       currentAssistantId.value = ''
@@ -179,6 +186,7 @@ export const useClawbotStore = defineStore('clawbot', () => {
   async function fetchRobotInfo(targetId = currentAssistantId.value) {
     const id = targetId ? String(targetId) : ''
     const requestSeq = ++robotInfoRequestSeq
+    const isCurrent = contextIsCurrent
 
     if (!id) {
       robotInfo.value = null
@@ -187,13 +195,13 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
     try {
       const res = await getRobotInfo({ id })
-      if (requestSeq !== robotInfoRequestSeq || currentAssistantId.value !== id) {
+      if (!isCurrent() || requestSeq !== robotInfoRequestSeq || currentAssistantId.value !== id) {
         return res
       }
       replaceRobotInfo(res?.data || null)
       return res
     } catch {
-      if (requestSeq === robotInfoRequestSeq && currentAssistantId.value === id) {
+      if (isCurrent() && requestSeq === robotInfoRequestSeq && currentAssistantId.value === id) {
         robotInfo.value = null
       }
     }
@@ -215,6 +223,8 @@ export const useClawbotStore = defineStore('clawbot', () => {
     } = options
 
     const sourceRobotInfo = robotInfo.value ? { ...robotInfo.value } : null
+    const isCurrent = contextIsCurrent
+    const canApply = () => isCurrent() && currentAssistantId.value === String(sourceRobotInfo?.id || '')
     if (!sourceRobotInfo?.id) {
       message.error('当前助手信息未加载完成，请稍后重试')
       throw new Error('clawbot assistant info missing')
@@ -237,7 +247,7 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
       if (refreshAfterSave) {
         await fetchRobotInfo(String(sourceRobotInfo.id))
-      } else if (!optimistic) {
+      } else if (!optimistic && canApply()) {
         updateRobotInfo(partialData)
       }
 
@@ -247,20 +257,22 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
       return res
     } catch (err) {
-      if (optimistic && rollbackOnError && rollbackState) {
+      if (optimistic && rollbackOnError && rollbackState && canApply()) {
         updateRobotInfo(rollbackState)
       }
       throw err
     }
   }
 
-  /** 从后端拉取助手列表 */
-  async function fetchAssistants() {
+  /** 拉取助手列表；上下文已失效时返回 null，调用方不能继续选中旧请求中的助手。 */
+  async function fetchAssistants({ isCurrent = contextIsCurrent, preserveSelection = false } = {}) {
     loading.value = true
     try {
       const res = await getRobotList({ application_type: CLAWBOT_APPLICATION_TYPE })
-      const list = res?.data || []
-      applyAssistantList(list)
+      await usePermissionStore().checkPermission()
+      if (!isCurrent()) return null
+      const list = (res?.data || []).filter((item) => getRobotPermission(item.id) > 0)
+      applyAssistantList(list, { preserveSelection })
       return assistantList.value
     } finally {
       loading.value = false
@@ -269,6 +281,8 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
   /** 创建默认助手，创建后自动刷新列表并选中 */
   async function createAssistant() {
+    if (!checkRole(['ClawBotCreate'])) return null
+    const isCurrent = contextIsCurrent
     creating.value = true
     try {
       const res = await saveRobot(
@@ -281,7 +295,9 @@ export const useClawbotStore = defineStore('clawbot', () => {
         CLAWBOT_APPLICATION_TYPE
       )
       const createdId = String(res?.data?.id || '')
-      await fetchAssistants()
+      if (!isCurrent()) return null
+      await fetchAssistants({ isCurrent })
+      if (!isCurrent()) return null
       if (createdId) {
         selectAssistant(createdId)
       } else if (assistantList.value.length) {
@@ -293,14 +309,17 @@ export const useClawbotStore = defineStore('clawbot', () => {
     }
   }
 
-  /** 删除助手，若删除的是当前选中的则自动切换到第一个 */
-  async function deleteAssistant(id) {
+  /** 删除后切换到剩余助手；独立入口默认在列表为空时创建，新版入口可关闭自动创建。 */
+  async function deleteAssistant(id, { autoCreate = true } = {}) {
     const normalizedId = String(id)
+    const isCurrent = contextIsCurrent
     await deleteRobot({ id: normalizedId })
+    if (!isCurrent()) return
     const wasCurrent = currentAssistantId.value === normalizedId
-    await fetchAssistants()
+    await fetchAssistants({ isCurrent })
+    if (!isCurrent()) return
     if (!assistantList.value.length) {
-      await createAssistant()
+      if (autoCreate) await createAssistant()
       return
     }
     if (wasCurrent && assistantList.value.length) {
@@ -310,8 +329,9 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
   /** 复制助手 */
   async function copyAssistant(id) {
+    const isCurrent = contextIsCurrent
     await robotCopy({ id: String(id) })
-    await fetchAssistants()
+    if (isCurrent()) await fetchAssistants({ isCurrent })
   }
 
   const getAssistantByQuery = (targetId, targetRobotKey = '') => {
@@ -357,15 +377,32 @@ export const useClawbotStore = defineStore('clawbot', () => {
   /**
    * 模块初始化入口（幂等）
    *
-   * 由 index.vue 网关和路由 beforeEnter 双重调用：
-   * 1. 拉取助手列表
-   * 2. 若列表为空，自动创建一个默认助手（确保"锁定机器人"）
-   * 3. 完成后置 isReady = true，子路由才会被渲染
+   * 由独立布局或新版布局调用，串行处理两种入口对同一 store 的初始化。
+   * 默认保留独立入口的自动创建行为；新版传入 autoCreate=false，严格校验 URL 中的应用。
+   * isCurrent 用于丢弃切换应用、重试或卸载后返回的结果；新版还会单独核对就绪身份。
    */
-  async function initModule({ forceRefresh = false, targetId = '', targetRobotKey = '' } = {}) {
-    if (isInitializing.value) {
-      return currentAssistant.value
+  async function initModule(options = {}) {
+    // 同一模块的两种布局可连续进入；后一入口必须等待并按自己的 URL 重新初始化。
+    while (moduleInitialization) {
+      await moduleInitialization.catch(() => null)
     }
+    if (options.isCurrent && !options.isCurrent()) return null
+    moduleInitialization = initializeModule(options)
+    try {
+      return await moduleInitialization
+    } finally {
+      moduleInitialization = null
+    }
+  }
+
+  async function initializeModule({
+    forceRefresh = false,
+    targetId = '',
+    targetRobotKey = '',
+    autoCreate = true,
+    isCurrent = () => true
+  } = {}) {
+    contextIsCurrent = isCurrent
 
     if (isReady.value && !forceRefresh) {
       if (targetId) {
@@ -376,14 +413,18 @@ export const useClawbotStore = defineStore('clawbot', () => {
 
     isInitializing.value = true
     try {
-      await fetchAssistants()
+      await fetchAssistants({ isCurrent, preserveSelection: !autoCreate })
+      if (!isCurrent()) return null
+      // 新版只能打开明确指定的应用，不能把失效链接兜底为其他 Agent 或触发创建。
+      if (!autoCreate && (!targetId || !getAssistantByQuery(targetId, targetRobotKey))) return null
       if (!assistantList.value.length) {
-        await createAssistant()
+        if (autoCreate) await createAssistant()
       } else if (targetId) {
         selectAssistantByQuery(targetId, targetRobotKey)
       }
       // 拉取当前助手的详细配置
       await fetchRobotInfo(currentAssistantId.value)
+      if (!isCurrent()) return null
       isReady.value = true
       return currentAssistant.value
     } finally {

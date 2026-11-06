@@ -412,6 +412,27 @@ func SaveUser(c *gin.Context) {
 		common.FmtError(c, `role_is_deleted`)
 		return
 	}
+	// save .. only main account can create/edit sub-members
+	userId := cast.ToInt(user["user_id"])
+	if cast.ToInt(user["parent_id"]) > 0 {
+		common.FmtError(c, `auth_no_permission`)
+		return
+	}
+	if req.Id > 0 && req.Id != userId {
+		targetInfo, err := msql.Model(define.TableUser, define.Postgres).
+			Where("id", cast.ToString(req.Id)).
+			Where("parent_id", cast.ToString(userId)).
+			Where("is_deleted", define.Normal).
+			Field("id").Find()
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		if len(targetInfo) == 0 {
+			common.FmtError(c, `auth_no_permission`)
+			return
+		}
+	}
 	data := msql.Datas{
 		"nick_name":    req.NickName,
 		"expire_time":  req.ExpireTime,
@@ -434,7 +455,6 @@ func SaveUser(c *gin.Context) {
 		data["salt"] = salt
 	}
 	m := msql.Model(define.TableUser, define.Postgres)
-	// save ..
 	if req.Id > 0 {
 		// clear managed data
 		if cast.ToInt(roleId) > 0 {
@@ -491,11 +511,36 @@ func ResetPass(c *gin.Context) {
 		err      error
 		insertId int64
 	)
+	user := GetLoginUserInfo(c)
+	if user == nil || cast.ToInt(user["user_id"]) <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
 	//get params
 	var req ResetPassReq
 	if err = c.ShouldBind(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
+	}
+	userId := cast.ToInt(user["user_id"])
+	if req.Id != userId {
+		if cast.ToInt(user["parent_id"]) > 0 {
+			common.FmtError(c, `auth_no_permission`)
+			return
+		}
+		userInfo, err := msql.Model(define.TableUser, define.Postgres).
+			Where("id", cast.ToString(req.Id)).
+			Where("parent_id", cast.ToString(userId)).
+			Where("is_deleted", define.Normal).
+			Field("id").Find()
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		if len(userInfo) == 0 {
+			common.FmtError(c, `auth_no_permission`)
+			return
+		}
 	}
 	salt := tool.Random(20)
 	password := tool.MD5(req.Password + salt)
@@ -526,21 +571,30 @@ func DeleteUser(c *gin.Context) {
 	}
 	// login user
 	user := GetLoginUserInfo(c)
-	if user == nil {
+	if user == nil || cast.ToInt(user["user_id"]) <= 0 {
 		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
 		return
 	}
-	// del user
-	m := msql.Model(define.TableUser, define.Postgres)
-	userInfo, err := m.Where("id", cast.ToString(req.Id)).Field("id,user_name").Find()
+	userId := cast.ToInt(user["user_id"])
+	if cast.ToInt(user["parent_id"]) > 0 {
+		common.FmtError(c, `auth_no_permission`)
+		return
+	}
+	// del user: only own sub-member
+	userInfo, err := msql.Model(define.TableUser, define.Postgres).
+		Where("id", cast.ToString(req.Id)).
+		Where("parent_id", cast.ToString(userId)).
+		Where("is_deleted", define.Normal).
+		Field("id,user_name").Find()
 	if err != nil {
 		common.FmtError(c, `param_lock`)
 		return
 	}
 	if len(userInfo) <= 0 {
-		common.FmtOk(c, "ok")
+		common.FmtError(c, `auth_no_permission`)
 		return
 	}
+	m := msql.Model(define.TableUser, define.Postgres)
 	result, _ := casbin.MatchRootFunc(userInfo["user_name"])
 	isRoot := result.(bool)
 	if isRoot {
@@ -590,6 +644,31 @@ func GetUser(c *gin.Context) {
 	if err := c.ShouldBindQuery(&req); err != nil {
 		common.FmtError(c, `param_err`, middlewares.GetValidateErr(req, err, common.GetLang(c)).Error())
 		return
+	}
+	user := GetLoginUserInfo(c)
+	if user == nil || cast.ToInt(user["user_id"]) <= 0 {
+		common.FmtErrorWithCode(c, http.StatusUnauthorized, `user_no_login`)
+		return
+	}
+	userId := cast.ToInt(user["user_id"])
+	if req.Id != userId {
+		if cast.ToInt(user["parent_id"]) > 0 {
+			common.FmtError(c, `auth_no_permission`)
+			return
+		}
+		userInfo, err := msql.Model(define.TableUser, define.Postgres).
+			Where("id", cast.ToString(req.Id)).
+			Where("parent_id", cast.ToString(userId)).
+			Where("is_deleted", define.Normal).
+			Field("id").Find()
+		if err != nil {
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		if len(userInfo) == 0 {
+			common.FmtError(c, `auth_no_permission`)
+			return
+		}
 	}
 
 	data, err := msql.Model(define.TableUser, define.Postgres).Where("id", cast.ToString(req.Id)).Find()

@@ -1,24 +1,35 @@
 <template>
-  <div class="clawbot-layout" v-if="clawbotStore.isReady">
+  <CustomerLayout v-if="isCustomerLayout" />
+  <div class="clawbot-layout" v-else-if="clawbotStore.isReady && !initializingStandalone">
     <LeftSidebar />
     <div class="clawbot-layout-container">
-      <router-view></router-view>
+      <router-view v-if="clawbotStore.currentAssistant"></router-view>
     </div>
   </div>
   <ClawbotLoading v-else />
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LeftSidebar from './components/left-sidebar.vue'
 import ClawbotLoading from './components/clawbot-loading.vue'
+import CustomerLayout from './components/customer-layout.vue'
 import { useClawbotStore } from '@/stores/modules/clawbot'
+import { getRobotPermission } from '@/utils/permission'
+import { isCustomerServiceClawbotRoute } from '@/utils/clawbot-layout'
 
 const route = useRoute()
 const router = useRouter()
 const clawbotStore = useClawbotStore()
 const isSyncingRouteQuery = ref(false)
+// 切回独立布局时 store 可能仍是新版应用的数据，初始化结束前暂停渲染和旧入口的 URL 同步。
+const initializingStandalone = ref(false)
+const isCustomerLayout = computed(() => isCustomerServiceClawbotRoute(route))
+let alive = true
+let initializationVersion = 0
+const isStandaloneRoute = () => alive && !isCustomerLayout.value &&
+  (route.path === '/clawbot' || route.path.startsWith('/clawbot/'))
 
 const getQueryValue = (value) => {
   if (Array.isArray(value)) {
@@ -53,20 +64,24 @@ const buildAssistantQuery = (assistant) => {
 }
 
 const syncAssistantQuery = async () => {
+  if (!isStandaloneRoute()) return
   const assistant = clawbotStore.currentAssistant
   if (!assistant?.id || isSyncingRouteQuery.value) {
     return
   }
 
   const nextQuery = buildAssistantQuery(assistant)
-  if (isSameQuery(nextQuery)) {
+  const rights = getRobotPermission(assistant.id)
+  const targetPath = rights == 0 ? '/no-permission'
+    : rights == 1 && !['/clawbot/chat', '/clawbot/assistant', '/clawbot/stats'].includes(route.path) ? '/clawbot/chat' : route.path
+  if (targetPath === route.path && isSameQuery(nextQuery)) {
     return
   }
 
   isSyncingRouteQuery.value = true
   try {
     await router.replace({
-      path: route.path,
+      path: targetPath,
       query: nextQuery
     })
   } finally {
@@ -75,21 +90,30 @@ const syncAssistantQuery = async () => {
 }
 
 const initClawbotModule = async () => {
+  const version = ++initializationVersion
+  initializingStandalone.value = isStandaloneRoute()
+  if (!isStandaloneRoute()) return
   const { id, robotKey } = getRouteAssistantQuery()
-  await clawbotStore.initModule({
-    forceRefresh: clawbotStore.isReady,
-    targetId: id,
-    targetRobotKey: robotKey
-  })
-  await syncAssistantQuery()
+  try {
+    await clawbotStore.initModule({
+      forceRefresh: clawbotStore.isReady,
+      targetId: id,
+      targetRobotKey: robotKey,
+      isCurrent: () => isStandaloneRoute() && version === initializationVersion
+    })
+    if (!isStandaloneRoute() || version !== initializationVersion) return
+    await syncAssistantQuery()
+  } finally {
+    if (version === initializationVersion) initializingStandalone.value = false
+  }
 }
 
-initClawbotModule()
+watch(isCustomerLayout, initClawbotModule, { immediate: true })
 
 watch(
   () => [route.query.id, route.query.robot_key],
   async () => {
-    if (isSyncingRouteQuery.value || !clawbotStore.isReady) {
+    if (!isStandaloneRoute() || initializingStandalone.value || isSyncingRouteQuery.value || !clawbotStore.isReady) {
       return
     }
 
@@ -104,14 +128,24 @@ watch(
 )
 
 watch(
-  () => [clawbotStore.currentAssistant?.id, clawbotStore.currentAssistant?.robot_key],
+  () => [route.path, clawbotStore.isReady, clawbotStore.currentAssistant?.id, clawbotStore.currentAssistant?.robot_key, getRobotPermission(clawbotStore.currentAssistant?.id), isSyncingRouteQuery.value, initializingStandalone.value],
   async () => {
-    if (!clawbotStore.isReady) {
+    if (!isStandaloneRoute() || initializingStandalone.value || !clawbotStore.isReady) {
+      return
+    }
+    if (!clawbotStore.currentAssistant?.id) {
+      await router.replace('/robot/list')
       return
     }
     await syncAssistantQuery()
-  }
+  },
+  { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  alive = false
+  initializationVersion++
+})
 </script>
 
 <style lang="less" scoped>

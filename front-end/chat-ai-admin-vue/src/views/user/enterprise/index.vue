@@ -3,24 +3,36 @@
   width: 100%;
   height: 100%;
   padding: 24px;
-  background-color: #fff;
+  overflow-y: auto;
+  color: var(--app-text-primary);
+  background-color: var(--app-bg-container);
   .page-title {
+    color: var(--app-text-primary);
     line-height: 24px;
     font-size: 16px;
+    font-weight: 600;
+  }
+  .system-mode-section {
+    margin-top: 16px;
+  }
+  .section-title {
+    margin: 0 0 12px;
+    color: var(--app-text-primary);
+    font-size: 14px;
     font-weight: 600;
   }
   .enterprise-box {
     margin-top: 24px;
     .content-label {
-      color: #262626;
+      color: var(--app-text-primary);
       font-weight: 500;
     }
     .content-name {
       flex: 1;
-      color: #333;
+      color: var(--app-text-primary);
       font-weight: 600;
       .gray-text {
-        color: #8c8c8c;
+        color: var(--app-text-secondary);
         font-weight: 400;
       }
     }
@@ -38,6 +50,10 @@
 <template>
   <div class="enterprise-set">
     <div class="page-title">{{ t('enterpriseSettings') }}</div>
+    <section v-if="canManageCompany" class="system-mode-section">
+      <h3 class="section-title">{{ modeT('title') }}</h3>
+      <SystemModeSetting />
+    </section>
     <div class="enterprise-box">
       <a-flex align="center">
         <div class="content-label">{{ t('systemName') }}：</div>
@@ -58,8 +74,8 @@
         <a class="edit-btn" @click="handleOpenCookieModal">{{ t('change') }}</a>
       </a-flex>
     </div>
-    <a-divider></a-divider>
-    <div class="enterprise-box">
+    <a-divider v-if="showTopNavigationSettings"></a-divider>
+    <div v-if="showTopNavigationSettings" class="enterprise-box">
       <a-flex>
         <div class="content-label" style="line-height: 32px">
           {{ t('topNavigationSettings') }}：
@@ -80,15 +96,23 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useCompanyStore } from '@/stores/modules/company'
 import { saveCompany } from '@/api/user/index.js'
 import { useI18n } from '@/hooks/web/useI18n'
+import { checkRole } from '@/utils/permission'
+import { SYSTEM_MODES, useSystemModeStore } from '@/stores/modules/system-mode'
 import { message } from 'ant-design-vue'
 import NavSetting from './components/nav-setting.vue'
 import CookieSetting from './components/cookie-setting.vue'
+import SystemModeSetting from './components/system-mode-setting.vue'
 
 const { t } = useI18n('views.user.enterprise')
+const { t: modeT } = useI18n('views.system-mode')
+const canManageCompany = checkRole(['CompanyManage'])
+const modeStore = useSystemModeStore()
+const showTopNavigationSettings = computed(
+  () => modeStore.storageStatus === 'ready' && modeStore.currentMode === SYSTEM_MODES.ADVANCED
+)
 
 const companyStore = useCompanyStore()
 const { companyInfo } = companyStore
@@ -117,7 +141,7 @@ const openCompanyModal = () => {
 const handleSetCompany = () => {
   saveCompany({
     ...formState
-  }).then((res) => {
+  }).then(() => {
     message.success(t('common.saveSuccess'))
     handleGetCompany()
     let title = document.title.split('Chatwiki')

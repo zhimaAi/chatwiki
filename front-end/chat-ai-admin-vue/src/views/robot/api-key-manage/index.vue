@@ -1,6 +1,6 @@
 <template>
-  <div class="page-container">
-    <div class="page-title">{{ t('page_title') }}</div>
+  <div class="page-container" :class="{ 'is-embedded': embedded }">
+    <div v-if="!embedded" class="page-title">{{ t('page_title') }}</div>
     <a-alert class="mt8" type="info" show-icon>
       <template #icon>
         <div>
@@ -17,7 +17,7 @@
     </a-alert>
     <div class="opration-box">
       <a-button type="primary" @click="handleOpenAddModal">{{ t('add_api_key_btn') }}</a-button>
-      <a-input v-model:value="end_point" style="width: 500px" readonly>
+      <a-input v-model:value="end_point" class="endpoint-input" readonly>
         <template #addonBefore>
           <span @click="copyText(end_point)" style="cursor: pointer">{{ t('copy_api_endpoint') }}</span>
         </template>
@@ -33,7 +33,7 @@
     </div>
     <div class="list-box">
       <div class="list-item" v-for="item in lists" :key="item.id">
-        <a-flex justify="space-between" align="center">
+        <a-flex class="key-row" justify="space-between" align="center">
           <div class="key-content">
             <span>{{ t('api_key_label') }}</span>
             <span>{{ item.key }}</span>
@@ -59,7 +59,6 @@
 import { useI18n } from '@/hooks/web/useI18n'
 import {
   ExclamationCircleFilled,
-  CopyOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
@@ -73,6 +72,12 @@ import {
   deleteRobotApikey
 } from '@/api/robot/index'
 import useClipboard from 'vue-clipboard3'
+defineProps({
+  embedded: {
+    type: Boolean,
+    default: false
+  }
+})
 const { t } = useI18n('views.robot.api-key-manage.index')
 const { toClipboard } = useClipboard()
 const robotStore = useRobotStore()
@@ -92,7 +97,7 @@ const handleChangeStatus = (item) => {
   updateRobotApikey({
     robot_key: robotInfo.value.robot_key,
     id: item.id
-  }).then((res) => {
+  }).then(() => {
     message.success(t('update_success'))
     getApiKeyList()
   })
@@ -100,11 +105,11 @@ const handleChangeStatus = (item) => {
 
 const handleOpenAddModal = () => {
   Modal.confirm({
-    title: h('div', { style: 'color:#262626; font-weight: 600;' }, t('add_api_key_title')),
+    title: h('div', { style: 'color: var(--app-text-primary); font-weight: 600;' }, t('add_api_key_title')),
     icon: null,
     content: h(
       'div',
-      { style: ' color: #f10; line-height: 22px;' },
+      { style: 'color: var(--app-error); line-height: 22px;' },
       t('add_api_key_warning')
     ),
     bodyStyle: {
@@ -122,7 +127,7 @@ const handleOpenAddModal = () => {
 const handleCrrate = () => {
   addRobotApikey({
     robot_key: robotInfo.value.robot_key
-  }).then((res) => {
+  }).then(() => {
     message.success(t('create_success'))
     getApiKeyList()
   })
@@ -134,7 +139,7 @@ const handleDelApiKey = (item) => {
   let modal = Modal.confirm({
     title: t('confirm_delete_title', { key }),
     icon: createVNode(ExclamationCircleOutlined),
-    content: h('div', { style: { color: '#FB363F' } }, t('delete_warning')),
+    content: h('div', { style: { color: 'var(--app-error)' } }, t('delete_warning')),
     okText: secondsToGo + ' ' + t('confirm_btn'),
     okType: 'danger',
     cancelText: t('cancel_btn'),
@@ -145,7 +150,7 @@ const handleDelApiKey = (item) => {
       deleteRobotApikey({
         robot_key: robotInfo.value.robot_key,
         id: item.id
-      }).then((res) => {
+      }).then(() => {
         message.success(t('delete_success'))
         getApiKeyList()
       })
@@ -201,7 +206,11 @@ const copyText = async (text) => {
 <style lang="less" scoped>
 .page-container {
   padding: 16px 24px;
+  &.is-embedded {
+    padding: 0;
+  }
   .page-title {
+    color: var(--app-text-primary);
     line-height: 24px;
     font-size: 16px;
     font-weight: 600;
@@ -227,14 +236,21 @@ const copyText = async (text) => {
   .opration-box {
     margin-top: 16px;
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 16px;
+  }
+  .endpoint-input {
+    flex: 1 1 320px;
+    min-width: 240px;
+    max-width: 500px;
   }
 
   .list-box {
     margin-top: 16px;
     .list-item {
       padding: 14px 16px;
-      border: 1px solid #d9d9d9;
+      border: 1px solid var(--app-border);
       margin-bottom: 16px;
       border-radius: 4px;
       .key-content {
@@ -244,18 +260,28 @@ const copyText = async (text) => {
         overflow: hidden;
         text-overflow: ellipsis;
         span {
-          color: #262626;
+          color: var(--app-text-primary);
           font-weight: 500;
           line-height: 22px;
           font-size: 14px;
         }
       }
+      .key-row {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
       .right-box {
         margin-left: 78px;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 12px;
       }
+    }
+  }
+  @media (max-width: 1100px) {
+    .list-box .list-item .right-box {
+      margin-left: 0;
     }
   }
 }

@@ -10,8 +10,8 @@ export const sendAiMessage = (data) => {
   })
 }
 
-export const chatWelcome = (data) => {
-  return request.post({ url: '/chat/welcome', data, cancelToken: true})
+export const chatWelcome = (data, options = {}) => {
+  return request.post({ url: '/chat/welcome', data, cancelToken: true, ...options })
 }
 
 export const getDialogueList = (data) => {

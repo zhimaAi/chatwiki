@@ -70,15 +70,25 @@ func SetLlmStartTime(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 // BuildImmediatelyReplyHandle build immediate reply handle
 func BuildImmediatelyReplyHandle(in *ChatInParam, out *ChatOutParam) func(replyContent common.ReplyContent) {
 	return func(replyContent common.ReplyContent) {
-		out.replyContentList = append(out.replyContentList, replyContent)
-		in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
+		appendReplyContentList(in, out, []common.ReplyContent{replyContent})
 	}
+}
+
+func appendReplyContentList(in *ChatInParam, out *ChatOutParam, replies []common.ReplyContent) {
+	if len(replies) == 0 {
+		return
+	}
+	out.replyContentList = append(out.replyContentList, replies...)
+	in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
 }
 
 // DoApplicationTypeClaw clawbot logic
 func DoApplicationTypeClaw(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`application_type`]) == define.ApplicationTypeClaw {
 		out.Error = doApplicationTypeClaw(in, out)
+		if out.Error != nil && finishClawbotManualTransfer(in, out) {
+			return pipeline.PipeStop
+		}
 		if out.Error != nil {
 			in.exitChat = true // exit flag
 			in.Stream(sse.Event{Event: `error`, Data: out.Error.Error()})
@@ -97,11 +107,7 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 		in.workFlowExecuted = true // pause-feature: mark this request actually invoked a workflow
 		replyContentList := []common.ReplyContent{}
 		out.content, out.requestTime, in.monitor.LibUseTime, out.list, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
-		if len(out.replyContentList) == 0 {
-			out.replyContentList = replyContentList
-		} else {
-			out.replyContentList = append(out.replyContentList, replyContentList...)
-		}
+		appendReplyContentList(in, out, replyContentList)
 		if out.Error != nil {
 			in.exitChat = true // exit flag
 			out.debugLog = append(out.debugLog, map[string]string{`type`: `cur_question`, `content`: in.params.Question})
@@ -113,6 +119,9 @@ func DoApplicationTypeFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 			callLlm.Pipe(StartQuoteFile)       // show citation start signal
 			callLlm.Pipe(DisposeQuoteFilePush) // process citation files and push
 			callLlm.Process()
+			if common.IsWorkFlowFinishReplyList(out.replyContentList) {
+				in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
+			}
 			in.Stream(sse.Event{Event: `recall_time`, Data: in.monitor.LibUseTime.RecallTime})
 			in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
 			in.Stream(sse.Event{Event: `sending`, Data: out.content})
@@ -202,6 +211,9 @@ func CheckReplyByChatCache(in *ChatInParam, out *ChatOutParam) pipeline.PipeResu
 
 // DoRelationWorkFlow chat bot supports related workflow
 func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if in.isSwitchManual {
+		return pipeline.PipeStop
+	}
 	if out.Error == nil && in.needRunWorkFlow {
 		workFlowRobot, workFlowGlobal := work_flow.ChooseWorkFlowRobot(cast.ToString(in.params.AdminUserId), out.chatResp.ToolCalls())
 		if len(workFlowRobot) == 0 { // no workflow returned by llm
@@ -213,17 +225,16 @@ func DoRelationWorkFlow(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult 
 			in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
 			in.Stream(sse.Event{Event: `sending`, Data: out.content})
 		} else { // build workflow params and execute workflow
-			workFlowParams := work_flow.BuildWorkFlowParams(*in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
+			workFlowParams := work_flow.BuildWorkFlowParams(in.params, workFlowRobot, workFlowGlobal, int(out.cMsgId), in.dialogueId, in.sessionId)
 			workFlowParams.ImmediatelyReplyHandle = BuildImmediatelyReplyHandle(in, out)
 			in.workFlowExecuted = true // pause-feature: mark this request actually invoked a workflow
 			replyContentList := []common.ReplyContent{}
 			out.content, out.requestTime, _, _, replyContentList, out.Error = work_flow.CallWorkFlow(workFlowParams, &out.debugLog, in.monitor, &in.isSwitchManual)
-			if len(out.replyContentList) == 0 {
-				out.replyContentList = replyContentList
-			} else {
-				out.replyContentList = append(out.replyContentList, replyContentList...)
-			}
+			appendReplyContentList(in, out, replyContentList)
 			if out.Error == nil {
+				if common.IsWorkFlowFinishReplyList(out.replyContentList) {
+					in.Stream(sse.Event{Event: `reply_content_list`, Data: out.replyContentList})
+				}
 				in.Stream(sse.Event{Event: `request_time`, Data: out.requestTime})
 				in.Stream(sse.Event{Event: `sending`, Data: out.content})
 			} else {

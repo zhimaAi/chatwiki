@@ -58,7 +58,7 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" :title="t('title')" icon-name="variable-icon">
+  <edit-box class="setting-box variable-setting" :title="t('title')" icon-name="variable-icon">
     <template #tip>
       <a-tooltip placement="top" :overlayInnerStyle="{ width: '400px' }">
         <template #title>
@@ -70,7 +70,7 @@
     <template #extra>
       <div class="actions-box">
         <a-flex :gap="8">
-          <a-button size="small" @click="handleOpenModal">{{ t('btn_add_variable') }}</a-button>
+          <a-button size="small" @click="handleOpenModal"><template v-if="compact" #icon><img src="@/assets/img/customer-service/basic-settings/add.svg" alt="" /></template>{{ t('btn_add_variable') }}</a-button>
         </a-flex>
       </div>
     </template>
@@ -86,7 +86,8 @@
           </div>
           <a-dropdown>
             <div class="btn-box">
-              <svg-icon name="more-cycle"></svg-icon>
+              <img v-if="compact" src="@/assets/img/customer-service/basic-settings/more.svg" alt="" />
+              <svg-icon v-else name="more-cycle"></svg-icon>
             </div>
             <template #overlay>
               <a-menu>
@@ -102,12 +103,12 @@
         </div>
       </div>
     </div>
-    <AddVariableModal ref="addVariableModalRef" @ok="handleOk" />
+    <AddVariableModal ref="addVariableModalRef" :compact="compact" @ok="handleOk" />
   </edit-box>
 </template>
 <script setup>
-import { ref, onMounted, computed, createVNode } from 'vue'
-import { EditOutlined, CloseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ref, onMounted, computed, createVNode, inject } from 'vue'
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import EditBox from '../edit-box.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { deleteChatVariable } from '@/api/robot/index'
@@ -117,7 +118,9 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.variable-setting.index')
+defineProps({ compact: { type: Boolean, default: false } })
 const robotStore = useRobotStore()
+const customerContext = inject('customerRobotContext', null)
 
 let typeNameMap = {
   input_string: 'string',
@@ -152,10 +155,13 @@ const handleDelVaribel = (item) => {
     content: t('msg_delete_content', { name: item.variable_name }),
     okType: 'danger',
     onOk() {
-      deleteChatVariable({
+      const params = {
         robot_key: item.robot_key,
         id: item.id
-      }).then((res) => {
+      }
+      const request = customerContext ? customerContext.saveAction(() => deleteChatVariable(params)) : deleteChatVariable(params)
+      return request.then((res) => {
+        if (res === false) return
         message.success(t('msg_delete_success'))
         handleOk()
       })

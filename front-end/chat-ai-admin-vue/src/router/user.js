@@ -22,6 +22,10 @@ export default {
       },
       children: [
         {
+          path: '/user/system-mode',
+          redirect: { path: '/user/enterprise' }
+        },
+        {
           path: '/user/account',
           name: 'userAccount',
           component: () => import('../views/user/account/index.vue'),
@@ -128,7 +132,7 @@ export default {
             title: 'routes.basic.official_account_management',
             activeMenu: '/user'
           }
-        },
+        }
       ]
     }
   ]

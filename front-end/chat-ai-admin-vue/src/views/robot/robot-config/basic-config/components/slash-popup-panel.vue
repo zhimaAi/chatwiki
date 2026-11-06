@@ -1,36 +1,37 @@
 <template>
-  <div class="slash-popup-panel">
+  <div class="slash-popup-panel" :class="{ 'workspace-slash-panel': workspace }" @keydown.esc.stop="handleClose">
     <!-- 头部：Tab + Close -->
     <div class="popup-header">
       <div class="popup-tabs">
-        <div
+        <component :is="workspace ? 'button' : 'div'" :type="workspace ? 'button' : undefined" :aria-pressed="workspace ? activeTab === 'tag' : undefined"
           class="popup-tab"
           :class="{ active: activeTab === 'tag' }"
           @click="activeTab = 'tag'"
         >
-          {{ t('tab_insert_tag') }}
-        </div>
-        <div
+          {{ workspace ? workspaceT('prompt_insert_variable') : t('tab_insert_tag') }}
+        </component>
+        <component :is="workspace ? 'button' : 'div'" :type="workspace ? 'button' : undefined" :aria-pressed="workspace ? activeTab === 'card' : undefined"
           class="popup-tab"
           :class="{ active: activeTab === 'card' }"
           @click="activeTab = 'card'"
         >
           {{ t('tab_insert_card') }}
-        </div>
+        </component>
       </div>
-      <div class="popup-close" @click="handleClose">
-        <CloseOutlined />
+      <div class="popup-close" role="button" tabindex="0" :aria-label="workspaceT('close')" @click="handleClose" @keydown.enter="handleClose">
+        <img v-if="workspace" src="@/assets/img/customer-service/basic-settings/dialogs/close.svg" alt="" /><CloseOutlined v-else />
       </div>
     </div>
 
     <!-- 内容区 -->
     <div class="popup-body">
       <div class="popup-toolbar">
+        <div v-if="workspace && activeTab === 'tag'" class="variable-search"><a-input v-model:value="search" :placeholder="workspaceT('prompt_search_variable')" :aria-label="workspaceT('prompt_search_variable')" /><button type="button" @click="handleAddTag"><img src="@/assets/img/customer-service/basic-settings/prompt/add.svg" alt="" />{{ workspaceT('prompt_new_variable') }}</button></div>
         <!-- 提示条 -->
         <div class="popup-alert">
           {{ activeTab === 'tag' ? t('tip_tag') : t('tip_card') }}
         </div>
-        <div v-if="activeTab === 'tag'" class="add-btn" @click="handleAddTag">
+        <div v-if="activeTab === 'tag' && !workspace" class="add-btn" @click="handleAddTag">
           <PlusOutlined />
           <span>{{ t('btn_add_tag') }}</span>
         </div>
@@ -39,14 +40,14 @@
       <!-- 插入标签 Tab -->
       <div class="popup-content" v-if="activeTab === 'tag'">
         <div class="tag-list">
-          <div
+          <component :is="workspace ? 'button' : 'div'" :type="workspace ? 'button' : undefined"
             class="tag-item"
-            v-for="opt in options"
+            v-for="opt in filteredOptions"
             :key="opt.value || opt.id"
             @click="handleSelectTag(opt)"
           >
-            {{ opt.label }}
-          </div>
+            {{ workspace ? opt.name || opt.label : opt.label }}<small v-if="workspace && opt.description">{{ opt.description }}</small>
+          </component>
         </div>
       </div>
 
@@ -78,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { Modal, message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -86,8 +87,10 @@ import { useMiniCardStore } from '@/stores/modules/mini-card'
 import MiniCardPreview from '@/components/mini-card/mini-card-preview.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.slash-popup-panel')
+const { t: workspaceT } = useI18n('views.customer-service.index')
 
 const props = defineProps({
+  workspace: { type: Boolean, default: false },
   options: {
     type: Array,
     default: () => []
@@ -115,6 +118,8 @@ const emit = defineEmits(['addTag', 'addCard', 'editCard'])
 const miniCardStore = useMiniCardStore()
 
 const activeTab = ref('tag')
+const search = ref('')
+const filteredOptions = computed(() => props.options.filter(option => !props.workspace || `${option.label} ${option.description || ''}`.toLowerCase().includes(search.value.trim().toLowerCase())))
 
 const handleClose = () => {
   props.close()
@@ -167,6 +172,27 @@ const handleDeleteCard = (card) => {
 
 </script>
 
+<style lang="less" scoped>
+.slash-popup-panel.workspace-slash-panel {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 8px 24px #08080814;
+  .popup-header { min-height: 56px; padding: 0 16px; border: 0; }
+  .popup-tabs { gap: 24px; }
+  .popup-tab { padding: 16px 0; border: 0; background: #fff; color: #5a5a5a; font-size: 14px; line-height: 22px; &.active { color: #146ef5; font-weight: 500; } }
+  .popup-close { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; }
+  .popup-body { padding: 16px; }
+  .popup-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 12px; }
+  .variable-search { display: flex; gap: 12px; :deep(.ant-input) { min-width: 0; height: 32px; border-radius: 6px; border-color: #d8d8d8; } button { display: flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 32px; padding: 0 12px; border: 1px solid #d8d8d8; border-radius: 6px; background: #fff; color: #222; cursor: pointer; } }
+  .popup-alert { width: 100%; padding: 12px 16px; border: 0; border-radius: 6px; background: #f1f6fe; color: #363636; line-height: 22px; }
+  .tag-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .tag-item { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; margin: 0; padding: 0 12px; border: 0; border-radius: 6px; background: #f1f6fe; color: #146ef5; font-size: 14px; cursor: pointer; small { font-size: 12px; } }
+}
+</style>
 <style lang="less" scoped>
 .slash-popup-panel {
   width: 500px;

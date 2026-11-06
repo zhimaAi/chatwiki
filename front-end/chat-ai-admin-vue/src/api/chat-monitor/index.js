@@ -20,3 +20,10 @@ export const setReceiverRead = (data = {}) => {
     data: data
   })
 }
+
+export const saveSessionExpireTime = (data = {}) => {
+  return request.post({
+    url: '/manage/saveSessionExpireTime',
+    data
+  })
+}

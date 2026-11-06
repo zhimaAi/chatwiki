@@ -17,12 +17,15 @@ import { useEventBus } from '@/hooks/event/useEventBus'
 import { useIM } from '@/hooks/event/useIM'
 import { DEFAULT_USER_AVATAR } from '@/constants/index'
 
-export const useChatStore = defineStore('chat', () => {
-  const emitter = useEventBus()
+export function createRobotChatSession(options = {}) {
+  const emitter = options.isolatedIM ? { emit: () => {} } : useEventBus()
   const messageList = ref([])
-  const im = useIM()
+  const im = useIM(options.isolatedIM)
 
   let mySSE = null
+  let sessionVersion = 0
+  let streamVersion = 0
+  let pendingVariables = null
 
   // 对话id
   const dialogue_id = ref(0)
@@ -94,22 +97,28 @@ export const useChatStore = defineStore('chat', () => {
   // 创建对话
   const isNewChat = ref(false)
   const createChat = async (data) => {
-    if (mySSE) {
+    // 配置预览保存后重新读取变量规则，保留已有消息和会话连接。
+    const refreshOnly = Boolean(data.refreshOnly)
+    const version = refreshOnly ? sessionVersion : ++sessionVersion
+    if (!refreshOnly) streamVersion++
+    if (!refreshOnly && mySSE) {
       mySSE.abort()
       mySSE = null
     }
-    messageList.value = []
-    // 重置聊天记录是否加载完成的状态
-    chatMessageLoadCompleted.value = false
-    sendLock.value = false
-    chat_variables.value = getDefaultChatVariables()
+    if (!refreshOnly) {
+      messageList.value = []
+      // 重置聊天记录是否加载完成的状态
+      chatMessageLoadCompleted.value = false
+      sendLock.value = false
+      chat_variables.value = getDefaultChatVariables()
 
-    if (!data.dialogue_id) {
-      isNewChat.value = true
-      dialogue_id.value = 0
-    } else {
-      isNewChat.value = false
-      dialogue_id.value = data.dialogue_id
+      if (!data.dialogue_id) {
+        isNewChat.value = true
+        dialogue_id.value = 0
+      } else {
+        isNewChat.value = false
+        dialogue_id.value = data.dialogue_id
+      }
     }
 
     openid.value = data.openid || getOpenid(data.robot_key)
@@ -130,8 +139,9 @@ export const useChatStore = defineStore('chat', () => {
       // avatar: user.avatar || DEFAULT_USER_AVATAR, // lion要求把请求的avatar 干掉
       is_background: data.is_background || undefined,
       dialogue_id: dialogue_id.value,
-    })
+    }, options.isolatedIM ? { cancelToken: false } : {})
 
+    if (version !== sessionVersion) return null
     try {
       let userInfo = res.data.customer
       let robotInfo = res.data.robot
@@ -157,27 +167,28 @@ export const useChatStore = defineStore('chat', () => {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
 
-      setTimeout(() => {
-        const chatVariable = res.data.chat_variable || {}
-        chat_variables.value = {
-          ...getDefaultChatVariables(),
-          ...chatVariable,
-          session_id: Number(chatVariable.session_id || res.data.session_id || 0),
-          dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
-          fill_variables: chatVariable.fill_variables || [],
-          wait_variables: chatVariable.wait_variables || [],
-        }
-      })
+      const chatVariable = res.data.chat_variable || {}
+      chat_variables.value = {
+        ...getDefaultChatVariables(),
+        ...chatVariable,
+        session_id: Number(chatVariable.session_id || res.data.session_id || 0),
+        dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
+        fill_variables: chatVariable.fill_variables || [],
+        wait_variables: chatVariable.wait_variables || [],
+      }
 
       // 插入欢迎语
-      insertWelcomeMsg(res.data.message)
-      // 连接im
-      im.connect(openid.value)
-      im.on('message', onImMessage)
+      if (!refreshOnly) {
+        insertWelcomeMsg(res.data.message)
+        // 连接im
+        void im.connect(openid.value).catch(() => {})
+        im.on('message', onImMessage)
+      }
 
       return res
     } catch (e) {
-      Promise.reject(e)
+      if (!refreshOnly) im.close()
+      throw e
     }
   }
 
@@ -399,6 +410,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const stopMessage = () => {
+    streamVersion++
     const msgIndex = getRunningAiMessageIndex()
     if (msgIndex > -1) {
       messageList.value[msgIndex].is_stopped = true
@@ -422,6 +434,7 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
+    const version = ++streamVersion
     let aiMsg = {
       startLoading: true, // 对话开始状态
       loading: true,
@@ -456,12 +469,13 @@ export const useChatStore = defineStore('chat', () => {
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
 
-    const localVariables = localStorage.getItem(variables_key)
+    const localVariables = options.isolatedIM ? (pendingVariables && JSON.stringify(pendingVariables)) : localStorage.getItem(variables_key)
     const isNewDialogue = Number(dialogue_id.value || 0) === 0
 
     if (isNewDialogue && localVariables) {
       params.chat_prompt_variables = localVariables
-      localStorage.removeItem(variables_key)
+      if (options.isolatedIM) pendingVariables = null
+      else localStorage.removeItem(variables_key)
     }
 
     if (import.meta.env.DEV) {
@@ -472,6 +486,7 @@ export const useChatStore = defineStore('chat', () => {
     mySSE = sendAiMessage(params)
 
     mySSE.onMessage = (res) => {
+      if (version !== streamVersion) return
       if (res.event !== 'sending') {
         devLog(res)
       }
@@ -578,7 +593,7 @@ export const useChatStore = defineStore('chat', () => {
             openid: robot.openid,
             dialogue_id: dialogue_id.value
           }).then((res) => {
-            updateAiMessage('guess_you_want', res.data || [], aiMsg.uid)
+            if (version === streamVersion) updateAiMessage('guess_you_want', res.data || [], aiMsg.uid)
           })
         } else {
           updateAiMessage('set_question_tabkey', 2, aiMsg.uid)
@@ -587,6 +602,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     mySSE.onClose = () => {
+      if (version !== streamVersion) return
       closeAiMessageLoading()
       sendLock.value = false
 
@@ -594,7 +610,12 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const setPendingVariables = (values) => {
+    if (options.isolatedIM) pendingVariables = values
+    else localStorage.setItem(`chat_prompt_variables_${robot.robot_key}`, JSON.stringify(values))
+  }
   const handleEditVariables = (data) => {
+    const version = sessionVersion
     return editVariables({
       robot_key: robot.robot_key,
       openid: robot.openid,
@@ -602,9 +623,10 @@ export const useChatStore = defineStore('chat', () => {
       chat_prompt_variables: JSON.stringify(data.chat_prompt_variables),
       session_id: chat_variables.value.session_id
     }).then(res=>{
+      if (version !== sessionVersion) return res
       chat_variables.value.fill_variables = data.chat_prompt_variables
       let variables_key = `chat_prompt_variables_${robot.robot_key}`
-      localStorage.removeItem(variables_key)
+      if (!options.isolatedIM) localStorage.removeItem(variables_key)
       return res
     })
   }
@@ -620,6 +642,7 @@ export const useChatStore = defineStore('chat', () => {
       return false
     }
 
+    const version = sessionVersion
     let min_id = 0
 
     if (myChatList.value.length > 0) {
@@ -634,6 +657,7 @@ export const useChatStore = defineStore('chat', () => {
       robot_key: robot.robot_key
     })
 
+    if (version !== sessionVersion) return
     myChatListLoading.value = false
 
     const list = res.data || []
@@ -649,11 +673,13 @@ export const useChatStore = defineStore('chat', () => {
   }
   // 插入最新一条对话记录
   const insertNewSession = () => {
+    const version = sessionVersion
     getDialogueList({
       min_id: 0,
       size: 1,
       robot_key: robot.robot_key
     }).then((res) => {
+      if (version !== sessionVersion) return
       const list = res.data || []
 
       if (list[0]) {
@@ -678,6 +704,7 @@ export const useChatStore = defineStore('chat', () => {
   const chatMessageLoadCompleted = ref(false)
 
   const onGetChatMessage = async () => {
+    const version = sessionVersion
     if (chatMessageLoadCompleted.value) {
       return
     }
@@ -701,7 +728,7 @@ export const useChatStore = defineStore('chat', () => {
 
     try {
       const res = await getChatMessage(params)
-      if (dialogue_id.value !== request_dialogue_id) {
+      if (version !== sessionVersion || dialogue_id.value !== request_dialogue_id) {
         return Promise.resolve(null);
       }
       const list = res.data.list || []
@@ -792,6 +819,10 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function $reset() {
+    pendingVariables = null
+    sessionVersion++
+    streamVersion++
+    if (mySSE) { mySSE.abort(); mySSE = null }
     // 关闭im
     im.close()
 
@@ -851,6 +882,9 @@ export const useChatStore = defineStore('chat', () => {
     getRecordList,
     getChannelList,
     chat_variables,
+    setPendingVariables,
     handleEditVariables
   }
-})
+}
+
+export const useChatStore = defineStore('chat', () => createRobotChatSession())

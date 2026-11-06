@@ -6,6 +6,7 @@
   "action_reply_content": "Reply with Custom Message",
   "reply_placeholder": "Enter a rate limit message, for example: You are sending messages too frequently. Please try again later.",
   "save_config": "Save Settings",
+  "retry": "Retry",
   "msg_missing_robot_key": "The robot identifier is missing, so rate limit settings cannot be loaded.",
   "msg_load_failed": "Failed to load rate limit settings. Please try again later.",
   "msg_save_success": "Rate limit settings saved successfully.",

@@ -81,6 +81,100 @@
     }
   }
 }
+.float-icon-setting.is-workspace {
+  .form-item {
+    align-items: flex-start;
+    margin-bottom: 28px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  .form-item-label {
+    width: 112px;
+    margin-right: 24px;
+    text-align: left;
+    color: var(--app-text-primary);
+  }
+  .form-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .form-box .display-types {
+    gap: 12px;
+  }
+  .form-box .display-types .display-type {
+    width: 88px;
+    height: 92px;
+    margin-right: 0;
+    border-radius: 8px;
+    border-color: #d8d8d8;
+    background: #fff;
+
+    &:hover,
+    &.is-checked {
+      border-color: var(--app-primary);
+    }
+    &.is-checked {
+      background: var(--app-selected);
+    }
+    &.is-checked::after {
+      display: none;
+    }
+    &.is-checked .type-name {
+      color: var(--app-primary);
+    }
+    .type-name {
+      margin-top: 10px;
+      color: #222;
+      font-size: 14px;
+      line-height: 22px;
+    }
+    .type-icon {
+      width: 28px;
+      height: 28px;
+      overflow: hidden;
+    }
+    .type-icon-text {
+      width: 56px;
+      height: 28px;
+    }
+    .type-icon img {
+      width: 56px;
+      height: 56px;
+      max-width: none;
+      max-height: none;
+      flex-shrink: 0;
+    }
+    .type-icon-custom img {
+      width: 28px;
+      height: 28px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  }
+  .button-text-input {
+    width: 100%;
+    max-width: 280px;
+    margin-top: 12px;
+  }
+  .metric-row,
+  .check-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    min-height: 32px;
+  }
+  .metric-row .unit {
+    margin-left: 0;
+    color: var(--app-text-tertiary);
+    font-size: 12px;
+  }
+  .metric-row :deep(.ant-input-number) {
+    width: 72px;
+  }
+}
 </style>
 
 <template>
@@ -88,13 +182,55 @@
     <template #icon>
       <MessageOutlined name="quick-Instruction" style="font-size: 16px; color: #262626" />
     </template>
-    <div class="float-icon-setting">
+    <div class="float-icon-setting" :class="{ 'is-workspace': isWorkspace }">
       {{ props.title }}
       <div class="form-box">
         <div class="form-item">
-          <div class="form-item-label">{{ t('label_display_type') }}</div>
+          <div class="form-item-label">{{ isWorkspace ? t('label_display_type_plain') : t('label_display_type') }}</div>
           <div class="form-content">
-            <div class="display-types">
+            <div v-if="isWorkspace" class="display-types">
+              <div
+                class="display-type"
+                :class="{ 'is-checked': formData.displayType == 1 }"
+                @click="handleDisplayType(1)"
+              >
+                <div class="type-icon">
+                  <img src="@/assets/img/robot/display_type_1.svg" alt="" />
+                </div>
+                <div class="type-name">{{ t('type_simple') }}</div>
+              </div>
+              <div
+                class="display-type"
+                :class="{ 'is-checked': formData.displayType == 2 }"
+                @click="handleDisplayType(2)"
+              >
+                <div class="type-icon type-icon-text">
+                  <img src="@/assets/img/robot/display_type_2.svg" alt="" />
+                </div>
+                <div class="type-name">{{ t('type_with_text') }}</div>
+              </div>
+              <div
+                class="display-type"
+                :class="{ 'is-checked': formData.displayType == 3 }"
+                @click="handleDisplayType(3)"
+              >
+                <cu-upload @change="uploadButtonIcon">
+                  <div class="type-icon type-icon-custom">
+                    <img v-if="formData.buttonIcon" :src="formData.buttonIcon" alt="" />
+                    <PlusOutlined v-else style="font-size: 24px; color: #222" />
+                  </div>
+                </cu-upload>
+                <div class="type-name">{{ t('type_custom') }}</div>
+              </div>
+            </div>
+            <a-input
+              v-if="isWorkspace && formData.displayType == 2"
+              v-model:value="formData.buttonText"
+              class="button-text-input"
+              :maxlength="15"
+              :placeholder="t('ph_input_button_text')"
+            />
+            <div v-if="!isWorkspace" class="display-types">
               <div
                 class="display-type"
                 :class="{ 'is-checked': formData.displayType == 1 }"
@@ -147,7 +283,7 @@
             </div>
           </div>
         </div>
-        <div class="form-item" v-if="formData.displayType == 2">
+        <div class="form-item" v-if="!isWorkspace && formData.displayType == 2">
           <div class="form-item-label">{{ t('label_button_text') }}</div>
           <div class="form-content">
             <a-input
@@ -158,7 +294,39 @@
             />
           </div>
         </div>
-        <div class="form-item">
+        <div v-if="isWorkspace" class="form-item">
+          <div class="form-item-label">{{ t('label_icon_position') }}</div>
+          <div class="form-content">
+            <div class="metric-row">
+              <span>{{ t('label_right_plain') }}</span>
+              <a-input-number v-model:value="formData.rightMargin" :min="0" :max="2000" :precision="0" />
+              <span class="unit">px</span>
+              <span>{{ t('label_bottom_plain') }}</span>
+              <a-input-number v-model:value="formData.bottomMargin" :min="0" :max="2000" :precision="0" />
+              <span class="unit">px</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="isWorkspace" class="form-item">
+          <div class="form-item-label">{{ t('label_icon_display') }}</div>
+          <div class="form-content">
+            <div class="check-row">
+              <a-checkbox
+                :checked="Number(formData.showUnreadCount) === 1"
+                @change="(e) => (formData.showUnreadCount = e.target.checked ? 1 : 0)"
+              >
+                {{ t('label_unread_plain') }}
+              </a-checkbox>
+              <a-checkbox
+                :checked="Number(formData.showNewMessageTip) === 1"
+                @change="(e) => (formData.showNewMessageTip = e.target.checked ? 1 : 0)"
+              >
+                {{ t('label_notice_plain') }}
+              </a-checkbox>
+            </div>
+          </div>
+        </div>
+        <div v-if="!isWorkspace" class="form-item">
           <div class="form-item-label">{{ t('label_bottom_margin') }}</div>
           <div class="form-content">
             <div class="number-input">
@@ -167,7 +335,7 @@
             </div>
           </div>
         </div>
-        <div class="form-item">
+        <div v-if="!isWorkspace" class="form-item">
           <div class="form-item-label">{{ t('label_right_margin') }}</div>
           <div class="form-content">
             <div class="number-input">
@@ -176,7 +344,7 @@
             </div>
           </div>
         </div>
-        <div class="form-item">
+        <div v-if="!isWorkspace" class="form-item">
           <div class="form-item-label">{{ t('label_show_unread_count') }}</div>
           <div class="form-content">
             <a-switch
@@ -186,7 +354,7 @@
             />
           </div>
         </div>
-        <div class="form-item">
+        <div v-if="!isWorkspace" class="form-item">
           <div class="form-item-label">{{ t('label_show_new_message_tip') }}</div>
           <div class="form-content">
             <a-switch
@@ -196,7 +364,7 @@
             />
           </div>
         </div>
-        <div class="form-item">
+        <div v-if="!isWorkspace" class="form-item">
           <div class="form-item-label"></div>
           <div class="form-content">
             <a-button type="primary" :loading="props.saveLoading" @click="handleSubmit"
@@ -211,7 +379,7 @@
 
 <script setup>
 import { uploadFile } from '@/api/app'
-import { reactive, toRaw, watch, computed } from 'vue'
+import { computed, nextTick, onMounted, reactive, toRaw, watch } from 'vue'
 import { MessageOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import CardBox from './card-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
@@ -228,8 +396,13 @@ const props = defineProps({
   form: {
     type: Object,
     default: () => {}
+  },
+  appearance: {
+    type: String,
+    default: 'card'
   }
 })
+const isWorkspace = computed(() => props.appearance === 'workspace')
 
 // 定义组件事件
 const emit = defineEmits(['save'])
@@ -283,15 +456,35 @@ const handleSubmit = () => {
   emit('save', toRaw(formData))
 }
 
+let ignoreFloatSave = 0
+let floatReady = false
+
 watch(
   () => props.form,
   (newVal) => {
-    Object.assign(formData, newVal.floatBtn)
+    ignoreFloatSave += 1
+    Object.assign(formData, newVal?.floatBtn || {})
+    nextTick(() => {
+      ignoreFloatSave = Math.max(0, ignoreFloatSave - 1)
+    })
   },
   {
     immediate: true
   }
 )
+
+watch(
+  formData,
+  () => {
+    if (!floatReady || ignoreFloatSave > 0 || !isWorkspace.value) return
+    emit('save', { ...toRaw(formData) })
+  },
+  { deep: true }
+)
+
+onMounted(() => {
+  floatReady = true
+})
 
 defineExpose({
   handleSubmit

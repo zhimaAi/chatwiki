@@ -28,6 +28,7 @@ import (
 	"github.com/zhimaAi/go_tools/mq"
 	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
+	llm "github.com/zhimaAi/llm_adaptor/v2"
 )
 
 func Run() {
@@ -35,6 +36,9 @@ func Run() {
 	initialize.Initialize()
 	//postgres table
 	PostgresTable()
+	if define.IsDev {
+		llm.RegisterHTTPLogger(common.SaveLLMHTTPLog)
+	}
 	//producer handle
 	define.ProducerHandle = mq.NewProducerHandle().SetWorkNum(3).SetHostAndPort(define.Config.Nsqd[`host`], cast.ToUint(define.Config.Nsqd[`port`]))
 	//consumer handle

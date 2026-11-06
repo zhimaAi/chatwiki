@@ -12,7 +12,7 @@
         type="error"
         show-icon
         :message="loadError"
-      />
+      ><template #action><a @click="loadConfig(robotKey)">{{ t('retry') }}</a></template></a-alert>
 
       <a-form
         v-else
@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -121,12 +121,14 @@ import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useRobotStore } from '@/stores/modules/robot'
 import { getRobotRateLimitConf, saveRobotRateLimitConf } from '@/api/robot/index'
 
-defineProps({
+const props = defineProps({
+  robotKey: { type: String, default: '' },
   embedded: {
     type: Boolean,
     default: false
   }
 })
+const emit = defineEmits(['status-change'])
 
 const { t } = useI18n('views.robot.robot-config.rate-limit.index')
 const route = useRoute()
@@ -162,9 +164,11 @@ const hasLoaded = ref(false)
 const loadError = ref('')
 const formState = reactive(createDefaultConfig())
 let requestVersion = 0
+let alive = true
 
 const robotKey = computed(() => {
   return String(
+    props.robotKey ||
     route.query.robot_key ||
     clawbotStore.currentAssistant?.robot_key ||
     robotStore.robotInfo?.robot_key ||
@@ -217,6 +221,7 @@ const buildPayload = () => ({
 const loadConfig = async (currentRobotKey) => {
   const currentVersion = ++requestVersion
   pageLoading.value = false
+  submitLoading.value = false
   hasLoaded.value = false
   loadError.value = ''
   applyConfig(createDefaultConfig(currentRobotKey), currentRobotKey)
@@ -264,10 +269,11 @@ const submitConfig = async ({ previousSwitch = null } = {}) => {
   submitLoading.value = true
   const payload = buildPayload()
   const submittedRobotKey = payload.robot_key
+  const submittedVersion = requestVersion
 
   try {
     const res = await saveRobotRateLimitConf(payload)
-    if (submittedRobotKey !== robotKey.value) return false
+    if (!alive || submittedVersion !== requestVersion || submittedRobotKey !== robotKey.value) return false
 
     if (Number(res?.res) !== 0) {
       if (previousSwitch !== null) {
@@ -284,7 +290,7 @@ const submitConfig = async ({ previousSwitch = null } = {}) => {
     message.success(t('msg_save_success'))
     return true
   } catch {
-    if (submittedRobotKey !== robotKey.value) return false
+    if (!alive || submittedVersion !== requestVersion || submittedRobotKey !== robotKey.value) return false
 
     if (previousSwitch !== null) {
       formState.switch_status = previousSwitch
@@ -292,28 +298,36 @@ const submitConfig = async ({ previousSwitch = null } = {}) => {
     message.error(t('msg_save_failed'))
     return false
   } finally {
-    submitLoading.value = false
+    if (alive && submittedVersion === requestVersion) submitLoading.value = false
   }
 }
 
 const handleSwitchChange = async (checked) => {
-  if (!hasLoaded.value || submitLoading.value) return
+  if (!alive || !hasLoaded.value || submitLoading.value) return false
 
+  const version = requestVersion
   const previousSwitch = formState.switch_status
   formState.switch_status = checked ? 1 : 0
+  submitLoading.value = true
 
   const isValid = await validateForm()
+  if (!alive || version !== requestVersion) return false
   if (!isValid) {
     formState.switch_status = previousSwitch
-    return
+    submitLoading.value = false
+    return false
   }
 
-  await submitConfig({ previousSwitch })
+  return submitConfig({ previousSwitch })
 }
 
 const handleSave = async () => {
-  if (!hasLoaded.value || submitLoading.value) return
-  if (!(await validateForm())) return
+  if (!alive || !hasLoaded.value || submitLoading.value) return
+  const version = requestVersion
+  submitLoading.value = true
+  const isValid = await validateForm()
+  if (!alive || version !== requestVersion) return
+  if (!isValid) { submitLoading.value = false; return }
   await submitConfig()
 }
 
@@ -324,6 +338,18 @@ watch(
   },
   { immediate: true }
 )
+watch(
+  [hasLoaded, pageLoading, submitLoading, loadError, () => formState.switch_status],
+  () => emit('status-change', {
+    ready: hasLoaded.value,
+    loading: pageLoading.value || submitLoading.value,
+    enabled: formState.switch_status === 1,
+    error: loadError.value
+  }),
+  { immediate: true }
+)
+defineExpose({ setEnabled: handleSwitchChange })
+onBeforeUnmount(() => { alive = false; requestVersion++ })
 </script>
 
 <style lang="less" scoped>

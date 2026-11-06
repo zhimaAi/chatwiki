@@ -2,7 +2,6 @@
 .setting-box {
   position: relative;
   .robot-info-box {
-    padding-right: 30px;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -22,13 +21,14 @@
 </style>
 
 <template>
-  <edit-box class="setting-box" :title="t('title_chat_cache')" icon-name="chat-cache">
+  <edit-box class="setting-box" :class="{ 'workspace-cache': compact }" :title="t('title_chat_cache')" icon-name="chat-cache">
     <template #extra>
       <span></span>
     </template>
     <div class="robot-info-box">
       {{ t('msg_cache_description') }}
       <div class="set-block">
+        <span v-if="compact">{{ workspaceT('cache_expiry') }}</span>
         <a-input-group compact>
           <a-input-number
             v-if="state.unix == 'h'"
@@ -37,7 +37,8 @@
             v-model:value="state.hValue"
             :min="1"
             :max="72"
-            style="width: 70px"
+            style="width: 55px"
+            size="small"
           />
           <a-input-number
             v-else
@@ -46,9 +47,10 @@
             v-model:value="state.mValue"
             :min="1"
             :max="4320"
-            style="width: 70px"
+            style="width: 55px"
+            size="small"
           />
-          <a-select v-model:value="state.unix" style="width: 100px" @change="handleChangeUnix">
+          <a-select v-model:value="state.unix" size="small" style="width: 65px" @change="handleChangeUnix">
             <a-select-option value="h">{{ t('unit_hour') }}</a-select-option>
             <a-select-option value="m">{{ t('unit_minute') }}</a-select-option>
           </a-select>
@@ -77,6 +79,8 @@ import { message, Modal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.chat-cache')
+const { t: workspaceT } = useI18n('views.customer-service.index')
+defineProps({ compact: { type: Boolean, default: false } })
 const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
 const formState = reactive({

@@ -19,11 +19,18 @@ import (
 )
 
 type WorkFlowBatch struct {
+	mu              sync.Mutex // protects shared results and parent logs during concurrent branches
 	MainFlow        *WorkFlow
 	FlowLs          []*WorkFlow
 	Outputs         common.SimpleFields
 	BatchNodeParams *BatchNodeParams
 	BatchNode       msql.Params
+}
+
+func (flowBatch *WorkFlowBatch) logs(format string, args ...any) {
+	flowBatch.mu.Lock()
+	defer flowBatch.mu.Unlock()
+	flowBatch.MainFlow.Logs(format, args...)
 }
 
 // FlowRunningBatchTest Batch node separate run test
@@ -124,27 +131,47 @@ func (flowBatch *WorkFlowBatch) ForRunning() (nextNodeKey string, err error) {
 	var wg sync.WaitGroup
 	cTask := make(chan any, flowBatch.BatchNodeParams.ChanNumber.Int())
 	for _, inField := range batchDatas {
+		if _, transferred := flowBatch.MainFlow.params.ManualTransfer.Result(); transferred {
+			break
+		}
+		select {
+		case cTask <- nil:
+		case <-flowBatch.MainFlow.params.ManualTransfer.Done():
+			goto batchWait
+		}
 		wg.Add(1)
-		cTask <- nil
 		go func(data *common.SimpleField) {
 			defer wg.Done()
 			defer func() { <-cTask }()
 			if flowBatch.MainFlow.isTimeout {
 				return
 			}
+			if _, transferred := flowBatch.MainFlow.params.ManualTransfer.Result(); transferred {
+				return
+			}
 			flowL := &WorkFlow{}
 			flowL, err := flowBatch.batchNodeRunning(data)
 			if err != nil {
-				flowBatch.MainFlow.Logs(`Batch node running error: %s`, err)
+				flowBatch.logs(`Batch node running error: %s`, err)
 			} else {
+				flowBatch.mu.Lock()
 				flowBatch.FlowLs = append(flowBatch.FlowLs, flowL)
+				flowBatch.mu.Unlock()
 			}
 		}(inField)
 	}
+batchWait:
 	wg.Wait()
 	close(cTask)
 	//take result
 	flowBatch.TakeChildOutputs()
+	for _, child := range flowBatch.FlowLs {
+		flowBatch.MainFlow.replyContentList = append(flowBatch.MainFlow.replyContentList, child.replyContentList...)
+	}
+	if output := manualTransferOutput(flowBatch.MainFlow.params.ManualTransfer); output != nil {
+		flowBatch.Outputs = mergeManualTransferOutput(flowBatch.Outputs, flowBatch.MainFlow.params.ManualTransfer)
+		return ``, nil
+	}
 	nextNodeKey = flowBatch.BatchNode[`next_node_key`]
 	return
 }
@@ -291,6 +318,9 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		return
 	}
 	for {
+		if flowL.applyManualTransfer() {
+			break
+		}
 		var nodeInfo msql.Params
 		flowL.curNode, nodeInfo, err = GetNodeByKey(flowL, cast.ToUint(flowL.params.RealRobot[`id`]), flowL.curNodeKey)
 		if err != nil {
@@ -318,6 +348,9 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 			break
 		} else {
 			flowL.output, nextNodeKey, err = flowL.curNode.Running(flowL)
+			if flowL.applyManualTransfer() {
+				nextNodeKey, err = ``, nil
+			}
 			flowL.outputs[flowL.curNodeKey] = flowL.output // Record output variables of each node
 		}
 		// Running parameter processing
@@ -329,9 +362,9 @@ func (flowBatch *WorkFlowBatch) batchNodeRunning(dataField *common.SimpleField) 
 		nodeLog.UseTime = nodeLog.EndTime - nodeLog.StartTime
 		flowL.nodeLogs = append(flowL.nodeLogs, nodeLog)
 		// Node execution end
-		flowBatch.MainFlow.Logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
+		flowBatch.logs(`Result nextNodeKey:%s,err:%v`, nextNodeKey, err)
 		if len(flowL.output) > 0 {
-			flowBatch.MainFlow.Logs(`Output variables:%s`, tool.JsonEncodeNoError(flowL.output))
+			flowBatch.logs(`Output variables:%s`, tool.JsonEncodeNoError(flowL.output))
 		}
 		if flowBatch.MainFlow.isTimeout || err != nil || len(nextNodeKey) == 0 {
 			break // End

@@ -23,12 +23,12 @@
       <div class="message-footer-left">
         <ChatModelSelect
           class="chat-model-select"
-          :disabled="props.modelLoading"
+          :disabled="props.modelLoading || configLocked"
           :modeId="props.modeId"
           :modeName="props.modeName"
           @change="handleModelChange"
         />
-        <div class="quick-entry-list">
+        <div class="quick-entry-list" :class="{ locked: configLocked }">
           <div class="quick-entry-item" @click="handleOpenPrompt">
             <UserOutlined />
             <span>{{ t('label_persona') }}</span>
@@ -73,14 +73,18 @@
 <script setup>
 import { computed, toRefs } from 'vue'
 import { UserOutlined, StarOutlined, FileOutlined, PictureOutlined, ArrowUpOutlined } from '@ant-design/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ChatModelSelect from './chat-model-select.vue'
 import FileToolbar from './file-toolbar.vue'
 import { useUpload } from '@/hooks/web/useUpload.js'
 import { useI18n } from '@/hooks/web/useI18n'
+import { getRobotPermission } from '@/utils/permission'
+import { getClawbotLocation } from '@/views/clawbot/navigation'
 
 const { t } = useI18n('views.clawbot.chat.components.message-input')
 const router = useRouter()
+const route = useRoute()
+const configLocked = computed(() => getRobotPermission(route.query.id) < 2)
 
 const emit = defineEmits(['send', 'stop', 'update:value', 'update:fileList', 'changeModel', 'openPrompt', 'openSkill'])
 
@@ -160,15 +164,18 @@ const handleModelChange = (model) => {
 }
 
 const handleOpenPrompt = () => {
+  if (configLocked.value) return
   emit('openPrompt')
 }
 
 const handleOpenSkill = () => {
+  if (configLocked.value) return
   emit('openSkill')
 }
 
 const handleOpenKnowledge = () => {
-  router.push('/clawbot/knowledge')
+  if (configLocked.value) return
+  router.push(getClawbotLocation(route, 'knowledge', {}))
 }
 
 const onChange = (e) => {
@@ -292,6 +299,11 @@ const stopMessage = () => {
     :deep(.anticon) {
       font-size: 14px;
     }
+  }
+
+  .quick-entry-list.locked {
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .message-action {

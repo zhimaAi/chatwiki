@@ -2,5 +2,11 @@
   "all_apps": "All Apps",
   "search_placeholder": "Search customer nickname or openid, press Enter to search",
   "select_conversation_tip": "Please select a conversation from the left list first",
-  "feature_description": "Through this feature, you can view real-time conversation messages received by the robot and monitor the robot's response effect"
+  "feature_description": "Through this feature, you can view real-time conversation messages received by the robot and monitor the robot's response effect",
+  "btn_session_setting": "Session settings",
+  "title_session_setting": "Session settings",
+  "label_auto_end": "Auto end:",
+  "label_hour": "hours",
+  "desc_auto_end": "with no new conversation, automatically end and remove it from the list",
+  "msg_invalid_session_hours": "Enter a value between 0.1 and 48 hours"
 }

@@ -38,9 +38,10 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 	dialogId, sessionId := getWorkFlowStorageIDs(flow)
 	boolCreate := true
 	if sessionId > 0 {
-		_, storeId, _ := GetWorkFlowRestore(dialogId, sessionId)
+		_, storeId, _ := GetWorkFlowRestore(cast.ToInt(flow.params.RealRobot[`id`]), dialogId, sessionId)
 		if cast.ToInt(storeId) > 0 {
-			_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, storeId).Update(msql.Datas{
+			_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, storeId).
+				Where(`robot_id`, flow.params.RealRobot[`id`]).Update(msql.Datas{
 				"storage":     tool.JsonEncodeNoError(data),
 				"log_id":      flow.LogID, // preserve the stable identity of this run
 				"update_time": time.Now().Unix(),
@@ -54,7 +55,7 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 	if boolCreate {
 		newId, err := msql.Model(`work_flow_storage_cache`, define.Postgres).Insert(msql.Datas{
 			"admin_user_id": flow.params.AdminUserId,
-			"robot_id":      flow.params.Robot[`id`],
+			"robot_id":      flow.params.RealRobot[`id`],
 			"dialog_id":     dialogId,
 			"session_id":    sessionId,
 			"openid":        flow.params.Openid,
@@ -68,7 +69,8 @@ func SetWorkFlowStorage(flow *WorkFlow) {
 		}
 		if shouldRewriteDraftStorageSessionID(flow) {
 			flow.params.SessionId = cast.ToInt(newId)
-			_, err = msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, cast.ToString(newId)).Update(msql.Datas{
+			_, err = msql.Model(`work_flow_storage_cache`, define.Postgres).Where(`id`, cast.ToString(newId)).
+				Where(`robot_id`, flow.params.RealRobot[`id`]).Update(msql.Datas{
 				`session_id`:  newId,
 				"update_time": time.Now().Unix(),
 			})
@@ -97,13 +99,14 @@ func getWorkFlowStorageIDs(flow *WorkFlow) (dialogId, sessionId int) {
 	return flow.params.DialogueId, flow.params.SessionId
 }
 
-func GetWorkFlowRestore(dialogId, sessionId int) (data *WorkFlowRestoreData, s string, logID int64) {
+func GetWorkFlowRestore(robotID, dialogId, sessionId int) (data *WorkFlowRestoreData, s string, logID int64) {
 	data = &WorkFlowRestoreData{}
-	if dialogId == 0 || sessionId == 0 {
+	if robotID <= 0 || dialogId == 0 || sessionId == 0 {
 		return
 	}
 	//2 hours cache
 	storage, err := msql.Model(`work_flow_storage_cache`, define.Postgres).
+		Where(`robot_id`, cast.ToString(robotID)).
 		Where(`dialog_id`, cast.ToString(dialogId)).
 		Where(`session_id`, cast.ToString(sessionId)).
 		Where(`create_time`, `>`, cast.ToString(time.Now().Unix()-7200)).Order(`id desc`).Find()
@@ -128,8 +131,12 @@ func IsStoragePaused(flow *WorkFlow) bool {
 	return flow.isStorage
 }
 
-func DelWorkFlowStorage(dialogId, sessionId int) {
+func DelWorkFlowStorage(robotID, dialogId, sessionId int) {
+	if robotID <= 0 || dialogId == 0 || sessionId == 0 {
+		return
+	}
 	_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).
+		Where(`robot_id`, cast.ToString(robotID)).
 		Where(`dialog_id`, cast.ToString(dialogId)).
 		Where(`session_id`, cast.ToString(sessionId)).Delete()
 	if err != nil {
@@ -138,11 +145,12 @@ func DelWorkFlowStorage(dialogId, sessionId int) {
 }
 
 // DelWorkFlowStorageByLogID removes paused snapshots by log_id.
-func DelWorkFlowStorageByLogID(logID int64) {
-	if logID <= 0 {
+func DelWorkFlowStorageByLogID(robotID int, logID int64) {
+	if robotID <= 0 || logID <= 0 {
 		return
 	}
 	_, err := msql.Model(`work_flow_storage_cache`, define.Postgres).
+		Where(`robot_id`, cast.ToString(robotID)).
 		Where(`log_id`, cast.ToString(logID)).Delete()
 	if err != nil {
 		logs.Error(err.Error())
@@ -152,10 +160,10 @@ func DelWorkFlowStorageByLogID(logID int64) {
 func WorkFlowRestore(flow *WorkFlow) (err error) {
 	restoreDialogId, restoreSessionId := getWorkFlowStorageIDs(flow)
 	defer func() {
-		DelWorkFlowStorage(restoreDialogId, restoreSessionId)
+		DelWorkFlowStorage(cast.ToInt(flow.params.RealRobot[`id`]), restoreDialogId, restoreSessionId)
 	}()
 	logs.Debug(`to restore，dialog_id %v session_id %v`, restoreDialogId, restoreSessionId)
-	data, _, logID := GetWorkFlowRestore(restoreDialogId, restoreSessionId)
+	data, _, logID := GetWorkFlowRestore(cast.ToInt(flow.params.RealRobot[`id`]), restoreDialogId, restoreSessionId)
 	if data == nil || data.CurNodeKey == `` {
 		return
 	}
@@ -236,7 +244,7 @@ func WorkFlowRestore(flow *WorkFlow) (err error) {
 	if flow.params.Draft.IsDraft {
 		nodeInfo = flow.params.Draft.NodeMaps[flow.curNodeKey]
 	} else {
-		nodeInfo, err = common.GetRobotNode(cast.ToUint(flow.params.Robot[`id`]), flow.curNodeKey)
+		nodeInfo, err = common.GetRobotNode(cast.ToUint(flow.params.RealRobot[`id`]), flow.curNodeKey)
 		if err != nil {
 			logs.Error(err.Error())
 			return errors.New(i18n.Show(flow.params.Lang, "workflow_node_get_fail"))

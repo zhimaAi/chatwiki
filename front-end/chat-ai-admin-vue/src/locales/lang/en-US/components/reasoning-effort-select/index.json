@@ -1,0 +1,4 @@
+{
+  "ph_select_or_input": "Select or enter a reasoning effort",
+  "error_max_length": "Reasoning effort must not exceed 50 characters"
+}

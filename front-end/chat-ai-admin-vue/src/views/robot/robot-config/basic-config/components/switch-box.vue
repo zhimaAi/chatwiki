@@ -52,7 +52,20 @@
 </style>
 
 <template>
-  <div class="switch-box">
+  <EditBox v-if="compact" :compact="true" :title="title" :icon-name="iconName">
+    <template #extra><slot name="extra"><span></span></slot></template>
+    <template #tip><slot name="tip"></slot></template>
+    <template #switch>
+      <a-switch
+        v-model:checked="checked"
+        @change="handleChange"
+        :checked-children="t('btn_switch_on')"
+        :un-checked-children="t('btn_switch_off')"
+      />
+    </template>
+    <div class="robot-prompt"><slot></slot></div>
+  </EditBox>
+  <div v-else class="switch-box">
     <div class="switch-box-body">
       <div class="switch-box-header">
         <div class="left-box">
@@ -90,11 +103,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
+import EditBox from './edit-box.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.switch-box')
 const emit = defineEmits(['update:value', 'change'])
 
 const props = defineProps({
+  compact: { type: Boolean, default: false },
   iconName: {
     type: String,
     default: ''

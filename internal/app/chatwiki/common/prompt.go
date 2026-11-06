@@ -251,13 +251,13 @@ func UnifyLineBreak(content string) string {
 	return content
 }
 
-func CreatePromptByAi(ctx context.Context, lang string, demand string, adminUserId, modelConfigId int, useModel string, enableThinking ThinkingSwitch) (string, error) {
+func CreatePromptByAi(ctx context.Context, lang string, demand string, adminUserId, modelConfigId int, useModel string, reasoningEffort chat.ReasoningEffort) (string, error) {
 	messages := []chat.Message{
 		{Role: chat.RoleSystem, Content: chat.MessageContent{Text: tea.String(define.PromptDefaultCreatePrompt)}},
 		{Role: chat.RoleUser, Content: chat.MessageContent{Text: tea.String(demand)}},
 	}
 	chatResp, _, err := RequestChat(ctx, lang, adminUserId, cast.ToString(adminUserId), nil, lib_define.AppYunPc,
-		modelConfigId, useModel, messages, nil, 0.5, 2000, enableThinking)
+		modelConfigId, useModel, messages, nil, 0.5, 2000, reasoningEffort)
 	if err != nil {
 		logs.Error(err.Error())
 		return ``, err

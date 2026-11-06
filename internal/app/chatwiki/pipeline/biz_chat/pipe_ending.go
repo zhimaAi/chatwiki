@@ -8,6 +8,7 @@ import (
 	"chatwiki/internal/pkg/lib_define"
 	"chatwiki/internal/pkg/pipeline"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gin-contrib/sse"
@@ -38,7 +39,25 @@ func SetMonitorFromLlm(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 // OfficeAccountPassiveReply special handling for unauthenticated office account messages
 func OfficeAccountPassiveReply(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if in.params.AppType == lib_define.AppOfficeAccount && in.params.PassiveId > 0 {
-		common.PassiveReplyLogNotify(in.params.Lang, in.params.PassiveId, in.params.Question, out.content)
+		content := out.content
+		// passive reply can only respond once, so only the first split finish reply is sent
+		if common.IsWorkFlowFinishReplyList(out.replyContentList) {
+			for _, reply := range out.replyContentList {
+				if reply.SendSource != common.SendSourceWorkFlowFinish {
+					continue
+				}
+				switch reply.ReplyType {
+				case common.ReplyTypeText:
+					content = reply.Description
+				case common.ReplyTypeImg:
+					content = fmt.Sprintf(`![%s](%s)`, reply.ThumbURL, reply.ThumbURL)
+				case common.ReplyTypeVoice:
+					content = reply.URL
+				}
+				break
+			}
+		}
+		common.PassiveReplyLogNotify(in.params.Lang, in.params.PassiveId, in.params.Question, content)
 	}
 	return pipeline.PipeContinue
 }

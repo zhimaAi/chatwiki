@@ -420,7 +420,7 @@ func LibDocSearch(ctx context.Context, lang string, libraryId int, search string
 		}
 		vectorList = append(vectorList, list...)
 	}
-	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, searchType)
+	list, err := GetMatchLibraryParagraphByFullTextSearch(search, cast.ToString(libraryId), fetchSize, searchType, similarity)
 	if err != nil {
 		logs.Error(err.Error())
 		return result, summary, quoteFile, nil

@@ -33,7 +33,10 @@ func SaveUnknownIssueRecord(lang string, adminUserId int, robot msql.Params, que
 }
 
 func saveUnknownIssueRecordWithRetry(lang string, adminUserId int, robot msql.Params, question string, relation UnknownIssueRelation, maxRetry int) {
-	question = GetFirstQuestionByInput(question) // Special handling for multimodal input
+	question = GetFirstQuestionByInput(question, true)
+	if len(question) == 0 {
+		return // Media placeholders are not unknown text questions
+	}
 	if relation.TriggerTime <= 0 {
 		relation.TriggerTime = tool.Time2Int()
 	}

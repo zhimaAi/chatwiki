@@ -143,6 +143,7 @@ import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import textParseProcessing from '@/utils/textParseProcessing'
 import { useChatStore } from '@/stores/modules/chat'
 import wxMiniCardHook from './wx-mini-card-hook'
+import { openExternalLink } from '@/utils/open-external-link'
 const chatStore = useChatStore()
 const externalConfigPC = computed(()=> chatStore.externalConfigPC)
 
@@ -224,28 +225,13 @@ watch(html, () => {
 }, { immediate: true });
 
 
-function isMobileDevice() {
-  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-  return mobileRegex.test(userAgent);
-}
 function bindLinkEvents() {
   const links = containerRef.value.querySelectorAll('a');
   links.forEach(link => {
     link.addEventListener('click', function(e) {
       e.preventDefault(); // 阻止默认跳转行为
       const href = this.getAttribute('href');
-      if(isMobileDevice() || externalConfigPC.value.open_type == 1){
-        // 移动设备上点击链接时，使用自定义的跳转逻辑
-        window.open(href, '_blank')
-        return
-      }
-      // 处理点击事件
-      const width = +externalConfigPC.value.window_width || 1200;
-      const height = +externalConfigPC.value.window_height || 650;
-      const left = (screen.width - width) / 2;  // 居中
-      const top = (screen.height - height) / 2; // 居中
-      window.open(href, '_blank', `width=${width},height=${height},left=${left},top=${top},resizable=yes`)
+      openExternalLink(href, externalConfigPC.value)
     });
   });
 }

@@ -227,7 +227,7 @@
                 </div>
                 <div class="check-block">
                   <a-checkbox
-                    :disabled="effectiveDefaultLibraryId == item.id"
+                    :disabled="isProtected(item.id)"
                     :checked="state.checkedList.includes(item.id)"
                   ></a-checkbox>
                 </div>
@@ -276,6 +276,7 @@ const props = defineProps({
 const effectiveDefaultLibraryId = computed(() => {
   return props.defaultLibraryId === null ? robotInfo.default_library_id : props.defaultLibraryId
 })
+const isProtected = id => effectiveDefaultLibraryId.value == id || (props.defaultLibraryId === null && Number(robotInfo.normal_library_id) > 0 && String(robotInfo.normal_library_id) === String(id))
 
 const state = reactive({
   indeterminate: false,
@@ -366,7 +367,7 @@ const getList = async () => {
 
 const handleChangeChecked = (e) => {
   let value = e.id
-  if (effectiveDefaultLibraryId.value == value) {
+  if (isProtected(value)) {
     return
   }
   if (state.checkedList.includes(value)) {

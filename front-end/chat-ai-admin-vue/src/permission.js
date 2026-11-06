@@ -3,8 +3,10 @@ import { useUserStoreWithOut } from '@/stores/modules/user'
 import { usePermissionStoreWithOut } from '@/stores/modules/permission'
 import { useCompanyStore } from '@/stores/modules/company'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
-import { checkSystemPermisission } from '@/utils/permission.js'
+import { checkRole, checkSystemPermisission } from '@/utils/permission.js'
+import { useSystemModeStore } from '@/stores/modules/system-mode'
 import { buildSetTokenRedirectUrl, getCrossDomainTarget } from '@/utils/clawbot-domain'
+import { isCustomerServiceClawbotRoute } from '@/utils/clawbot-layout'
 import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import { useLocale } from '@/hooks/web/useLocale'
 import { i18n } from '@/locales'
@@ -12,6 +14,9 @@ import { i18n } from '@/locales'
 function toLogin(to, from, next) {
   if (to.path === '/login') {
     next()
+  } else if (isCustomerServiceClawbotRoute(to)) {
+    // 新版深链需要恢复应用、菜单及布局模式；登录页按现有约定解码 redirect。
+    next({ path: '/login', query: { redirect: encodeURIComponent(to.fullPath) } })
   } else {
     next(`/login?redirect=${to.path}`)
   }
@@ -36,6 +41,17 @@ function setTitle(to, companyInfo) {
   } else {
     document.title = str
   }
+}
+
+async function needsModeSelection(to, userStore, companyStore) {
+  // 新版 Agent 无应用参数时显示应用选择入口，不能被独立入口的模式选择截走。
+  if (isCustomerServiceClawbotRoute(to)) return false
+  const landingPaths = ['/', '/robot/list', '/customer-service/chat', '/customer-service/session-record', '/clawbot/chat']
+  // 只拦截默认入口，保留设置页、工作流和指定应用的业务深链。
+  if (!landingPaths.includes(to.path) || to.query.id || to.query.robot_key) return false
+  if (!userStore.user_is_admin && !checkRole(['CompanyManage'])) return false
+  const modeStore = useSystemModeStore()
+  return await modeStore.loadForScope({ companyId: companyStore.id }) && modeStore.needsModeSelection
 }
 
 
@@ -63,9 +79,12 @@ router.beforeEach(async (to, from, next) => {
   if (!companyInfo) {
     await getCompanyInfo()
   }
-  setTitle(to, companyInfo)
-
   const userStore = useUserStoreWithOut()
+  if (userStore.getToken && ['/login', '/set_token', '/chatclaw/login'].includes(from.path)) {
+    // 登录或跨域落地后重读当前企业，不能使用登录页缓存的上一企业配置。
+    await getCompanyInfo()
+  }
+  setTitle(to, companyStore.companyInfo)
   const permissionStore = usePermissionStoreWithOut()
   // 不是白名单的路由
   const notWhitePath = NO_REDIRECT_WHITE_LIST.indexOf(to.path) !== -1
@@ -76,6 +95,8 @@ router.beforeEach(async (to, from, next) => {
   const crossDomainTarget = getCrossDomainTarget({
     toPath: to.path,
     fromPath: from.path,
+    toQuery: to.query,
+    fromQuery: from.query,
     adminDomain: companyStore.admin_domain,
     agentDomain: companyStore.agent_domain,
     currentOrigin: window.location.origin
@@ -108,6 +129,7 @@ router.beforeEach(async (to, from, next) => {
       next({ path: '/', query: to.query })
     } else {
       await checkPermission()
+      if (await needsModeSelection(to, userStore, companyStore)) { next('/mode-select'); return }
       
       const name = checkSystemPermisission(to)
       if (name === 'AccountManage') {
@@ -135,6 +157,8 @@ router.beforeEach(async (to, from, next) => {
           return
         }
 
+        await checkPermission()
+        if (await needsModeSelection(to, userStore, companyStore)) { next('/mode-select'); return }
         next()
       } catch (e) {
         toLogin(to, from, next)

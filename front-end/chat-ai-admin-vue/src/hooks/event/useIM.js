@@ -6,10 +6,15 @@ const wsUrl = ref(null)
 const ws = ref(null)
 const events = reactive({})
 
-export const useIM = () => {
+const defaultState = { wsUrl, ws, events, version: 0 }
+export const useIM = (isolated = false) => {
+  const state = isolated ? { wsUrl: ref(null), ws: ref(null), events: reactive({}), version: 0 } : defaultState
+  const { wsUrl, ws, events } = state
   async function connect(openid, cb) {
+    const version = ++state.version
     let res = await getWsUrl({ openid: openid })
 
+    if (version !== state.version) return
     if (res) {
       wsUrl.value = res.data.ws_url
     }
@@ -25,7 +30,7 @@ export const useIM = () => {
     cb && cb()
 
     ws.value.on('message', (data) => {
-      emit('message', data)
+      if (version === state.version) emit('message', data)
     })
 
     ws.value.on('error', onError)
@@ -50,6 +55,7 @@ export const useIM = () => {
   }
 
   function close() {
+    state.version++
     Object.keys(events).forEach((event) => {
       events[event] = []
 
@@ -57,6 +63,7 @@ export const useIM = () => {
     })
 
     ws.value && ws.value.close()
+    ws.value = null
   }
 
   return {

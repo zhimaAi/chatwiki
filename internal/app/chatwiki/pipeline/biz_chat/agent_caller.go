@@ -6,10 +6,8 @@ import (
 	"chatwiki/internal/app/chatwiki/common"
 	"chatwiki/internal/app/chatwiki/define"
 	"chatwiki/internal/app/chatwiki/work_flow"
-	"chatwiki/internal/pkg/lib_define"
 
 	"github.com/gin-contrib/sse"
-	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/msql"
 )
 
@@ -22,22 +20,13 @@ func init() {
 // runClawbotForWorkflow runs a clawbot synchronously and returns its full reply.
 // It calls doApplicationTypeClaw directly (not the full DoChatRequest pipeline),
 // so it does NOT persist any C-side chat message / dialogue and does NOT push
-// websocket notifications. dialogueId/sessionId default to 0 => no chat history
-// (stateless call), consistent with how WorkflowNode invokes a sub-workflow.
-func runClawbotForWorkflow(robotInfo msql.Params, question string, lang string) (string, error) {
-	if len(lang) == 0 {
-		lang = define.LangZhCn
-	}
-	chatBaseParam := &define.ChatBaseParam{
-		AppType:     lib_define.AppOpenApi,
-		Openid:      ``,
-		AdminUserId: cast.ToInt(robotInfo[`admin_user_id`]),
-		Robot:       robotInfo,
-	}
-	chatParams := &define.ChatRequestParam{
-		ChatBaseParam: chatBaseParam,
-		Lang:          lang,
-		Question:      question,
+// websocket notifications. Nested calls retain the entry conversation and
+// current message while using the target robot's configuration.
+func runClawbotForWorkflow(robotInfo msql.Params, question string, params *work_flow.WorkFlowParams) (string, []common.ReplyContent, bool, error) {
+	params.ManualTransfer.SetSource(params.ChatRequestParam, params.SessionId)
+	chatParams := common.BuildRobotCallParams(params.ChatRequestParam, robotInfo, question, nil, params.DialogueId)
+	if len(chatParams.Lang) == 0 {
+		chatParams.Lang = define.LangZhCn
 	}
 
 	chanStream := make(chan sse.Event)
@@ -51,18 +40,24 @@ func runClawbotForWorkflow(robotInfo msql.Params, question string, lang string) 
 	defer close(chanStream)
 	in := &ChatInParam{
 		params:     chatParams,
+		dialogueId: chatParams.DialogueId,
+		sessionId:  params.SessionId,
 		useStream:  false,
 		chanStream: chanStream,
 		monitor:    common.NewMonitor(chatParams),
 	}
 	out := &ChatOutParam{
 		debugLog: make([]any, 0),
+		cMsgId:   int64(params.CurMsgId),
 	}
 	if err := doApplicationTypeClaw(in, out); err != nil {
-		return ``, err
+		if content, transferred := chatParams.ManualTransfer.Result(); transferred {
+			return content, out.replyContentList, true, nil
+		}
+		return ``, out.replyContentList, false, err
 	}
 	if out.Error != nil {
-		return ``, out.Error
+		return ``, out.replyContentList, false, out.Error
 	}
-	return out.content, nil
+	return out.content, out.replyContentList, in.isSwitchManual, nil
 }

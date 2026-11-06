@@ -26,7 +26,7 @@
   "url_open_type_label": "URL Open Type",
   "open_new_tab": "Open in New Tab",
   "open_new_window": "Open in New Window Popup",
-  "open_new_window_tooltip": "Only controls PC new window opening, mobile still opens in new tab",
+  "open_new_window_tooltip": "Controls new windows opened by reply links and shortcuts on desktop. Mobile devices still open a new tab.",
   "window_height_label": "Popup Height",
   "window_width_label": "Popup Width",
   "please_select_language": "Please select language",

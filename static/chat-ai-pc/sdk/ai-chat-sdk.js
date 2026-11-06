@@ -1,6 +1,6 @@
-var z = Object.defineProperty;
-var O = (a, t, e) => t in a ? z(a, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : a[t] = e;
-var n = (a, t, e) => (O(a, typeof t != "symbol" ? t + "" : t, e), e);
+var O = Object.defineProperty;
+var _ = (a, t, e) => t in a ? O(a, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : a[t] = e;
+var n = (a, t, e) => (_(a, typeof t != "symbol" ? t + "" : t, e), e);
 function D(a) {
   if (!a)
     return "";
@@ -12,21 +12,28 @@ function D(a) {
     }
   return t.join("&");
 }
-function _() {
+function k() {
   const a = document.getElementById("ai_chat_js"), t = document.createElement("link"), e = new URL(a.src).origin;
   t.type = "text/css", t.rel = "stylesheet", t.href = e + "/sdk/style.css", document.getElementsByTagName("head")[0].appendChild(t);
 }
 function B(a) {
-  return new Promise((t, e) => {
+  return a ? new Promise((t, e) => {
     let i = new Image();
-    i.src = a, i.onload = () => t(i), i.onerror = e;
-  });
+    const s = setTimeout(() => {
+      i.onload = null, i.onerror = null, e(new Error("Custom avatar image timed out"));
+    }, 1e4);
+    i.onload = () => {
+      clearTimeout(s), t(i);
+    }, i.onerror = (o) => {
+      clearTimeout(s), e(o);
+    }, i.src = a;
+  }) : Promise.reject(new Error("Custom avatar image is empty"));
 }
-async function L(a) {
+async function z(a) {
   let t = document.createElement("img");
   return t.src = a.buttonIcon, t.style.width = "50px", t.style.height = "50px", t;
 }
-async function S(a) {
+async function L(a) {
   let t = document.createElement("div");
   t.className = "chat-wiki-avatar_type2";
   let e = document.createElement("img");
@@ -34,18 +41,20 @@ async function S(a) {
   let i = document.createElement("div");
   return i.className = "chat-wiki-avatar_type2_text", i.innerText = a.buttonText, t.appendChild(i), t;
 }
-async function N(a) {
+async function F(a) {
   try {
     const t = await B(a.buttonIcon);
     return t.style.width = t.width + "px", t.style.height = t.height + "px", t;
   } catch (t) {
-    console.log(t);
+    return console.warn("Custom avatar image failed; using the default avatar", t), z({
+      buttonIcon: new URL("data:image/svg+xml,%3csvg%20width='62'%20height='62'%20viewBox='0%200%2062%2062'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3ccircle%20cx='31'%20cy='31'%20r='31'%20fill='url(%23paint0_linear_930_6995)'/%3e%3cpath%20d='M39%2036.3346C41.9455%2036.3346%2044.3333%2033.9468%2044.3333%2031.0013C44.3333%2028.0558%2041.9455%2025.668%2039%2025.668'%20stroke='%23F2F4FF'%20stroke-width='2.66667'%20stroke-linejoin='round'/%3e%3cpath%20d='M23.0013%2025.668C20.0558%2025.668%2017.668%2028.0558%2017.668%2031.0013C17.668%2033.9468%2020.0558%2036.3346%2023.0013%2036.3346'%20stroke='%23F2F4FF'%20stroke-width='2.66667'%20stroke-linejoin='round'/%3e%3cpath%20d='M23%2036.3346V36.0013V34.3346V31.0013V25.668C23%2021.2497%2026.5817%2017.668%2031%2017.668C35.4183%2017.668%2039%2021.2497%2039%2025.668V36.3346C39%2040.7529%2035.4183%2044.3346%2031%2044.3346'%20stroke='%23F2F4FF'%20stroke-width='2.66667'%20stroke-linecap='round'%20stroke-linejoin='round'/%3e%3cdefs%3e%3clinearGradient%20id='paint0_linear_930_6995'%20x1='31'%20y1='0'%20x2='31'%20y2='62'%20gradientUnits='userSpaceOnUse'%3e%3cstop%20stop-color='%23336DFF'/%3e%3cstop%20offset='1'%20stop-color='%23495EFF'/%3e%3c/linearGradient%3e%3c/defs%3e%3c/svg%3e", import.meta.url).href
+    });
   }
 }
-async function P(a) {
-  return a.displayType === 3 ? N(a) : a.displayType === 2 ? S(a) : L(a);
+async function S(a) {
+  return a.displayType === 3 ? F(a) : a.displayType === 2 ? L(a) : z(a);
 }
-class k {
+class N {
   constructor(t) {
     n(this, "avatarElWrapper", null);
     n(this, "avatarContentEl", null);
@@ -109,7 +118,7 @@ class k {
     });
   }
   insertAvatar() {
-    document.getElementById("zm_chat-wiki-avatar") || (this.avatarElWrapper = document.createElement("div"), this.avatarElWrapper.className = "zm_chat-wiki-avatar-wrapper", this.avatarElWrapper.style.visibility = this.enabled ? "visible" : "hidden", this.avatarElWrapper.style.left = "-99999px", this.avatarElWrapper.style.top = "-99999px", this.avatarContentEl = document.createElement("div"), this.avatarContentEl.className = "zm_chat-wiki-avatar-content", this.avatarEl = document.createElement("div"), this.avatarEl.id = "zm_chat-wiki-avatar", this.avatarContentEl.appendChild(this.avatarEl), this.avatarElWrapper.appendChild(this.avatarContentEl), document.body.appendChild(this.avatarElWrapper), P(this.config).then((t) => {
+    document.getElementById("zm_chat-wiki-avatar") || (this.avatarElWrapper = document.createElement("div"), this.avatarElWrapper.className = "zm_chat-wiki-avatar-wrapper", this.avatarElWrapper.style.visibility = this.enabled ? "visible" : "hidden", this.avatarElWrapper.style.left = "-99999px", this.avatarElWrapper.style.top = "-99999px", this.avatarContentEl = document.createElement("div"), this.avatarContentEl.className = "zm_chat-wiki-avatar-content", this.avatarEl = document.createElement("div"), this.avatarEl.id = "zm_chat-wiki-avatar", this.avatarContentEl.appendChild(this.avatarEl), this.avatarElWrapper.appendChild(this.avatarContentEl), document.body.appendChild(this.avatarElWrapper), S(this.config).then((t) => {
       this.avatarEl.appendChild(t), this.width = this.avatarEl.offsetWidth, this.height = this.avatarEl.offsetHeight, this.setInitialPosition(), this.enableDrag();
     }).catch((t) => {
       console.error("图片加载失败");
@@ -131,8 +140,8 @@ class k {
     this.enabled = t, t || this.hide();
   }
 }
-const l = new k();
-class R {
+const l = new N();
+class P {
   constructor() {
     n(this, "dotEl", null);
   }
@@ -152,7 +161,7 @@ class R {
     this.dotEl && (this.dotEl.remove(), this.dotEl = null);
   }
 }
-const W = new R(), F = `<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="design-iconfont">
+const x = new P(), R = `<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="design-iconfont">
   <path d="M5 5L11 11" stroke="#595959" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M5 11L11 5" stroke="#595959" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`, A = {
@@ -204,7 +213,7 @@ class T {
     let e = t.content;
     return (t.msg_type == 2 || t.msg_type == 3) && (e = A[t.msg_type].label), `<div class="message-item">
       <div class="ai-assistant">
-        <span class="close-btn">${F}</span>
+        <span class="close-btn">${R}</span>
         <div class="message-header">
           <img class="ai-icon" src="${t.avatar}" />
           <span class="ai-name">${t.robot_name}</span>
@@ -228,7 +237,7 @@ const b = new T(), d = {
   maxWidth: 2e3,
   maxHeight: 2e3,
   maxMargin: 2e3
-}, M = "zm_chat-wiki-iframe-bounds", x = [
+}, M = "zm_chat-wiki-iframe-bounds", W = [
   "top",
   "right",
   "bottom",
@@ -250,14 +259,14 @@ const b = new T(), d = {
 function m(a, t, e) {
   return Math.min(e, Math.max(t, a));
 }
-function p(a, t, e, i) {
+function u(a, t, e, i) {
   const s = Number(a);
   return Number.isFinite(s) ? m(Math.round(s), e, i) : t;
 }
 function I(a) {
   return a === !0 || a === 1 || a === "1";
 }
-class Y {
+class U {
   constructor() {
     n(this, "container", null);
     n(this, "iframe", null);
@@ -325,7 +334,7 @@ class Y {
     this.iframe.style.display = "block", this.iframe.style.width = "", this.iframe.style.height = "", this.iframe.style.right = "", this.iframe.style.bottom = "", this.iframe.parentNode !== this.container && this.container.prepend(this.iframe), this.createControls(), e || this.renderBounds();
   }
   createControls() {
-    this.dragHandle || !this.container || (this.dragHandle = document.createElement("div"), this.dragHandle.className = "zm_chat-wiki-drag-handle", this.dragHandle.addEventListener("pointerdown", this.handleDragPointerDown), this.container.appendChild(this.dragHandle), this.resizeHandles = x.map((t) => {
+    this.dragHandle || !this.container || (this.dragHandle = document.createElement("div"), this.dragHandle.className = "zm_chat-wiki-drag-handle", this.dragHandle.addEventListener("pointerdown", this.handleDragPointerDown), this.container.appendChild(this.dragHandle), this.resizeHandles = W.map((t) => {
       const e = document.createElement("div");
       return e.className = `zm_chat-wiki-resize-handle zm_chat-wiki-resize-${t}`, e.dataset.direction = t, e.addEventListener("pointerdown", this.handleResizePointerDown), this.container.appendChild(e), e;
     }), this.updateControls());
@@ -333,20 +342,20 @@ class Y {
   applyConfig(t = {}) {
     this.permissions.drag = I(t.iframe_drag_enabled), this.permissions.resize = I(t.iframe_resize_enabled);
     const e = {
-      width: p(
+      width: u(
         t.iframe_width,
         d.width,
         h.minWidth,
         h.maxWidth
       ),
-      height: p(
+      height: u(
         t.iframe_height,
         d.height,
         h.minHeight,
         h.maxHeight
       ),
-      right: p(t.iframe_right, d.right, 0, h.maxMargin),
-      bottom: p(
+      right: u(t.iframe_right, d.right, 0, h.maxMargin),
+      bottom: u(
         t.iframe_bottom,
         d.bottom,
         0,
@@ -361,25 +370,25 @@ class Y {
         (i) => Number(t == null ? void 0 : t[i])
       );
       return !t || e.some((i) => !Number.isFinite(i)) ? null : {
-        width: p(
+        width: u(
           t.width,
           d.width,
           h.minWidth,
           h.maxWidth
         ),
-        height: p(
+        height: u(
           t.height,
           d.height,
           h.minHeight,
           h.maxHeight
         ),
-        right: p(
+        right: u(
           t.right,
           d.right,
           0,
           h.maxMargin
         ),
-        bottom: p(
+        bottom: u(
           t.bottom,
           d.bottom,
           0,
@@ -422,7 +431,7 @@ class Y {
     this.container && (this.container.style.width = `${Math.round(this.bounds.width)}px`, this.container.style.height = `${Math.round(this.bounds.height)}px`, this.container.style.right = `${Math.round(this.bounds.right)}px`, this.container.style.bottom = `${Math.round(this.bounds.bottom)}px`);
   }
   startInteraction(t, e, i = "") {
-    if (!this.container || t.pointerType !== "mouse" || t.button !== 0 || e === "resize" && !x.includes(i))
+    if (!this.container || t.pointerType !== "mouse" || t.button !== 0 || e === "resize" && !W.includes(i))
       return;
     this.endInteraction(), t.preventDefault();
     const s = this.container.getBoundingClientRect();
@@ -524,8 +533,8 @@ class Y {
     }), this.listening && (window.removeEventListener("message", this.handleMessage, !1), this.listening = !1), this.windowResizeListening && (window.removeEventListener("resize", this.handleWindowResize), this.windowResizeListening = !1), (t = this.container) != null && t.parentNode ? this.container.parentNode.removeChild(this.container) : (e = this.iframe) != null && e.parentNode && this.iframe.parentNode.removeChild(this.iframe), this.container = null, this.iframe = null, this.dragHandle = null, this.resizeHandles = [], this.iframeSrc = "", this.boundsStorageKey = M, this.expectedOrigin = "", this.onMessage = null, this.bounds = { ...d }, this.permissions = { drag: !1, resize: !1 };
   }
 }
-const u = new Y();
-class X {
+const p = new U();
+class Y {
   constructor(t = []) {
     n(this, "supportedEvents", /* @__PURE__ */ new Set());
     n(this, "listeners", /* @__PURE__ */ new Map());
@@ -583,7 +592,7 @@ class X {
     }
   }
 }
-const U = ["ready", "open", "close"];
+const X = ["ready", "open", "close"];
 function H(a) {
   return Object.prototype.toString.call(a) === "[object Object]";
 }
@@ -598,10 +607,10 @@ class j {
     n(this, "runtimeConfig", {
       showFloatButton: !0
     });
-    n(this, "eventEmitter", new X(U));
+    n(this, "eventEmitter", new Y(X));
   }
   init(t) {
-    return this.config = t, this.runtimeConfig.showFloatButton = this.config.showFloatButton !== !1, u.init({
+    return this.config = t, this.runtimeConfig.showFloatButton = this.config.showFloatButton !== !1, p.init({
       iframeSrc: this.config.iframeSrc,
       params: this.config.params,
       onMessage: this.handleMessage.bind(this)
@@ -615,10 +624,10 @@ class j {
     };
   }
   removeAiChat() {
-    u.remove();
+    p.remove();
   }
   onInit(t) {
-    this.initData = t, u.applyConfig(t == null ? void 0 : t.config), l.init(t, this.runtimeConfig.showFloatButton, () => this.open()), this.desiredOpen && l.hide(), !this.ready && (this.ready = !0, this.eventEmitter.emit("ready", { type: "ready" }), this.eventEmitter.clear("ready"), this.desiredOpen && this.performOpen(this.pendingOpenOptions));
+    this.initData = t, p.applyConfig(t == null ? void 0 : t.config), l.init(t, this.runtimeConfig.showFloatButton, () => this.open()), this.desiredOpen && l.hide(), !this.ready && (this.ready = !0, this.eventEmitter.emit("ready", { type: "ready" }), this.eventEmitter.clear("ready"), this.desiredOpen && this.performOpen(this.pendingOpenOptions));
   }
   open(t = {}) {
     if (t = this.normalizeOpenOptions(t), !this.opened) {
@@ -630,18 +639,18 @@ class j {
     }
   }
   performOpen(t) {
-    this.opened || !u.show() || (this.desiredOpen = !1, this.pendingOpenOptions = {}, l.hide(), u.send("openWindow", t), this.opened = !0, this.eventEmitter.emit("open", { type: "open", options: t }));
+    this.opened || !p.show() || (this.desiredOpen = !1, this.pendingOpenOptions = {}, l.hide(), p.send("openWindow", t), this.opened = !0, this.eventEmitter.emit("open", { type: "open", options: t }));
   }
   close() {
-    if (this.desiredOpen = !1, this.pendingOpenOptions = {}, u.hide(), !this.opened) {
+    if (this.desiredOpen = !1, this.pendingOpenOptions = {}, p.hide(), !this.opened) {
       l.show();
       return;
     }
-    this.opened = !1, u.send("closeWindow", {}), l.show(), this.eventEmitter.emit("close", { type: "close", source: "sdk" });
+    this.opened = !1, p.send("closeWindow", {}), l.show(), this.eventEmitter.emit("close", { type: "close", source: "sdk" });
   }
   onClose() {
     const t = this.opened;
-    this.desiredOpen = !1, this.pendingOpenOptions = {}, this.opened = !1, l.show(), u.hide(), t && this.eventEmitter.emit("close", { type: "close", source: "iframe" });
+    this.desiredOpen = !1, this.pendingOpenOptions = {}, this.opened = !1, l.show(), p.hide(), t && this.eventEmitter.emit("close", { type: "close", source: "iframe" });
   }
   setConfig(t, e) {
     let i = t;
@@ -665,7 +674,7 @@ class j {
         console.warn("showFloatButton must be a boolean.");
         return;
       }
-      this.runtimeConfig.showFloatButton = i[s], l.setEnabled(i[s]), i[s] ? this.ready && !this.opened && l.show() : (W.remove(), b.remove());
+      this.runtimeConfig.showFloatButton = i[s], l.setEnabled(i[s]), i[s] ? this.ready && !this.opened && l.show() : (x.remove(), b.remove());
     });
   }
   on(t, e) {
@@ -690,10 +699,10 @@ class j {
   }
   createDot(t) {
     if (!this.runtimeConfig.showFloatButton) {
-      W.remove();
+      x.remove();
       return;
     }
-    W.create({ value: t });
+    x.create({ value: t });
   }
   createNewMessage(t) {
     if (!this.runtimeConfig.showFloatButton) {
@@ -737,5 +746,5 @@ function K() {
   }
   return J.init(a);
 }
-_();
+k();
 window.AiChatSDK = K();

@@ -42,7 +42,7 @@ export const editDialogue = (data) => {
 
 // 获取答案来源
 export const getAnswerSource = (params) => {
-  return request.get({ url: '/manage/getAnswerSource', params })
+  return request.get({ url: '/manage/getAnswerSource', params, withToken: true })
 }
 
 export const getFastCommandList = (params) => {

@@ -10,31 +10,63 @@
 .tip-alert {
   margin-bottom: 24px;
 }
+.messenger-embedded {
+  .messenger-toolbar {
+    margin-bottom: 24px;
+  }
+
+  .wechat-app-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .tip-alert {
+    padding: 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--app-selected);
+  }
+}
+@media (max-width: 1200px) {
+  .messenger-embedded .wechat-app-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .messenger-embedded .wechat-app-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 </style>
 
 <template>
-  <div class="">
+  <div :class="{ 'messenger-embedded': embedded }">
     <a-alert class="tip-alert zm-alert-info" type="info" show-icon>
-      <template #message>Messenger是Facebook提供给企业、商辅、消费者之间相互连接的即时通讯工具，渠道接入后可以统一接收和回复来自众多渠道的粉丝消息，如:FacebooK主页、Instagram和网页聊天等</template>
+      <template #message>{{ customerT('messenger_intro') }}</template>
     </a-alert>
+    <div v-if="embedded" class="messenger-toolbar">
+      <a-button type="primary" @click="showAddAlert"><PlusOutlined />{{ customerT('create_channel') }}</a-button>
+    </div>
     <div class="wechat-app-list">
-      <AddWechatApp label="创建渠道" @click="showAddAlert" />
+      <AddWechatApp v-if="!embedded" label="创建渠道" @click="showAddAlert" />
       <WechatAppItem
         v-for="item in list"
         :key="item.id"
         :item="item"
+        :compact="embedded"
         @edit="handleEdit"
         @delete="handleDelete"
       />
     </div>
-    <AddMessagentAlert ref="addAppAlertRef" @ok="onSaveSuccess" />
+    <AddMessagentAlert ref="addAppAlertRef" :compact="embedded" @ok="onSaveSuccess" />
   </div>
 </template>
 
 <script setup>
 import { ref, inject, onMounted, createVNode } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
+import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { getWechatAppList, deleteWechatApp } from '@/api/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 import WechatAppItem from './wechat-app-item.vue'
@@ -42,6 +74,8 @@ import AddWechatApp from './add-wechat-app.vue'
 import AddMessagentAlert from "./add-messenget-alert.vue";
 
 const { t } = useI18n('views.robot.robot-config.external-service.components.dingding-robot')
+const { t: customerT } = useI18n('views.customer-service.index')
+defineProps({ embedded: Boolean })
 const { robotInfo } = inject('robotInfo')
 
 const addAppAlertRef = ref()

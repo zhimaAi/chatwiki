@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted } from 'vue'
+import { inject, ref, provide, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useRobotStore } from '@/stores/modules/robot'
@@ -34,17 +34,19 @@ import Line from '@/views/robot/robot-config/external-service/components/Line.vu
 
 const clawbotStore = useClawbotStore()
 const robotStore = useRobotStore()
+const agentContext = inject('customerAgentContext', null)
+const getRobot = agentContext?.getRobot || robotStore.getRobot
 
 const ready = ref(false)
 
 // 桥接：将当前助手数据加载到 useRobotStore（子组件依赖它）
 onMounted(async () => {
-  await robotStore.getRobot(clawbotStore.currentAssistantId)
+  const response = await getRobot(clawbotStore.currentAssistantId)
+  if (agentContext && !response) return
   ready.value = true
 })
 
 const { robotInfo } = storeToRefs(robotStore)
-const { getRobot } = robotStore
 
 const tabComponents = {
   WebAPP,

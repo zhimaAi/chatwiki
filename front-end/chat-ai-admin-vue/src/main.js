@@ -1,4 +1,5 @@
 import './assets/main.css'
+import './assets/theme.css'
 import 'virtual:svg-icons-register'
 
 import { createApp } from 'vue'
@@ -9,6 +10,7 @@ import { setupI18n } from '@/locales'
 
 // 引入状态管理
 import { setupStore } from '@/stores'
+import { useThemeStore } from '@/stores/modules/theme'
 
 import router from './router'
 
@@ -28,9 +30,10 @@ const setupAll = async () => {
   app.config.globalProperties.$message = message
   app.config.globalProperties.$modal = Modal
 
-  await setupI18n(app)
-
   setupStore(app)
+  useThemeStore().initialize()
+
+  await setupI18n(app)
 
   app.use(router).use(Viewer)
 
