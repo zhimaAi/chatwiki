@@ -132,6 +132,7 @@
                   :voice_content="item.voice_content"
                 />
               </div>
+              <PromptOptimizeButton v-if="item.msg_type == 1 && item.content && !item.loading && !item.startLoading" :robot="props.robotInfo" scene="conversation" :messageId="item.id" />
               <div class="message-footer">
                 <button
                   v-if="showQuoteFileBox(item)"
@@ -153,6 +154,7 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import { nextTick, ref, toRaw } from 'vue'
 import dayjs from 'dayjs'
 import { Empty } from 'ant-design-vue'

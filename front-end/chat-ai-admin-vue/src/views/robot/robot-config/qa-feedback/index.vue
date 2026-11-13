@@ -1,5 +1,8 @@
 <style lang="less" scoped>
 .user-model-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   width: 100%;
   height: 100%;
   border-bottom: 1px solid #fff;
@@ -22,7 +25,9 @@
 
   .list-wrapper {
     background: #fff;
-    height: calc(100% - 178px);
+    flex: 1;
+    min-height: 0;
+    padding-top: 24px;
   }
 
   .overview-box {
@@ -81,7 +86,6 @@
       </div>
     </div>
 
-    <div class="page-title">{{ t('title_feedback_records') }}</div>
     <div class="list-wrapper">
       <QaFeedback :robot-id="props.robotId" />
     </div>
@@ -91,7 +95,7 @@
 <script setup>
 import { useRequestState } from '@/composables/useRequestState'
 import { useRoute } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { getFeedbackStats } from '@/api/manage/index.js'
 import QaFeedback from './qa-feedback.vue'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -102,7 +106,6 @@ const route = useRoute()
 
 const props = defineProps({ robotId: { type: [String, Number], default: '' } })
 const { error, run } = useRequestState()
-const query = route.query
 
 const overviewData = ref([])
 
@@ -134,7 +137,7 @@ const forMatTitle = (key) => {
 const getData = () => {
   // Get list
   let parmas = {
-    robot_id: props.robotId || query.id, // Robot ID
+    robot_id: props.robotId || route.query.id, // Robot ID
   }
 
 
@@ -153,8 +156,6 @@ const getData = () => {
   })
 }
 
-onMounted(() => {
-  getData()
-})
+watch(() => props.robotId || route.query.id, getData, { immediate: true })
 
 </script>

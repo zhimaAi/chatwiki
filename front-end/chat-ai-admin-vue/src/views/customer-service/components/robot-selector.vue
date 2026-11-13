@@ -3,8 +3,6 @@
     :align="{ offset: [0, 8] }" :overlay-inner-style="popoverInnerStyle" @open-change="emit('update:open', $event)">
     <span ref="triggerHost" class="picker-trigger"><slot /></span>
     <template #content>
-      <a-popover :open="open && !!previewOption && !interactionDisabled" :trigger="[]" placement="rightTop" :arrow="false"
-        :align="{ offset: [8, 0] }" :overlay-inner-style="popoverInnerStyle" :get-popup-container="getPickerContainer">
         <div id="customer-service-app-picker" ref="pickerPanel" class="robot-selector" role="dialog" :aria-label="t('select_app')"
           :aria-busy="status === 'loading'" @mouseenter="cancelPreviewClose" @mouseleave="schedulePreviewClose" @focusout="handleFocusOut">
           <div v-if="status === 'idle' || status === 'loading'" class="picker-feedback" role="status">
@@ -23,14 +21,40 @@
               <template #item="{ element: option }">
                 <article class="robot-row" :class="{ selected: isSelected(option), previewed: previewId === String(option.id), unavailable: !canSelect(option) }"
                   @mouseenter="showPreview(option)" @focusin="showPreview(option)">
-                  <button type="button" class="drag-btn" :disabled="interactionDisabled" :aria-label="t('drag_sort') + '：' + option.name"
-                    :title="t('drag_sort')" @click.stop><img :src="icons.drag" alt="" draggable="false" /></button>
-                  <button type="button" class="robot-row-select" :disabled="!canSelect(option) || interactionDisabled"
-                    :aria-pressed="isSelected(option)" :aria-label="option.name" :title="canSelect(option) ? option.name : t('invalid_robot')"
-                    @click="selectRobot(option)">
-                    <img class="robot-avatar" :src="option.avatar || defaultAvatar(option)" alt="" draggable="false" @error="useDefaultAvatar($event, option)" />
-                    <span class="robot-name">{{ option.name }}</span>
-                  </button>
+                  <a-popover :open="open && previewId === String(option.id) && !interactionDisabled" :trigger="[]" placement="rightTop" :arrow="false"
+                    :align="{ offset: [8, 0] }" :overlay-inner-style="popoverInnerStyle" :get-popup-container="getPickerContainer">
+                    <div class="robot-row-anchor">
+                      <button type="button" class="drag-btn" :disabled="interactionDisabled" :aria-label="t('drag_sort') + '：' + option.name"
+                        :title="t('drag_sort')" @click.stop><img :src="icons.drag" alt="" draggable="false" /></button>
+                      <button type="button" class="robot-row-select" :disabled="!canSelect(option) || interactionDisabled"
+                        :aria-pressed="isSelected(option)" :aria-label="option.name" :title="canSelect(option) ? option.name : t('invalid_robot')"
+                        @click="selectRobot(option)">
+                        <span class="robot-avatar-wrap">
+                          <img class="robot-avatar" :src="option.avatar || defaultAvatar(option)" alt="" draggable="false" @error="useDefaultAvatar($event, option)" />
+                          <span v-if="Number(option.applicationType) === 2" class="agent-label">Agent</span>
+                        </span>
+                        <span class="robot-name">{{ option.name }}</span>
+                        <span class="robot-type" :class="{ agent: Number(option.applicationType) === 2 }">{{ t(Number(option.applicationType) === 2 ? 'type_agent' : 'type_chat_robot') }}</span>
+                      </button>
+                    </div>
+                    <template #content>
+                      <section class="robot-preview" :aria-label="option.name" @mouseenter="cancelPreviewClose" @mouseleave="schedulePreviewClose">
+                        <div class="preview-header">
+                          <img class="preview-avatar" :src="option.avatar || defaultAvatar(option, true)" alt="" @error="useDefaultAvatar($event, option, true)" />
+                          <span class="robot-type" :class="{ agent: Number(option.applicationType) === 2 }">{{ t(Number(option.applicationType) === 2 ? 'type_agent' : 'type_chat_robot') }}</span>
+                        </div>
+                        <h3 :title="option.name">{{ option.name }}</h3>
+                        <p class="robot-description" :title="option.intro">{{ option.intro || '—' }}</p>
+                        <div class="robot-actions">
+                          <button type="button" :disabled="interactionDisabled" @click="handleAction('copy', option)"><img :src="icons.copy" alt="" />{{ t('copy') }}</button>
+                          <template v-if="getRobotPermission(option.id) === 4">
+                            <span class="action-divider" role="separator"></span>
+                            <button type="button" :disabled="interactionDisabled" @click="handleAction('delete', option)"><img :src="icons.delete" alt="" />{{ t('delete') }}</button>
+                          </template>
+                        </div>
+                      </section>
+                    </template>
+                  </a-popover>
                 </article>
               </template>
             </draggable>
@@ -56,24 +80,6 @@
             </a-popover>
           </template>
         </div>
-        <template #content>
-          <section v-if="previewOption" class="robot-preview" :aria-label="previewOption.name" @mouseenter="cancelPreviewClose" @mouseleave="schedulePreviewClose">
-            <div class="preview-header">
-              <img class="preview-avatar" :src="previewOption.avatar || defaultAvatar(previewOption, true)" alt="" @error="useDefaultAvatar($event, previewOption, true)" />
-              <span class="robot-type" :class="{ agent: Number(previewOption.applicationType) === 2 }">{{ t(Number(previewOption.applicationType) === 2 ? 'type_agent' : 'type_chat_robot') }}</span>
-            </div>
-            <h3 :title="previewOption.name">{{ previewOption.name }}</h3>
-            <p class="robot-description" :title="previewOption.intro">{{ previewOption.intro || '—' }}</p>
-            <div class="robot-actions">
-              <button type="button" :disabled="interactionDisabled" @click="handleAction('copy', previewOption)"><img :src="icons.copy" alt="" />{{ t('copy') }}</button>
-              <template v-if="getRobotPermission(previewOption.id) === 4">
-                <span class="action-divider" role="separator"></span>
-                <button type="button" :disabled="interactionDisabled" @click="handleAction('delete', previewOption)"><img :src="icons.delete" alt="" />{{ t('delete') }}</button>
-              </template>
-            </div>
-          </section>
-        </template>
-      </a-popover>
     </template>
   </a-popover>
   <AddRobotAlert ref="addRobotRef" hide-group create-redirect="none" @ok="emit('created', $event)" />
@@ -121,7 +127,6 @@ const robotDraft = ref([])
 const previewId = ref('')
 const createMenuOpen = ref(false)
 const interactionDisabled = computed(() => busy.value || creating.value || dragging.value)
-const previewOption = computed(() => previewId.value ? robotDraft.value.find(option => String(option.id) === previewId.value) : null)
 const canCreateRobot = computed(() => checkRole(['RobotCreate']))
 const canCreateAgent = computed(() => checkRole(['ClawBotCreate']))
 const popoverInnerStyle = { padding: 0, background: 'transparent', boxShadow: 'none' }
@@ -312,12 +317,16 @@ onBeforeUnmount(() => {
   &:hover, &:focus-within, &.previewed { background: #f0f0f0; }
   &.selected { background: #e8f0fe; .robot-row-select { color: #146ef5; } }
 }
+.robot-row-anchor { display: flex; align-items: center; width: 100%; min-width: 0; height: 100%; }
 .robot-row-select {
   display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 40px; padding: 8px;
   border: 0; border-radius: 0 4px 4px 0; color: #222; background: transparent; font: inherit; text-align: left; cursor: pointer;
 }
+.robot-avatar-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+.agent-label { position: absolute; bottom: -5px; left: 0; width: 100%; border-radius: 3px; background: #f3e8ff; color: #722ed1; font-size: 9px; line-height: 12px; text-align: center; }
 .robot-avatar { flex-shrink: 0; width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
 .robot-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 22px; }
+.robot-row-select .robot-type { flex-shrink: 0; }
 .drag-btn {
   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px;
   padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: grab; touch-action: none;

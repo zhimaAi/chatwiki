@@ -9,7 +9,6 @@ type ConfigParam struct {
 	NumCPU            map[string]string
 	Redis             map[string]string
 	Postgres          map[string]string
-	Neo4j             map[string]string
 	NsqLookup         map[string]string
 	Nsqd              map[string]string
 	ConsumerNum       map[string]string

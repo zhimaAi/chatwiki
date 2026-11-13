@@ -99,6 +99,7 @@ func PushDebugLog(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 func SaveRobotMsg(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	aiMessage := msql.Datas{
 		`admin_user_id`:          in.params.AdminUserId,
+		`customer_message_id`:    out.cMsgId,
 		`robot_id`:               in.params.Robot[`id`],
 		`openid`:                 in.params.Openid,
 		`dialogue_id`:            in.dialogueId,

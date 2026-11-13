@@ -21,7 +21,6 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/gin-contrib/sse"
 	"github.com/go-redis/redis/v8"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -275,217 +274,6 @@ func GetMatchLibraryParagraphByVectorSimilarity(ctx context.Context, lang string
 	return result, nil
 }
 
-func GetMatchLibraryParagraphByGraphSimilarity(ctx context.Context, lang string, robot msql.Params, openid, appType, question string, libraryIds string, size int, searchType int) ([]msql.Params, error) {
-	result := make([]msql.Params, 0)
-	if GetNeo4jStatus(cast.ToInt(robot[`admin_user_id`])) || !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeGraph}) {
-		return result, nil
-	}
-
-	// Input validation
-	if len(question) == 0 {
-		logs.Error("Question is empty")
-		return result, errors.New("question cannot be empty")
-	}
-
-	libraryIdList, err := msql.Model(`chat_ai_library`, define.Postgres).
-		Where(`admin_user_id`, robot[`admin_user_id`]).
-		Where(`id`, `in`, libraryIds).
-		Where(`graph_switch`, cast.ToString(define.SwitchOn)).
-		ColumnArr("id")
-	libraryIds = strings.Join(libraryIdList, ",")
-
-	if len(libraryIds) == 0 {
-		logs.Error("no enabled graph library")
-		return result, errors.New("no enabled graph library")
-	}
-
-	if size <= 0 {
-		size = 10 // Set default value
-	}
-
-	// 1. Extract entities from the question
-	extractEntitiesPrompt := strings.ReplaceAll(define.PromptDefaultEntityExtract, `{{question}}`, question)
-	messages := []chat.Message{{Role: chat.RoleSystem, Content: chat.MessageContent{Text: tea.String(extractEntitiesPrompt)}}}
-	chatResp, _, err := RequestChat(
-		ctx,
-		lang,
-		cast.ToInt(robot[`admin_user_id`]),
-		openid,
-		robot,
-		appType,
-		cast.ToInt(robot[`model_config_id`]),
-		robot[`use_model`],
-		messages,
-		nil,
-		0.1,
-		500,
-		chat.ReasoningEffortNone,
-	)
-	if err != nil {
-		logs.Error("Failed to extract entities: %s", err.Error())
-		return result, err
-	}
-
-	// Clean and parse LLM response
-	chatResp.NormalizeJSONResult()
-
-	// 2. Parse the entity list extracted by LLM
-	var entities []string
-	err = json.Unmarshal([]byte(chatResp.Result()), &entities)
-	if err != nil {
-		logs.Error("Failed to parse entities: %s, raw data: %s", err.Error(), chatResp.Result())
-		return result, err
-	}
-
-	if len(entities) == 0 {
-		logs.Info("No valid entities extracted")
-		return result, nil
-	}
-
-	// Record the number of extracted entities
-	logs.Info("Extracted %d entities from question[%s]", len(entities), question)
-
-	// 3. Query related entities using graph database
-	graphDB := NewGraphDB(cast.ToInt(robot[`admin_user_id`]))
-	libraryIdsArr := strings.Split(libraryIds, ",")
-
-	// Store all query results
-	allResults := make([]*neo4j.Record, 0)
-	dataIds := make(map[int]float64) // Used for deduplication and storing highest confidence
-
-	// Allocate reasonable query limits for each entity
-	perEntityLimit := size * 4
-	if len(entities) > 0 {
-		perEntityLimit = perEntityLimit / len(entities)
-		if perEntityLimit < 10 {
-			perEntityLimit = 10 // Ensure minimum query limit
-		}
-	}
-
-	// 4. Perform optimized deep queries for each entity (executed in parallel using goroutines)
-	queryStartTime := time.Now() // Query start time
-	var wg sync.WaitGroup
-	var mu sync.Mutex // Used to protect concurrent access to allResults
-
-	// Start a goroutine for each entity
-	for i, entityName := range entities {
-		if len(entityName) == 0 {
-			logs.Error("Empty entity at index %d", i)
-			continue
-		}
-
-		wg.Add(1)
-		go func(index int, entity string) {
-			defer wg.Done()
-			logs.Info("Querying entity[%d]: %s", index+1, entity)
-			res, err := graphDB.FindRelatedEntities(entity, libraryIdsArr, perEntityLimit, 3)
-			if err != nil {
-				logs.Error("Failed to query entity %s: %s", entity, err.Error())
-				return
-			}
-
-			logs.Info("Found %d related triples for entity[%d]", len(res.Records), index+1)
-
-			// Safely append results
-			mu.Lock()
-			allResults = append(allResults, res.Records...)
-			mu.Unlock()
-		}(i, entityName)
-	}
-
-	// Wait for all queries to complete
-	wg.Wait()
-
-	// Calculate and record query time
-	queryDuration := time.Since(queryStartTime)
-	logs.Info("Parallel entity query completed in %v for %d entities", queryDuration, len(entities))
-
-	// Return directly if no related entities are found
-	if len(allResults) == 0 {
-		logs.Info("No related entities found")
-		return result, nil
-	}
-
-	// 5. Collect related data IDs and confidence scores, adjust confidence based on depth
-	for _, record := range allResults {
-		dataIdValue, dataIdExists := record.Get("data_id")
-		confidenceValue, confidenceExists := record.Get("confidence")
-		depthValue, depthExists := record.Get("depth")
-		if !dataIdExists || !confidenceExists || !depthExists {
-			continue
-		}
-		dataId := cast.ToInt(dataIdValue)
-		confidence := cast.ToFloat64(confidenceValue)
-		depth := cast.ToInt(depthValue)
-		if dataId <= 0 {
-			continue
-		}
-		if confidence <= 0 {
-			confidence = 0.5
-		}
-		if depth > 0 {
-			// Reduce confidence by 20% for each additional level of depth
-			depthFactor := 1.0 - float64(depth-1)*0.2
-			if depthFactor < 0.4 {
-				depthFactor = 0.4 // Retain at least 40% of original confidence
-			}
-			confidence = confidence * depthFactor
-		}
-		// Save highest confidence
-		if existingConf, exists := dataIds[dataId]; exists {
-			if confidence > existingConf {
-				dataIds[dataId] = confidence
-			}
-		} else {
-			dataIds[dataId] = confidence
-		}
-	}
-
-	// 6. Query corresponding paragraph data
-	if len(dataIds) > 0 {
-		logs.Info("Found %d related data IDs", len(dataIds))
-
-		dataIdList := make([]string, 0)
-		for id := range dataIds {
-			dataIdList = append(dataIdList, cast.ToString(id))
-		}
-
-		paragraphs, err := msql.Model("chat_ai_library_file_data", define.Postgres).
-			Where(`delete_time`, `0`).
-			Where("id", "in", strings.Join(dataIdList, ",")).
-			Select()
-		if err != nil {
-			logs.Error("Failed to query paragraph data: %s", err.Error())
-			return result, err
-		}
-
-		// 7. Add confidence as similarity score
-		for _, paragraph := range paragraphs {
-			id := cast.ToInt(paragraph["id"])
-			if conf, exists := dataIds[id]; exists {
-				paragraph["similarity"] = cast.ToString(conf)
-				result = append(result, paragraph)
-			}
-		}
-
-		// Sort by similarity in descending order
-		sort.Slice(result, func(i, j int) bool {
-			return cast.ToFloat64(result[i]["similarity"]) > cast.ToFloat64(result[j]["similarity"])
-		})
-
-		// Limit return size
-		if len(result) > size {
-			result = result[:size]
-		}
-
-		logs.Info("Final query results: %d items", len(result))
-	} else {
-		logs.Info("No related data IDs found")
-	}
-
-	return result, nil
-}
-
 func GetMatchLibraryParagraphByFullTextSearch(question, libraryIds string, size, searchType int, similarity float64) ([]msql.Params, error) {
 	list := make([]msql.Params, 0)
 	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeFullText}) {
@@ -709,7 +497,7 @@ func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appT
 		return result, libUseTime, nil
 	}
 	fetchSize := 4 * size
-	var vectorList, searchList, graphList []msql.Params
+	var vectorList, searchList []msql.Params
 	adminUserId := cast.ToInt(robot[`admin_user_id`])
 
 	temp := time.Now()
@@ -719,11 +507,6 @@ func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appT
 			logs.Error(err.Error())
 		}
 		vectorList = append(vectorList, changeListContent(list)...)
-		list, err = GetMatchLibraryParagraphByGraphSimilarity(ctx, lang, robot, openid, appType, q, libraryIds, fetchSize, searchType)
-		if err != nil {
-			logs.Error(err.Error())
-		}
-		graphList = append(graphList, changeListContent(list)...)
 		list, err = GetMatchLibraryParagraphBySearchType(q, libraryIds, fetchSize, searchType, robot[`library_search_type`], similarity)
 		if err != nil {
 			logs.Error(err.Error())
@@ -739,32 +522,27 @@ func GetMatchLibraryParagraphList(ctx context.Context, lang string, openid, appT
 	sort.Slice(searchList, func(i, j int) bool {
 		return cast.ToFloat64(searchList[i][`similarity`]) > cast.ToFloat64(searchList[j][`similarity`])
 	})
-	sort.Slice(graphList, func(i, j int) bool {
-		return cast.ToFloat64(graphList[i][`similarity`]) > cast.ToFloat64(graphList[j][`similarity`])
-	})
 
 	// Due to question optimization, the recalled content may have duplicates
 	vectorList = SliceMsqlParamsUnique(vectorList, `id`)
 	searchList = SliceMsqlParamsUnique(searchList, `id`)
-	graphList = SliceMsqlParamsUnique(graphList, `id`)
 
 	// Metadata filtering (filter recall candidates by file dimension)
 	if cast.ToInt(robot[`meta_search_switch`]) == define.MetaSearchSwitchOn {
-		filtered, err := ApplyRobotMetaSearchFilter(adminUserId, libraryIds, robot, vectorList, searchList, graphList)
+		filtered, err := ApplyRobotMetaSearchFilter(adminUserId, libraryIds, robot, vectorList, searchList)
 		if err != nil {
 			logs.Error(err.Error())
 			// Interrupt directly on configuration error to avoid returning data inconsistent with configuration
 			return result, libUseTime, err
 		}
-		vectorList, searchList, graphList = filtered[0], filtered[1], filtered[2]
+		vectorList, searchList = filtered[0], filtered[1]
 	}
 
 	//RRF sort
-	weights := ParseRrfWeight(adminUserId, robot[`rrf_weight`])
+	weights := ParseRrfWeight(robot[`rrf_weight`])
 	list := (&RRF{}).
 		Add(DataSource{List: vectorList, Key: `id`, Fixed: 50, Weight: weights.Vector}).
-		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: weights.Search}).
-		Add(DataSource{List: graphList, Key: `id`, Fixed: 50, Weight: weights.Graph}).Sort()
+		Add(DataSource{List: searchList, Key: `id`, Fixed: 50, Weight: weights.Search}).Sort()
 
 	// Rerank logic
 	temp = time.Now()
@@ -1403,52 +1181,6 @@ func (h *LibFileSplitAiChunksBacheHandle) SaveCacheData(list LibFileSplitAiChunk
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logs.Error(err.Error())
 		return err
-	}
-	return nil
-}
-
-func GetNeo4jStatus(adminUserId int) bool {
-	if status, exists := define.Neo4jStatus.Load(adminUserId); exists {
-		return cast.ToBool(status)
-	} else {
-		return false
-	}
-}
-
-func SetNeo4jStatus(adminUserId int, status bool) {
-	define.Neo4jStatus.Store(adminUserId, status)
-}
-
-func ConstructGraph(id int) error {
-	dataList, err := msql.Model(`chat_ai_library_file_data`, define.Postgres).
-		Where(`file_id`, cast.ToString(id)).
-		Where(`delete_time`, `0`).
-		Field(`id,file_id`).
-		Select()
-	if err != nil {
-		logs.Error(err.Error())
-		return err
-	}
-	if len(dataList) == 0 {
-		return err
-	}
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
-		Where(`id`, cast.ToString(id)).
-		Update(msql.Datas{`graph_status`: define.GraphStatusInitial})
-	if err != nil {
-		logs.Error(err.Error())
-		return err
-	}
-	lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: id})
-	for _, data := range dataList {
-		message, err := tool.JsonEncode(map[string]any{`id`: data[`id`], `file_id`: data[`file_id`]})
-		if err != nil {
-			logs.Error(err.Error())
-			continue
-		}
-		if err = AddJobs(define.ConvertGraphTopic, message); err != nil {
-			logs.Error(err.Error())
-		}
 	}
 	return nil
 }

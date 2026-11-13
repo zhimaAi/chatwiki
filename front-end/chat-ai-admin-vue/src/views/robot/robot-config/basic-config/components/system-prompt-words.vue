@@ -5,12 +5,13 @@
         <a-tab-pane :key="1" :tab="t('tab_structured')"></a-tab-pane>
         <a-tab-pane :key="0" :tab="t('tab_custom')"></a-tab-pane>
       </a-tabs>
-      <div v-if="props.dialogMode" class="workspace-prompt-actions">
+      <div v-show="props.dialogMode && isEdit" class="workspace-prompt-actions">
         <a-tooltip :title="t('tooltip_upload')"><button type="button" @click="onShowUpPromptModal"><img src="@/assets/img/customer-service/basic-settings/prompt/upload.svg" alt="" />{{ t('btn_upload') }}</button></a-tooltip>
         <a-tooltip :title="t('tooltip_import')"><button type="button" @click="onShowAddPromptModal"><img src="@/assets/img/customer-service/basic-settings/prompt/import.svg" alt="" />{{ t('btn_import') }}</button></a-tooltip>
-        <button type="button" class="generate-action" @click="onShowAiCreateModal"><img src="@/assets/img/customer-service/basic-settings/prompt/ai.svg" alt="" />{{ t('btn_ai_generate') }}</button>
+        <button v-show="false" type="button" class="generate-action" @click="onShowAiCreateModal"><img src="@/assets/img/customer-service/basic-settings/prompt/ai.svg" alt="" />{{ t('btn_ai_generate') }}</button>
+        <PromptOptimizeButton :robot="robotInfo" save-mode="draft" :onSave="applyOptimizedPromptDraft" @adopted="handleOptimizedPromptAdopted" />
       </div>
-      <div class="opt-block" v-else-if="isEdit">
+      <div class="opt-block" v-show="!props.dialogMode && isEdit">
         <a-tooltip>
           <template #title>{{ t('tooltip_upload') }}</template>
           <div class="hover-btn-box" style="color: #6524fc" @click="onShowUpPromptModal">
@@ -24,17 +25,18 @@
           </div>
         </a-tooltip>
 
-        <div class="ai-mark-box hover-btn-box" @click="onShowAiCreateModal">
+        <div v-show="false" class="ai-mark-box hover-btn-box" @click="onShowAiCreateModal">
           <svg-icon name="ai-mark" />
           {{ t('btn_ai_generate') }}
         </div>
+        <PromptOptimizeButton :robot="robotInfo" save-mode="draft" :onSave="applyOptimizedPromptDraft" @adopted="handleOptimizedPromptAdopted" />
 
         <a-flex v-if="!props.dialogMode" :gap="8">
           <a-button size="small" type="primary" :loading="isSaving" @click="onSave">{{ t('btn_save') }}</a-button>
           <a-button size="small" @click="onCancel">{{ t('btn_cancel') }}</a-button>
         </a-flex>
       </div>
-      <div class="opt-block" v-else>
+      <div class="opt-block" v-show="!props.dialogMode && !isEdit">
         <span class="tip-text"
           >{{ t('msg_current_type')
           }}{{ currentPromptType == 1 ? t('msg_structured_prompt') : t('msg_custom_prompt') }}</span
@@ -337,7 +339,8 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, computed, inject, toRaw, watch, h } from 'vue'
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
+import { ref, reactive, computed, inject, toRaw, watch, h, nextTick } from 'vue'
 import {
   PlusOutlined,
   CloseCircleOutlined,
@@ -532,7 +535,7 @@ watch(
   () => robotInfo,
   () => {
     formState.prompt = robotInfo.prompt
-    formState.prompt_struct = robotInfo.prompt_struct
+    formState.prompt_struct = JSON.parse(JSON.stringify(robotInfo.prompt_struct))
     prompt_struct_default.value = robotInfo.prompt_struct_default
     // prompt_type.value = robotInfo.prompt_type
   },
@@ -686,14 +689,34 @@ const handleAiSave = (prompt_struct) => {
   })
 }
 
+const applyOptimizedPromptDraft = (prompt) => {
+  if (isSaving.value) return false
+  formState.prompt = prompt
+  prompt_type.value = 0
+  return true
+}
+
+const handleOptimizedPromptAdopted = async (prompt) => {
+  prompt_type.value = 0
+  formState.prompt = prompt
+  isEdit.value = true
+  await nextTick()
+  atinputRef.value?.refresh()
+}
+
 const handleEdit = () => {
   // prompt_type.value = robotInfo.prompt_type
   prompt_type.value == 0 && atinputRef.value && atinputRef.value.refresh()
   isEdit.value = true
 }
 
-const onCancel = () => {
+const onCancel = async () => {
+  formState.prompt = robotInfo.prompt
+  formState.prompt_struct = JSON.parse(JSON.stringify(robotInfo.prompt_struct))
+  prompt_type.value = robotInfo.prompt_type
   isEdit.value = false
+  await nextTick()
+  atinputRef.value?.refresh()
 }
 
 const aiCreatePromptRef = ref(null)

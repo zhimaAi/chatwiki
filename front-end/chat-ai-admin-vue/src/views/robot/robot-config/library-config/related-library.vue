@@ -21,14 +21,6 @@
                 <span class="type-tag" v-if="item.type == 1">{{ t('label_external_library') }}</span>
                 <span class="type-tag" v-if="item.type == 2">{{ t('label_qa_library') }}</span>
                 <span class="type-tag" v-if="item.type == 3">{{ t('label_official_account_library') }}</span>
-                <a-tooltip v-if="neo4j_status">
-                  <template #title
-                    >{{ item.graph_switch == 0 ? t('msg_graph_disabled') : t('msg_graph_enabled') }}</template
-                  >
-                  <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
-                    >Graph</span
-                  >
-                </a-tooltip>
               </div>
             </div>
           </div>
@@ -81,8 +73,6 @@ import { useRoute } from 'vue-router'
 import { Modal } from 'ant-design-vue'
 import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import LibrarySelectAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/library-select-alert.vue'
-import { useCompanyStore } from '@/stores/modules/company'
-const companyStore = useCompanyStore()
 import { LIBRARY_NORMAL_AVATAR, LIBRARY_QA_AVATAR } from '@/constants/index'
 import { formatFileSize } from '@/utils/index'
 import LibraryExpireStatus from '@/components/library-expire-status/index.vue'
@@ -91,9 +81,6 @@ import { message } from 'ant-design-vue'
 import {getSpecifyAbilityConfig} from "@/api/explore/index.js";
 
 const { t } = useI18n('views.robot.robot-config.library-config.related-library')
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 const query = useRoute().query
 
@@ -304,14 +291,6 @@ onMounted(() => {
       border-radius: 6px;
       color: rgb(36, 117, 252);
       border: 1px solid #cde0ff;
-    }
-    .graph-tag {
-      margin-left: 4px;
-      &.gray-tag {
-        border: 1px solid #00000026;
-        background: #0000000a;
-        color: #bfbfbf;
-      }
     }
   }
   .item-body {

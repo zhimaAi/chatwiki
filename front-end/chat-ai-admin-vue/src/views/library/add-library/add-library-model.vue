@@ -36,7 +36,7 @@
 .ml4 {
   margin-left: 4px;
 }
-.graph-switch-box {
+.option-switch-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -389,7 +389,7 @@
                 </a-flex>
               </a-form-item>
             </a-flex>
-            <div class="graph-switch-box">
+            <div class="option-switch-box">
               <div class="lable-text">
                 {{ t('auto_merge_small_chunks') }}
                 <a-tooltip
@@ -587,38 +587,10 @@
               </a-flex>
             </a-form-item>
           </template>
-
-          <div class="graph-switch-box" v-show="neo4j_status">
-            <div class="lable-text">
-              {{ t('generate_knowledge_graph') }}
-              <a-tooltip>
-                <template #title
-                  >{{ t('generate_knowledge_graph_tooltip') }}</template
-                >
-                <QuestionCircleOutlined class="ml4" />
-              </a-tooltip>
-            </div>
-            <a-switch
-              @change="handleGraphSwitch"
-              :checked="formState.graph_switch"
-              :checked-children="t('on')"
-              :un-checked-children="t('off')"
-            />
-          </div>
-          <a-form-item :label="t('knowledge_graph_model')" v-show="formState.graph_switch && neo4j_status">
-            <ModelSelect
-              modelType="LLM"
-              v-model:modeName="formState.graph_use_model"
-              v-model:modeId="formState.graph_model_config_id"
-              style="width: 300px"
-              @loaded="onVectorModelLoaded"
-            />
-          </a-form-item>
         </div>
       </a-form>
     </div>
   </a-modal>
-  <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
 </template>
 
 <script setup>
@@ -637,18 +609,11 @@ import {
   QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
 import { useI18n } from '@/hooks/web/useI18n'
-
-import { useCompanyStore } from '@/stores/modules/company'
 
 const { t } = useI18n('views.library.add-library.add-library-model')
 const { t: thinkingT } = useI18n('views.robot.robot-config.basic-config.components.model-settings')
 const { t: expireT } = useI18n('components.library-expire-status.index')
-const companyStore = useCompanyStore()
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 // 设置全局默认的duration为（2秒）
 message.config({
@@ -688,9 +653,6 @@ const formState = reactive({
   semantic_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_threshold: 90,
   normal_chunk_default_not_merged_text: 'false',
-  graph_switch: false,
-  graph_model_config_id: void 0,
-  graph_use_model: '',
   ai_chunk_size: 5000, // ai大模型分段最大字符数
   ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
@@ -816,37 +778,6 @@ const onTextModelLoaded = (list) => {
   }
 }
 
-const openGrapgModalRef = ref(null)
-const handleGraphSwitch = (val) => {
-  if (val) {
-    let data = {
-      graph_model_config_id: formState.graph_model_config_id,
-      graph_use_model: formState.graph_use_model
-    }
-    if (!formState.graph_model_config_id || !formState.graph_use_model) {
-      if (vectorModelList.value.length > 0) {
-        let modelConfig = vectorModelList.value[0]
-        if (modelConfig) {
-          let model = modelConfig.children[0]
-          data.graph_use_model = model.name
-          data.graph_model_config_id = model.model_config_id
-        }
-      }
-    }
-    openGrapgModalRef.value.show(data)
-  } else {
-    formState.graph_switch = false
-  }
-}
-
-const handleOpenGrapgOk = (data) => {
-  if (data.graph_model_config_id) {
-    formState.graph_switch = true
-    formState.graph_model_config_id = data.graph_model_config_id
-    formState.graph_use_model = data.graph_use_model
-  }
-}
-
 const handleCancel = () => {
   visible.value = false
 }
@@ -904,9 +835,6 @@ const saveForm = () => {
     formState.semantic_chunk_default_chunk_overlap
   )
   formData.append('semantic_chunk_default_threshold', formState.semantic_chunk_default_threshold)
-  formData.append('graph_switch', formState.graph_switch ? 1 : 0)
-  formData.append('graph_model_config_id', formState.graph_model_config_id)
-  formData.append('graph_use_model', formState.graph_use_model)
 
   formData.append('ai_chunk_size', formState.ai_chunk_size)
   formData.append('ai_chunk_model', formState.ai_chunk_model)
@@ -991,7 +919,6 @@ const show = ({ type, group_id, wx_app_ids }) => {
   formState.semantic_chunk_default_chunk_size = 512
   formState.semantic_chunk_default_chunk_overlap = 50
   formState.semantic_chunk_default_threshold = 50
-  formState.graph_switch = false
 
   formState.father_chunk_paragraph_type = 2
   formState.father_chunk_separators_no = [12, 11]

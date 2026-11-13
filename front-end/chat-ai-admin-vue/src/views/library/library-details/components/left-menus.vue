@@ -29,10 +29,6 @@ const { t } = useI18n('views.library.library-details.components.left-menus')
 
 const libraryStore = useLibraryStore()
 
-const graph_switch = computed(() => {
-  return libraryStore.graph_switch
-})
-
 const userStore = useUserStore()
 const emit = defineEmits(['changeMenu'])
 const route = useRoute()
@@ -76,25 +72,6 @@ const menus = computed(() => {
       title: 'title_knowledge_document',
       path: '/library/details/knowledge-document',
       syncStatus: Number(librarySyncStatus.value)
-    },
-    {
-      key: 'knowledge-graph',
-      id: 'knowledge-graph',
-      hidden: graph_switch.value == 0,
-      icon: () =>
-        h('span', {}, [
-          h(SvgIcon, {
-            name: 'knowledge-graph-icon',
-            class: 'menu-icon'
-          }),
-          h(SvgIcon, {
-            name: 'knowledge-graph-active-icon',
-            class: 'menu-icon-active'
-          })
-        ]),
-      label: 'label_knowledge_graph',
-      title: 'title_knowledge_graph',
-      path: '/library/details/knowledge-graph'
     },
     {
       key: 'categary-manage',

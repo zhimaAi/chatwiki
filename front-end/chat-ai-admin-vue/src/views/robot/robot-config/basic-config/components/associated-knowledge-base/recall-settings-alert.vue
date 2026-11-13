@@ -185,7 +185,7 @@
                 :ref="element => modeElements[index] = element"
                 :role="isWorkspace ? 'radio' : undefined"
                 :aria-checked="isWorkspace ? formState.search_type == item.value : undefined"
-                :tabindex="isWorkspace ? formState.search_type == item.value ? 0 : -1 : undefined"
+                :tabindex="isWorkspace ? (formState.search_type == item.value || (Number(formState.search_type) === 4 && index === 0)) ? 0 : -1 : undefined"
                 @keydown="event => handleModeKeydown(event, index)"
                 @click="handleSelectRetrievalMode(item.value)"
               >
@@ -384,6 +384,7 @@
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import { useI18n } from '@/hooks/web/useI18n'
 import { reactive, ref, toRaw, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
@@ -420,12 +421,6 @@ const retrievalModeList = ref([
     title: 'title_vector_retrieval',
     value: 2,
     desc: 'desc_vector_retrieval'
-  },
-  {
-    iconName: 'graph-icon',
-    title: 'title_graph_retrieval',
-    value: 4,
-    desc: 'desc_graph_retrieval'
   },
   {
     iconName: 'search-check-icon',
@@ -477,7 +472,7 @@ const open = (data, r=null) => {
   formState.meta_search_switch = Number(data.meta_search_switch)
   formState.meta_search_type = Number(data.meta_search_type)
   formState.meta_search_condition_list = data.meta_search_condition_list
-  formState.rrf_weight = data.rrf_weight
+  formState.rrf_weight = normalizeRrfWeight(data.rrf_weight)
   formState.recall_neighbor_switch = data.recall_neighbor_switch
   formState.recall_neighbor_top_k = isWorkspace.value ? data.recall_neighbor_top_k ?? 5 : data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = isWorkspace.value ? data.recall_neighbor_before_num ?? 1 : data.recall_neighbor_before_num
@@ -566,6 +561,7 @@ const checkRerank = () => {
 }
 
 const handleSave = async () => {
+  if (![1, 2, 3].includes(Number(formState.search_type))) return
   if (saving.value) return
   if (isWorkspace.value) {
     const valid = (value, min, max, integer = true) => value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= min && Number(value) <= max && (!integer || Number.isInteger(Number(value)))

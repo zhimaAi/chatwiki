@@ -4,7 +4,6 @@
       :width="680"
       v-model:open="open"
       :confirm-loading="confirmLoading"
-      :maskClosable="false"
       :title="t('title_upload_document')"
       @ok="handleSaveFiles"
       @cancel="handleCloseFileUploadModal"
@@ -139,7 +138,6 @@ import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.library.library-details.components.qa-upload-modal')
 const libraryStore = useLibraryStore()
-const { qa_index_type } = libraryStore
 
 const router = useRouter()
 const rotue = useRoute()
@@ -245,7 +243,7 @@ const handleSaveFiles = () => {
   }
   formData.append('group_id', formState.group_id >= 0 ? formState.group_id : 0)
   formData.append('is_qa_doc', 1)
-  formData.append('qa_index_type', qa_index_type)
+  formData.append('qa_index_type', libraryStore.qa_index_type)
   addLibraryFile(formData)
     .then((res) => {
       emit('ok')

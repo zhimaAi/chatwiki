@@ -180,10 +180,6 @@ export default defineConfig((opt) => {
               if (moduleId.includes('elkjs')) {
                 return 'elkjs'
               }
-              // Neo4j相关
-              if (moduleId.includes('@neo4j')) {
-                return 'neo4j'
-              }
               // 其他
               if (moduleId.includes('html2canvas') || moduleId.includes('v-viewer')) {
                 return 'other'
@@ -199,7 +195,6 @@ export default defineConfig((opt) => {
       cssCodeSplit: !(env.VITE_USE_CSS_SPLIT === 'false')
     },
     optimizeDeps: {
-      exclude: ['@neo4j-nvl/layout-workers'],
       include: [
         'vue', 
         'vue-router',
@@ -211,11 +206,6 @@ export default defineConfig((opt) => {
         'crypto-js', 
         'qs',
         'echarts',
-        '@neo4j-nvl/layout-workers > cytoscape',
-        '@neo4j-nvl/layout-workers > cytoscape-cose-bilkent',
-        '@neo4j-nvl/layout-workers > @neo4j-bloom/dagre',
-        '@neo4j-nvl/layout-workers > bin-pack',
-        '@neo4j-nvl/layout-workers > graphlib',
       ]
     }
   }

@@ -98,7 +98,7 @@ func BridgeGetLibraryList(adminUserId, userId int, lang string, req *BridgeLibra
 		}
 	}
 	list, err := m.
-		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,graph_switch,graph_model_config_id,model_config_id,use_model,graph_use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group,chat_claw_switch_status,is_permanent,expire_time`).
+		Field(`id,type,access_rights,avatar,library_name,library_intro,avatar,model_config_id,use_model,create_time,group_id,official_app_id,sync_official_history_type,enable_cron_sync_official_content,sync_official_content_status,sync_official_content_last_err_msg,show_meta_source,show_meta_update_time,show_meta_create_time,show_meta_group,chat_claw_switch_status,is_permanent,expire_time`).
 		Order(`id desc`).
 		Select()
 	if err != nil {
@@ -262,9 +262,6 @@ type BridgeCreateLibraryReq struct {
 	ModelConfigId                    string `form:"model_config_id"`
 	UseModel                         string `form:"use_model"`
 	ChunkType                        string `form:"chunk_type"`
-	GraphSwitch                      string `form:"graph_switch"`
-	GraphModelConfigId               string `form:"graph_model_config_id"`
-	GraphUseModel                    string `form:"graph_use_model"`
 	GroupId                          string `form:"group_id"`
 	NormalChunkDefaultSeparatorsNo   string `form:"normal_chunk_default_separators_no"`
 	NormalChunkDefaultChunkSize      string `form:"normal_chunk_default_chunk_size"`
@@ -318,9 +315,6 @@ func prepareLibraryCreation(adminUserId, loginUserId int, lang string, req *Brid
 	modelConfigId := cast.ToInt(req.ModelConfigId)
 	useModel := strings.TrimSpace(req.UseModel)
 	chunkType := cast.ToInt(req.ChunkType)
-	graphSwitch := cast.ToInt(req.GraphSwitch)
-	graphModelConfigId := cast.ToInt(req.GraphModelConfigId)
-	graphUseModel := strings.TrimSpace(req.GraphUseModel)
 	normalChunkDefaultSeparatorsNo := cast.ToString(req.NormalChunkDefaultSeparatorsNo)
 	normalChunkDefaultChunkSize := cast.ToInt(req.NormalChunkDefaultChunkSize)
 	normalChunkDefaultChunkOverlap := cast.ToInt(req.NormalChunkDefaultChunkOverlap)
@@ -431,9 +425,6 @@ func prepareLibraryCreation(adminUserId, loginUserId int, lang string, req *Brid
 		`update_time`:                          tool.Time2Int(),
 		`chunk_type`:                           chunkType,
 		`use_model_switch`:                     cast.ToString(useModelSwitch),
-		`graph_switch`:                         graphSwitch,
-		`graph_model_config_id`:                graphModelConfigId,
-		`graph_use_model`:                      graphUseModel,
 		`normal_chunk_default_separators_no`:   normalChunkDefaultSeparatorsNo,
 		`normal_chunk_default_chunk_size`:      normalChunkDefaultChunkSize,
 		`normal_chunk_default_chunk_overlap`:   normalChunkDefaultChunkOverlap,
@@ -507,9 +498,6 @@ type BridgeEditLibraryReq struct {
 	UseModel                         string `form:"use_model"`
 	UseModelSwitch                   string `form:"use_model_switch"`
 	ChunkType                        string `form:"chunk_type"`
-	GraphSwitch                      string `form:"graph_switch"`
-	GraphModelConfigId               string `form:"graph_model_config_id"`
-	GraphUseModel                    string `form:"graph_use_model"`
 	GroupId                          string `form:"group_id"`
 	NormalChunkDefaultSeparatorsNo   string `form:"normal_chunk_default_separators_no"`
 	NormalChunkDefaultChunkSize      string `form:"normal_chunk_default_chunk_size"`
@@ -544,9 +532,6 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 	libraryIntro := strings.TrimSpace(req.LibraryIntro)
 	modelConfigId := cast.ToInt(req.ModelConfigId)
 	useModel := strings.TrimSpace(req.UseModel)
-	graphSwitch := cast.ToInt(req.GraphSwitch)
-	graphModelConfigId := cast.ToInt(req.GraphModelConfigId)
-	graphUseModel := strings.TrimSpace(req.GraphUseModel)
 	useModelSwitch := cast.ToInt(req.UseModelSwitch)
 	aiSummary := cast.ToInt(req.AiSummary)
 	aiSummaryModel := cast.ToString(req.AiSummaryModel)
@@ -594,12 +579,6 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 		if ok := common.CheckModelIsValid(adminUserId, summaryModelConfigId, aiSummaryModel, common.Llm); !ok {
 			return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `ai_summary_model`))
 		}
-	}
-	if graphSwitch == 1 && graphModelConfigId == 0 {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `graph_model_config_id`))
-	}
-	if graphSwitch == 1 && len(graphUseModel) == 0 {
-		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `graph_use_model`))
 	}
 	if !tool.InArrayInt(syncOfficialHistoryType, define.SyncOfficialHistoryTypeList[:]) {
 		return nil, -1, errors.New(i18n.Show(lang, `param_invalid`, `sync_official_history_type`))
@@ -680,9 +659,6 @@ func BridgeEditLibrary(c *gin.Context, adminUserId, loginUserId int, lang string
 		`share_url`:                            shareUrl,
 		`ai_summary_model`:                     aiSummaryModel,
 		`summary_model_config_id`:              summaryModelConfigId,
-		`graph_switch`:                         graphSwitch,
-		`graph_model_config_id`:                graphModelConfigId,
-		`graph_use_model`:                      graphUseModel,
 		`access_rights`:                        accessRights,
 		`statistics_set`:                       statisticsSet,
 		`update_time`:                          tool.Time2Int(),
@@ -890,12 +866,6 @@ func BridgeDeleteLibrary(adminUserId, loginUserId int, lang string, req *BridgeD
 	for _, fileId := range fileIds {
 		//clear cached data
 		lib_redis.DelCacheData(define.Redis, &common.LibFileCacheBuildHandler{FileId: cast.ToInt(fileId)})
-	}
-	if common.GetNeo4jStatus(adminUserId) {
-		err = common.NewGraphDB(adminUserId).DeleteByLibrary(id)
-		if err != nil {
-			logs.Error(err.Error())
-		}
 	}
 	_, err = msql.Model(`chat_ai_library_file_data`, define.Postgres).Where(`library_id`, cast.ToString(id)).Delete()
 	if err != nil {

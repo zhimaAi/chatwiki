@@ -27,12 +27,6 @@
                 <span class="type-tag" v-if="item.type == 1">{{ t('label_external_library') }}</span>
                 <span class="type-tag" v-if="item.type == 2">{{ t('label_qa_library') }}</span>
                 <span class="type-tag" v-if="item.type == 3">{{ t('label_official_account_library') }}</span>
-                <a-tooltip v-if="neo4jStatus">
-                  <template #title>
-                    {{ item.graph_switch == 0 ? t('msg_graph_disabled') : t('msg_graph_enabled') }}
-                  </template>
-                  <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }">Graph</span>
-                </a-tooltip>
               </div>
             </div>
           </div>
@@ -78,7 +72,6 @@
         <span v-if="formState.search_type == 1">混合检索</span>
         <span v-if="formState.search_type == 2">向量检索</span>
         <span v-if="formState.search_type == 3">全文检索</span>
-        <span v-if="formState.search_type == 4">知识图谱检索</span>
       </div>
       <div class="set-item">
         Top K：
@@ -106,7 +99,6 @@
       :defaultLibraryId="formState.default_library_id"
     />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
-    <NoOpenGraphModal :list="noOpenLibraryList" @refreshList="getList" ref="noOpenGraphModalRef" />
   </div>
 </template>
 
@@ -116,7 +108,6 @@ import { storeToRefs } from 'pinia'
 import { message, Modal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useClawbotStore } from '@/stores/modules/clawbot'
-import { useCompanyStore } from '@/stores/modules/company'
 import { getLibraryList } from '@/api/library/index'
 import { relationLibrary } from '@/api/robot/index'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
@@ -126,13 +117,10 @@ import LibraryExpireStatus from '@/components/library-expire-status/index.vue'
 // import { getModelNameText } from '@/components/model-select/index.js'
 import LibrarySelectAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/library-select-alert.vue'
 import RecallSettingsAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/recall-settings-alert.vue'
-import NoOpenGraphModal from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/no-open-graph-modal.vue'
 
 const { t } = useI18n('views.clawbot.knowledge.RelatedKnowledge')
 const clawbotStore = useClawbotStore()
 const { robotInfo } = storeToRefs(clawbotStore)
-const companyStore = useCompanyStore()
-const neo4jStatus = computed(() => companyStore.companyInfo?.neo4j_status == 'true')
 
 const formState = reactive({
   library_ids: [],
@@ -176,10 +164,6 @@ const selectedLibraryRows = computed(() => {
     if (String(b.id) === defaultLibraryId) return 1
     return 0
   })
-})
-
-const noOpenLibraryList = computed(() => {
-  return selectedLibraryRows.value.filter((item) => item.graph_switch == 0)
 })
 
 const isDefaultLibrary = (item) => {
@@ -243,8 +227,6 @@ const handleOpenRecallSettingsAlert = () => {
   recallSettingsAlertRef.value.open(toRaw(formState), robotInfo.value)
 }
 
-const noOpenGraphModalRef = ref(null)
-
 const onChangeRecallSettings = (data) => {
   formState.rerank_status = data.rerank_status
   formState.rerank_use_model = data.rerank_use_model
@@ -261,11 +243,6 @@ const onChangeRecallSettings = (data) => {
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
   formState.library_search_type = data.library_search_type
-  if (data.search_type == 1 || data.search_type == 4) {
-    if (noOpenLibraryList.value.length > 0) {
-      noOpenGraphModalRef.value.show()
-    }
-  }
   onSave()
 }
 
@@ -353,7 +330,7 @@ watchEffect(() => {
   formState.meta_search_switch = info.meta_search_switch
   formState.meta_search_type = info.meta_search_type
   formState.meta_search_condition_list = info.meta_search_condition_list
-  formState.rrf_weight = info.rrf_weight != '' && info.rrf_weight ? JSON.parse(info.rrf_weight) : { vector: 0, search: 0, graph: 0 }
+  formState.rrf_weight = info.rrf_weight != '' && info.rrf_weight ? JSON.parse(info.rrf_weight) : { vector: 0, search: 0 }
   formState.recall_neighbor_switch = info.recall_neighbor_switch
   formState.recall_neighbor_top_k = info.recall_neighbor_top_k
   formState.recall_neighbor_before_num = info.recall_neighbor_before_num
@@ -477,15 +454,6 @@ onMounted(() => {
     line-height: 20px;
   }
 
-  .graph-tag {
-    margin-left: 4px;
-
-    &.gray-tag {
-      border-color: #00000026;
-      background: #0000000a;
-      color: #bfbfbf;
-    }
-  }
 }
 
 .item-body {

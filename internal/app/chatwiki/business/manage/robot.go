@@ -367,7 +367,7 @@ func SaveRobot(c *gin.Context) {
 
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
-	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
+	rrfWeight := tool.JsonEncodeNoError(common.ParseRrfWeight(strings.TrimSpace(c.PostForm(`rrf_weight`))))
 	chatType := cast.ToInt(c.DefaultPostForm(`chat_type`, `1`))
 	unknownQuestionPromptJson := tool.JsonEncodeNoError(define.MenuJsonStruct{Content: lib_define.DefaultUnknownQuestionPromptContent})
 	unknownQuestionPrompt := strings.TrimSpace(c.DefaultPostForm(`unknown_question_prompt`, unknownQuestionPromptJson))
@@ -495,20 +495,13 @@ func SaveRobot(c *gin.Context) {
 		return
 	}
 
-	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
 	librarySearchType, err = common.NormalizeLibrarySearchType(searchType, librarySearchType)
 	if err != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
-		return
-	}
-	if id == 0 && len(rrfWeight) == 0 { //fill default values on create
-		rrfWeight = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
-	}
-	if err = common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if questionGuideNum < 1 || questionGuideNum > 10 {
@@ -1510,7 +1503,7 @@ func GetDefaultRrfWeight(c *gin.Context) {
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {
 		return
 	}
-	c.String(http.StatusOK, lib_web.FmtJson(common.GetDefaultRrfWeight(adminUserId), nil))
+	c.String(http.StatusOK, lib_web.FmtJson(common.GetDefaultRrfWeight(), nil))
 }
 
 func GetRobotInfo(c *gin.Context) {
@@ -1545,8 +1538,8 @@ func GetRobotInfo(c *gin.Context) {
 			return
 		}
 	}
-	if len(info[`rrf_weight`]) == 0 { //fill default values
-		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
+	if len(info[`rrf_weight`]) == 0 {
+		info[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight())
 	}
 	if len(info[`prompt_struct`]) == 0 {
 		info[`prompt_struct`] = tool.JsonEncodeNoError(common.GetEmptyPromptStruct(common.GetLang(c))) //for legacy data, default to empty
@@ -1563,27 +1556,6 @@ func GetRobotInfo(c *gin.Context) {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
-	}
-	if len(langConfigs) == 0 {
-		legacy := common.BuildRobotMultilingualConfigsByLegacy(
-			info[`welcomes`],
-			info[`unknown_question_prompt`],
-			info[`tips_before_answer_content`],
-			cast.ToBool(info[`tips_before_answer_switch`]),
-			cast.ToBool(info[`enable_common_question`]),
-			info[`common_question_list`],
-		)
-		for _, one := range legacy {
-			langConfigs = append(langConfigs, msql.Params{
-				`lang_key`:                   one.LangKey,
-				`welcomes`:                   one.Welcomes,
-				`unknown_question_prompt`:    one.UnknownQuestionPrompt,
-				`tips_before_answer_switch`:  cast.ToString(one.TipsBeforeAnswerSwitch),
-				`tips_before_answer_content`: one.TipsBeforeAnswerContent,
-				`enable_common_question`:     cast.ToString(one.EnableCommonQuestion),
-				`common_question_list`:       one.CommonQuestionList,
-			})
-		}
 	}
 	info[`multi_lang_configs`] = tool.JsonEncodeNoError(langConfigs)
 	info = common.ApplyRobotMultilingualConfig(info, common.RobotLangCh)

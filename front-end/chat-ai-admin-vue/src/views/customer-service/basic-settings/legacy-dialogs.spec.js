@@ -10,8 +10,8 @@ import SuggestedIssues from '@/views/robot/robot-config/basic-config/components/
 
 const mocks = vi.hoisted(() => ({ robot: null, createVariable: vi.fn(), validate: vi.fn(), meta: vi.fn(), variables: vi.fn() }))
 vi.mock('@/hooks/web/useI18n', () => ({ useI18n: () => ({ t: key => key }) }))
-vi.mock('vue-router', () => ({ useRoute: () => ({ query: { robot_key: 'legacy-seven' } }) }))
-vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: { neo4j_status: 'true' } }) }))
+vi.mock('vue-router', async (importOriginal) => ({ ...await importOriginal(), useRoute: () => ({ query: { robot_key: 'legacy-seven' } }) }))
+vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: {} }) }))
 vi.mock('@/stores/modules/robot', () => ({ useRobotStore: () => mocks.robot }))
 vi.mock('@/stores/modules/mini-card', () => ({ useMiniCardStore: () => ({ cardList: [], fetchCardList: vi.fn() }) }))
 vi.mock('@/api/library/index.js', () => ({ getRobotMetaSchemaList: mocks.meta }))
@@ -100,9 +100,20 @@ describe('legacy basic settings dialogs without global modal registration', () =
   it('opens legacy recall settings in a modal instead of displaying the form inline', async () => {
     const wrapper = render(RecallDialog)
     expect(wrapper.find('.recall-settings-box').exists()).toBe(false)
-    wrapper.vm.open({ search_type: 3, top_k: 3, similarity: 0.4, rrf_weight: { vector: 36, search: 28, graph: 36 }, rerank_status: 0, meta_search_switch: 0, meta_search_type: 1 }, { id: 7, robot_key: 'legacy-seven' })
+    wrapper.vm.open({ search_type: 3, top_k: 3, similarity: 0.4, rrf_weight: { vector: 70, search: 30 }, rerank_status: 0, meta_search_switch: 0, meta_search_type: 1 }, { id: 7, robot_key: 'legacy-seven' })
     await expectDialog(wrapper, 'label_retrieval_mode')
     expect(wrapper.find('.recall-settings-box').exists()).toBe(false)
+  })
+
+  it('opens retired recall settings without selecting a replacement mode', async () => {
+    const wrapper = render(RecallDialog)
+    wrapper.vm.open({ search_type: 4, top_k: 3, similarity: 0.4, rrf_weight: { vector: 50, search: 30 }, rerank_status: 0, meta_search_switch: 0, meta_search_type: 1 }, { id: 7, robot_key: 'legacy-seven' })
+    await flushPromises()
+    await vi.waitFor(() => {
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog?.querySelectorAll('.retrieval-mode-item')).toHaveLength(3)
+      expect(dialog.querySelector('.retrieval-mode-item.active')).toBeNull()
+    })
   })
 
   it('keeps legacy suggested-question generation settings hidden until its modal is opened', async () => {

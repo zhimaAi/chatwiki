@@ -6,6 +6,8 @@
 <script setup>
   import * as echarts from 'echarts'
   import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+
+  defineOptions({ name: 'StatisticsEcharts' })
   
   const props = defineProps({
     xDataArray: {
@@ -67,8 +69,12 @@
     }
   })
   let myEchart
+  let initTimer
+  let updateTimer
+  const resizeChart = () => myEchart?.resize()
   const timeId = ref(Math.floor(new Date().getTime() * Math.random())); // 使该图表保持唯id
   const myEchartData = () => {
+    if (!myEchart) return
     const option = {
       title: {
         textStyle: {
@@ -166,44 +172,30 @@
     myEchart.setOption(option, { notMerge: true })
   }
    
-  watch(
-    //监控数据变化
-    () => props.xDataArray,
-    () => {
-      setTimeout(() => {
-        myEchartData()
-      }, 500)
-    },
-    { deep: true }
-  )
-  watch(
-    //监控数据变化
-    () => props.yDataArray,
-    () => {
-      setTimeout(() => {
-        myEchartData()
-      }, 500)
-    },
-    { deep: true }
-  )
-  
+  const scheduleUpdate = () => {
+    clearTimeout(updateTimer)
+    updateTimer = setTimeout(myEchartData, 500)
+  }
+
+  watch(() => props.xDataArray, scheduleUpdate, { deep: true })
+  watch(() => props.yDataArray, scheduleUpdate, { deep: true })
+
   onMounted(() => {
-    setTimeout(() => {
+    initTimer = setTimeout(() => {
       const dom = document.getElementById(`echart${timeId.value}`)
+      if (!dom) return
       myEchart = echarts.init(dom)
       myEchartData()
     }, 500)
-   
-    // 当窗口发生变化时
-    window.addEventListener('resize', () => {
-      myEchart.resize()
-    })
+    window.addEventListener('resize', resizeChart)
   })
-  
+
   onBeforeUnmount(() => {
-    window.removeEventListener('resize', () => {
-      myEchart.resize()
-    })
+    clearTimeout(initTimer)
+    clearTimeout(updateTimer)
+    window.removeEventListener('resize', resizeChart)
+    myEchart?.dispose()
+    myEchart = undefined
   })
   
   </script>

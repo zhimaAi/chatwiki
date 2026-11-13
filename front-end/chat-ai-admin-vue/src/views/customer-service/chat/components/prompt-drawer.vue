@@ -22,6 +22,13 @@
       <div class="prompt-card-header">
         <span class="prompt-label">{{ t('label_prompt') }}</span>
         <div class="prompt-actions">
+          <PromptOptimizeButton
+            v-if="props.open && !props.loading"
+            :robot="props.robot"
+            appearance="persona"
+            save-mode="draft"
+            :onSave="applyOptimizedPromptDraft"
+          />
           <template v-if="editing">
             <button class="action-btn action-btn-cancel" type="button" :disabled="props.loading" @click="handleCancelEdit">
               {{ t('btn_cancel') }}
@@ -76,6 +83,7 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons-vue'
 import { App } from 'ant-design-vue'
@@ -95,6 +103,7 @@ const { message } = App.useApp()
 const emit = defineEmits(['close', 'save', 'variablesLoaded'])
 
 const props = defineProps({
+  robot: { type: Object, required: true },
   open: {
     type: Boolean,
     default: false
@@ -115,6 +124,7 @@ const props = defineProps({
 
 const editing = ref(false)
 const draftPrompt = ref('')
+const optimizedDraft = ref(false)
 const atInputRef = ref(null)
 const addVariableModalRef = ref(null)
 const miniCardFormModalRef = ref(null)
@@ -189,6 +199,7 @@ watch(
     chatVariables.value = []
     miniCards.value = []
     editing.value = false
+    optimizedDraft.value = false
     draftPrompt.value = props.prompt || ''
     if (open) {
       void loadChatVariables()
@@ -229,16 +240,28 @@ const handleClose = () => {
     return
   }
   editing.value = false
+  optimizedDraft.value = false
   draftPrompt.value = props.prompt || ''
   emit('close')
 }
 
 const handleStartEdit = () => {
   if (props.loading) return
+  optimizedDraft.value = false
   draftPrompt.value = props.prompt || ''
   editing.value = true
   editorVersion.value++
   nextTick(() => atInputRef.value?.refresh())
+}
+
+const applyOptimizedPromptDraft = (prompt) => {
+  if (!props.open || props.loading) return false
+  editing.value = true
+  draftPrompt.value = prompt
+  optimizedDraft.value = true
+  editorVersion.value++
+  nextTick(() => atInputRef.value?.refresh())
+  return true
 }
 
 const handlePromptChange = (text) => {
@@ -265,6 +288,7 @@ const handleCancelEdit = () => {
     return
   }
   editing.value = false
+  optimizedDraft.value = false
   draftPrompt.value = props.prompt || ''
   editorVersion.value++
 }
@@ -273,7 +297,7 @@ const handleSave = () => {
   if (!editing.value || props.loading || !props.robotKey) return
   atInputRef.value?.updateValue()
   // 不提前退出编辑，父页保存失败时仍保留原草稿；成功后由父页关闭。
-  emit('save', draftPrompt.value)
+  emit('save', draftPrompt.value, optimizedDraft.value ? 0 : undefined)
 }
 </script>
 

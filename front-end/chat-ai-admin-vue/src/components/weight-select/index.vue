@@ -1,5 +1,5 @@
 <template>
-  <div class="slider-box" :class="{ 'neo4j-status-close-slider': !neo4j_status }" :style="cssVars">
+  <div class="slider-box two-weight-slider" :style="cssVars">
     <div class="form-label-block">
       <div class="label-title">
         {{ t('label_weight') }}
@@ -26,23 +26,17 @@
       @change="handleChange"
       v-model:value="rrf_value"
       :tip-formatter="formatter"
-      :range="neo4j_status"
     />
   </div>
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import { ref, watch, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import { useCompanyStore } from '@/stores/modules/company'
-
 const { t } = useI18n('components.weight-select.index')
 
-const companyStore = useCompanyStore()
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 const props = defineProps({
   rrf_weight: {
     type: Object
@@ -52,8 +46,8 @@ const emit = defineEmits(['update:rrf_weight', 'save'])
 const rrf_value = ref(null)
 
 const listItems = computed(() => {
-  let { vector, search, graph } = props.rrf_weight
-  let list = [
+  const { vector, search } = normalizeRrfWeight(props.rrf_weight)
+  return [
     {
       label: t('label_vector'),
       value: formatter(vector),
@@ -65,52 +59,32 @@ const listItems = computed(() => {
       color: '#03b615'
     }
   ]
-  if (neo4j_status.value) {
-    list.push({
-      label: t('label_graph'),
-      value: formatter(graph),
-      color: '#F59A23'
-    })
-  }
-  return list
 })
 
 const handleChange = () => {
-  let vector = 0
-  let search = 0
-  let graph = 0
-  if (neo4j_status.value) {
-    vector = rrf_value.value[0]
-    search = rrf_value.value[1] - rrf_value.value[0]
-    graph = 100 - rrf_value.value[1]
-  } else {
-    vector = rrf_value.value
-    search = 100 - rrf_value.value
-  }
-  emit('update:rrf_weight', { vector, search, graph })
-  emit('save', { vector, search, graph })
+  const vector = rrf_value.value
+  const search = 100 - vector
+  emit('update:rrf_weight', { vector, search })
+  emit('save', { vector, search })
 }
 
 watch(
   () => props.rrf_weight,
   (val) => {
-    let { vector, search, graph } = val
-    if (neo4j_status.value) {
-      rrf_value.value = [vector, Math.min(vector + search, 100)]
-    } else {
-      rrf_value.value = vector
+    const next = normalizeRrfWeight(val)
+    rrf_value.value = next.vector
+    if (
+      Number(val?.vector) !== next.vector ||
+      Number(val?.search) !== next.search
+    ) {
+      emit('update:rrf_weight', next)
     }
   },
   { immediate: true, deep: true }
 )
 
 const backgroundLiner = computed(() => {
-  if (!neo4j_status.value) {
-    return `linear-gradient(to right, #2475fc ${rrf_value.value}%, #03B615 ${100 - rrf_value.value}%)`
-  }
-  let value1 = rrf_value.value[0]
-  let value2 = 100 - value1
-  return `linear-gradient(to right, #2475fc ${value1}%, #F59A23 ${value2}%)`
+  return `linear-gradient(to right, #2475fc ${rrf_value.value}%, #03B615 ${100 - rrf_value.value}%)`
 })
 
 // 计算属性返回 CSS 变量对象
@@ -130,7 +104,7 @@ function formatter(value) {
 </script>
 
 <style lang="less" scoped>
-.neo4j-status-close-slider {
+.two-weight-slider {
   &::v-deep(.ant-slider) {
     .ant-slider-track {
       background: #2475fc;

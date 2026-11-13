@@ -35,21 +35,6 @@ const PromptDefaultQuestionOptimize = `
 {{dialogue_background}}
 `
 
-const PromptDefaultGraphConstruct = `你是一个知识图谱构建专家。请分析以下文本，提取实体、关系和属性，构建知识图谱。
-输出格式为JSON数组，每个元素包含以下字段：
-- subject: 主体实体
-- predicate: 关系
-- object: 客体实体或属性值
-- confidence: 置信度(0-1)
-
-文本内容:
-"""
-{{content}}
-"""
-
-请确保输出的JSON格式正确，只返回JSON数组，注意，不要有其他文字说明，关系和实体中都不要有括号、引号、逗号等任何特殊字符或标点符号。
-`
-
 const PromptDefaultQuestionGuide = `
 你是一个AI智能助手，可以回答和解决我的问题。请结合历史对话记录，帮我生成 {{num}} 个问题，引导我继续提问。
 历史记录:
@@ -65,16 +50,6 @@ const PromptQuestionGuideSuffix = `
 {{histories}}
 """
 每个问题的长度应小于20个字符，按如下格式返回: ["问题1", "问题2", "问题3", "问题4", "问题5", "问题6", "问题7", "问题8", "问题9", "问题10"]`
-
-const PromptDefaultEntityExtract = `请从下面的问题中提取关键实体，以便进行知识图谱检索。
-尽量从不同角度提取关键概念和实体。注意一定要只输出JSON数组格式，每个元素是一个实体字符串，不要有其他文字说明。
-
-问题:
-"""
-{{question}}
-"""
-
-输出示例：["实体1", "实体2", "实体3", "实体4", "实体5"]`
 
 const PromptDefaultCreatePrompt = `# 角色
 你是一个智能提示词工程师，擅长将用户需求转化为结构化的大模型指令模板。

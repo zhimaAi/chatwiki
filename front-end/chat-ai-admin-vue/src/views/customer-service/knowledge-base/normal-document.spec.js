@@ -183,14 +183,8 @@ describe('normal knowledge workspace', () => {
     expect(wrapper.findComponent(Table).props('scroll').y).toBeGreaterThan(0)
   })
 
-  it('preserves graph states and offers generation only for waiting or failed documents', async () => {
-    const wrapper = await render({ files: Array.from({ length: 6 }, (_, graph_status) => ({ ...rows[0], id: 20 + graph_status, graph_status, graph_err_count: 3 })), extraColumns: [{ key: 'graph_status', title: '知识图谱' }], loading: true })
+  it('passes the document loading state to the table', async () => {
+    const wrapper = await render({ loading: true })
     expect(wrapper.findComponent(Table).props('loading')).toBe(true)
-    const generate = wrapper.findAll('button').filter(item => item.text() === 'btn_generate')
-    expect(generate).toHaveLength(2)
-    await generate[1].trigger('click')
-    expect(wrapper.emitted('action').at(-1)[0]).toMatchObject({ key: 'generate-graph', record: { id: 23 } })
-    await button(wrapper, 'btn_details').trigger('click')
-    expect(wrapper.emitted('action').at(-1)[0]).toMatchObject({ key: 'graph-details', record: { id: 25 } })
   })
 })

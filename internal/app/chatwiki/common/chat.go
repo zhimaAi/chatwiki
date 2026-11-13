@@ -1097,6 +1097,7 @@ func OnlyReceivedMessageReplyHandle(params *define.ChatRequestParam, monitor *Mo
 
 	message = msql.Datas{
 		`admin_user_id`:          params.AdminUserId,
+		`customer_message_id`:    id,
 		`robot_id`:               params.Robot[`id`],
 		`openid`:                 params.Openid,
 		`dialogue_id`:            dialogueId,

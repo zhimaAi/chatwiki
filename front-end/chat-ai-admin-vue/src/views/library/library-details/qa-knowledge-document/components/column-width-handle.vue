@@ -47,6 +47,10 @@ onBeforeUnmount(() => cleanup?.())
 <style scoped lang="less">
 .column-width-handle {
   position: absolute; top: 0; right: -6px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 12px; height: 100%; cursor: col-resize; touch-action: none;
+  &:hover {
+    img { visibility: hidden; }
+    &::after { content: ''; position: absolute; width: 3px; height: 23px; background: #146ef5; pointer-events: none; }
+  }
   &:focus-visible { outline: 2px solid #146ef5; outline-offset: -2px; }
 }
 </style>

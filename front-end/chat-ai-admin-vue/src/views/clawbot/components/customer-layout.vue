@@ -19,7 +19,11 @@
       <a-empty v-else-if="!robotId && !robotKey" :description="t('select_app')" />
       <div v-else-if="!contextReady" class="agent-loading"><a-spin /></div>
       <router-view v-else v-slot="{ Component }">
-        <component :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" />
+        <component v-if="selectedMenuKey === 'session-record'" :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" :robot="robot" robot-status="ready" />
+        <BusinessContext v-else-if="isBusinessPage" :key="robotId + ':' + robotKey" :robot="robot" @refresh="clawbotStore.updateRobotInfo">
+          <component :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" />
+        </BusinessContext>
+        <component v-else :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" />
       </router-view>
     </main>
   </div>
@@ -37,8 +41,9 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { getRobotPermission } from '@/utils/permission'
 import { CUSTOMER_SERVICE_LAYOUT, isCustomerServiceClawbotRoute } from '@/utils/clawbot-layout'
 import CustomerSidebar from '@/views/customer-service/components/customer-sidebar.vue'
+import BusinessContext from '@/views/customer-service/components/business-context.vue'
 import {
-  CUSTOMER_SERVICE_AGENT_MENU_ITEMS,
+  getCustomerServiceAgentPage,
   getCustomerServiceChatLocation,
   normalizeCustomerServiceQueryValue
 } from '@/views/customer-service/navigation'
@@ -67,11 +72,15 @@ const isCurrentIdentity = (identity, version = initializationVersion) => alive &
 
 const selectedMenuKey = computed(() => {
   if (route.name === 'clawbotSkillGenerateTool') return 'skills'
-  return CUSTOMER_SERVICE_AGENT_MENU_ITEMS.find((item) => item.routeName === route.name)?.key || ''
+  if (route.name === 'clawbotKnowledge') return 'knowledge-base'
+  if (route.name === 'clawbotSkills') return 'skills'
+  if (route.name === 'clawbotChat') return 'chat'
+  return route.meta.customerServiceMenuKey || ''
 })
+const isBusinessPage = computed(() => ['basic-settings', 'function-center', 'analytics'].includes(selectedMenuKey.value))
 const pageAllowed = computed(() => {
   const rights = getRobotPermission(robotId.value)
-  return rights > 0 && (rights !== 1 || ['chat', 'assistant', 'stats'].includes(selectedMenuKey.value))
+  return rights > 0 && (rights !== 1 || ['chat', 'analytics'].includes(selectedMenuKey.value))
 })
 // store 会跨布局保留，isReady 可能属于上一次应用，必须核对 URL、选中项和详情后才渲染页面。
 const contextReady = computed(() => readyIdentity.value && isCurrentIdentity(readyIdentity.value) &&
@@ -109,7 +118,7 @@ async function navigate(location, replace = false) {
 }
 
 function navigateTo(menuKey) {
-  const page = CUSTOMER_SERVICE_AGENT_MENU_ITEMS.find((item) => item.key === menuKey)
+  const page = getCustomerServiceAgentPage(menuKey)
   if (!page) return
   return navigate({ name: page.routeName, query: {
     id: robotId.value,
@@ -274,6 +283,27 @@ watch([readyIdentity, pageAllowed], ([identity, allowed]) => {
   else void navigate(getClawbotLocation(route, 'chat'), true)
 })
 
+// 旧版页面内的配置链接仍保留；仅在新版框架里转到对应的新菜单。
+watch([() => route.name, () => route.query.menu], () => {
+  let key
+  let pane
+  let tab
+  if (route.name === 'clawbotSettings') {
+    const menu = route.query.menu
+    // 没有新菜单对应的旧页面保留原路由，避免旧链接丢失功能。
+    if (menu && !['basic', 'session-record', 'rate-limit', 'e2b-settings'].includes(menu)) return
+    key = menu === 'session-record' ? 'session-record' : ['rate-limit', 'e2b-settings'].includes(menu) ? 'function-center' : 'basic-settings'
+    pane = menu === 'rate-limit' ? 'rate' : menu === 'e2b-settings' ? 'e2b' : undefined
+  } else if (route.name === 'clawbotServices') key = 'other-channels'
+  else if (route.name === 'clawbotStats') { key = 'analytics'; tab = 'basic' }
+  else if (route.name === 'clawbotAssistant') key = 'chat'
+  if (key) void navigate({ name: getCustomerServiceAgentPage(key).routeName, query: {
+    ...route.query,
+    id: robotId.value, robot_key: robotKey.value, layout: CUSTOMER_SERVICE_LAYOUT,
+    ...(pane ? { pane } : {}), ...(tab ? { tab } : {})
+  } }, true)
+}, { immediate: true })
+
 customerStore.reset()
 void customerStore.loadRobots()
 watch([robotId, robotKey], initialize, { immediate: true })
@@ -295,12 +325,24 @@ onBeforeUnmount(() => {
   background: #f5f6f8;
 }
 .customer-agent-main {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
+}
+.customer-agent-main > :deep(.knowledge-page),
+.customer-agent-main > :deep(.skills-page) {
+  flex: 1;
+  min-height: 0;
+  margin: 8px 8px 8px 0;
+  border-radius: 12px;
   overflow: auto;
 }
+.customer-agent-main > :deep(.knowledge-page::before),
+.customer-agent-main > :deep(.skills-page::before) { display: none; }
 .agent-loading {
   display: flex;
   align-items: center;

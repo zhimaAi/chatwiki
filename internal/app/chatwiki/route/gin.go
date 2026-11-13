@@ -81,6 +81,11 @@ func init() {
 	Route[http.MethodGet][`/manage/getRobotInfo`] = manage.GetRobotInfo
 	Route[http.MethodPost][`/manage/deleteRobot`] = manage.DeleteRobot
 	Route[http.MethodGet][`/manage/createPromptByAi`] = manage.CreatePromptByAi
+	Route[http.MethodGet][`/manage/getPromptOptimizeContext`] = manage.GetPromptOptimizeContext
+	Route[http.MethodGet][`/manage/getPromptOptimizeRecords`] = manage.GetPromptOptimizeRecords
+	Route[http.MethodGet][`/manage/getPromptOptimizeVersions`] = manage.GetPromptOptimizeVersions
+	Route[http.MethodGet][`/manage/getPromptOptimizeVersion`] = manage.GetPromptOptimizeVersion
+	Route[http.MethodPost][`/manage/optimizePrompt`] = manage.OptimizePrompt
 	Route[http.MethodGet][`/manage/robotImportDataInfo`] = manage.GetRobotDataImportInfo
 	Route[http.MethodGet][`/manage/robotExport`] = manage.RobotExport
 	Route[http.MethodPost][`/manage/robotImport`] = manage.RobotImport
@@ -214,11 +219,8 @@ func init() {
 	Route[http.MethodPost][`/manage/renewLibraryFile`] = manage.RenewLibraryFile
 	Route[http.MethodPost][`/manage/editLibFile`] = manage.EditLibFile
 	Route[http.MethodPost][`/manage/manualCrawl`] = manage.ManualCrawl
-	Route[http.MethodPost][`/manage/constructGraph`] = manage.ConstructGraph
-	Route[http.MethodGet][`/manage/getFileGraphInfo`] = manage.GetFileGraphInfo
 	Route[http.MethodPost][`/manage/reconstructVector`] = manage.ReconstructVector
 	Route[http.MethodPost][`/manage/reconstructCategoryVector`] = manage.ReconstructCategoryVector
-	Route[http.MethodPost][`/manage/reconstructGraph`] = manage.ReconstructGraph
 	Route[http.MethodPost][`/manage/cancelOcrPdf`] = manage.CancelOcrPdf
 	Route[http.MethodGet][`/manage/createExportLibFileTask`] = manage.CreateExportLibFileTask
 	Route[http.MethodGet][`/manage/downloadLibraryFile`] = manage.DownloadLibraryFile
@@ -399,6 +401,7 @@ func init() {
 	Route[http.MethodGet][`/manage/feedback/stats`] = manage.StatMessageFeedback
 	Route[http.MethodGet][`/manage/feedback/list`] = manage.GetMessageFeedbackList
 	Route[http.MethodGet][`/manage/feedback/detail`] = manage.GetMessageFeedbackDetail
+	Route[http.MethodGet][`/manage/feedback/messages`] = manage.GetMessageFeedbackMessages
 	/*export API*/
 	Route[http.MethodGet][`/manage/getExportTaskList`] = manage.GetExportTaskList
 	Route[http.MethodGet][`/manage/downloadExportFile`] = manage.DownloadExportFile

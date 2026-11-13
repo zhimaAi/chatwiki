@@ -36,8 +36,7 @@ and AI-curated comment replies.
   MCP, Agent mode, and user interaction.
 
 - **Document Knowledge Base**: Supports URL reading, batch document import, API integration, AI-based segmentation, QA
-  segmentation, parent-child segmentation. Supports knowledge graphs, hybrid vector search, and visual exploration of
-  knowledge graphs.
+  segmentation, parent-child segmentation, and hybrid search.
 
 - **QA Knowledge Base**: Automatically extracts QA knowledge from uploaded documents, supports automatic clustering of
   unknown questions, and summarizes common FAQs from human conversations.
@@ -137,6 +136,23 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/11/13**
+
+1.[STD] Conversation history now labels replies sent from Xiaohongshu<br/>
+2.Updated how Agent menus work in the new interface<br/>
+3.[STD] Registration can now skip the invitation code by default when configured<br/>
+4.Added an AI tool for optimizing prompts<br/>
+5.Added knowledge base settings to the redesigned knowledge base page<br/>
+6.[STD] Free version: Fixed issues and added guidance on the model management page<br/>
+7.Fixed the public bot configuration API to fall back to the legacy welcome message when no localized version is
+configured<br/>
+8.Removed Neo4j and knowledge graph retrieval logic<br/>
+9.You can now view the corresponding conversation history from Q&A feedback<br/>
+10.Bot names in the new interface now use 13px text and span at most two lines<br/>
+11.Date filters in Analytics now support ranges of up to 31 days<br/>
+12.[STD] Updated AI suggested reply logic in Original Text and Traditional modes<br/>
+13.Alibaba Cloud Model Studio: Replaced `reasoning_effort=none` with a thinking toggle<br/>
+
 **2026/11/06**
 
 1.[STD] H5 cloud customer service: Added like and dislike buttons to LLM bot replies<br/>
@@ -179,16 +195,6 @@ search<br/>
 4.Workflow debugging now supports multi-turn conversations<br/>
 5.Added validation for chatbot custom prompts exceeding 10,000 characters<br/>
 6.JWT secret key: Replaced the hardcoded key with one generated dynamically on first startup<br/>
-
-**2026/10/10**
-
-1.Agent bot: Persona supports inserting variables<br/>
-2.[STD] Added support for creating multiple Agents: 3 for the Enterprise Edition and 10 for the Flagship Edition<br/>
-3.[STD] Fixed a known issue where applications could not be selected in the Xiaohongshu trigger<br/>
-4.[STD] Custom models: Added Tencent Hunyuan as a new model provider<br/>
-5.[STD] Added a workflow call limit for free-version accounts that have not consumed credits for three days<br/>
-6.Fixed a known authentication issue in bot API key management<br/>
-7.LLM calls: Fall back to text for multimodal input types unsupported by the model<br/>
 
 ## License
 

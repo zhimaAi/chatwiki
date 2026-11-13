@@ -116,13 +116,6 @@
   //     color: rgb(36, 117, 252);
   //     border: 1px solid #CDE0FF;
   //   }
-  //   .graph-tag {
-  //     margin-left: 4px;
-  //     &.gray-tag {
-  //       border: 1px solid #00000026;
-  //       background: #0000000a;
-  //       color: #bfbfbf;
-  //     }
   //   }
   // }
   .item-body{
@@ -261,12 +254,6 @@
               <span class="type-tag" v-if="item.type == 1">{{ t('external_knowledge_base') }}</span>
               <span class="type-tag" v-if="item.type == 2">{{ t('qa_knowledge_base') }}</span>
               <span class="type-tag" v-if="item.type == 3">{{ t('official_account_knowledge_base') }}</span> -->
-              <!-- <a-tooltip v-if="neo4j_status">
-                <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
-                <span class="type-tag graph-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
-                  >Graph</span
-                >
-              </a-tooltip> -->
             <!-- </div> -->
           </div>
         </div>
@@ -331,14 +318,8 @@ import { useI18n } from '@/hooks/web/useI18n'
 import LibraryExpireStatus from '@/components/library-expire-status/index.vue'
 const emit = defineEmits(['add', 'edit', 'delete', 'openEditGroupModal'])
 
-import { useCompanyStore } from '@/stores/modules/company'
 import EmptyBox from "@/components/common/empty-box.vue";
 const { t } = useI18n('views.library.library-list.components.library-list.index')
-
-const companyStore = useCompanyStore()
-const neo4j_status = computed(()=>{
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 const props = defineProps({
   list: {

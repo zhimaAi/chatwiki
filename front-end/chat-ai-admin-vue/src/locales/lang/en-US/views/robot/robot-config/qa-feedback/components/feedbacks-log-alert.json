@@ -10,5 +10,12 @@
   "label_dislike": "Dislike",
   "label_only_knowledge_base": "Knowledge Base Only",
   "label_direct_connection": "Direct Connection",
-  "label_hybrid": "Hybrid"
+  "label_hybrid": "Hybrid",
+  "label_customer_name": "Customer name",
+  "label_channel": "Channel",
+  "label_chat_history": "Chat history",
+  "btn_retry": "Retry",
+  "btn_earlier_messages": "Load earlier messages",
+  "btn_later_messages": "Load later messages",
+  "msg_load_failed": "Unable to load. Please try again."
 }

@@ -10,13 +10,13 @@
         <BasicConfig :inline-summary="isWorkspace" />
       </div>
       <template v-if="isWorkspace">
-        <div class="setting-box" v-if="!isWorkflowRobot"><ChatModeCard /></div>
+        <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent"><ChatModeCard /></div>
         <div class="setting-box" v-if="!isWorkflowRobot"><ModelSettings inline-summary /></div>
-        <div class="setting-box" v-if="!isWorkflowRobot"><PromptCard :robot-list="workFlowRobotList" /></div>
-        <div class="setting-box" v-if="!isWorkflowRobot"><RecallSettingsCard /></div>
+        <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent"><PromptCard :robot-list="workFlowRobotList" /></div>
+        <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent"><RecallSettingsCard /></div>
         <div class="setting-box"><LanguageSetting variant="workspace" /></div>
         <div class="setting-box" v-if="!isWorkflowRobot"><VariableSetting compact /></div>
-        <div class="setting-box" v-if="!isWorkflowRobot"><ChatCache compact /></div>
+        <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent"><ChatCache compact /></div>
       </template>
       <template v-else>
         <div class="setting-box" v-if="!isWorkflowRobot">
@@ -55,7 +55,7 @@
       <!-- <div class="setting-box">
         <UnknownProblemPrompt />
       </div> -->
-      <div class="setting-box">
+      <div class="setting-box" v-if="!isWorkspaceAgent">
         <SensitiveWords :compact="isWorkspace" />
       </div>
       <!--
@@ -63,10 +63,10 @@
         <MarkdownSetting />
       </div>
       -->
-      <div class="setting-box" v-if="!isWorkflowRobot">
+      <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent">
         <ProblemOptimization :compact="isWorkspace" />
       </div>
-      <div class="setting-box" v-if="!isWorkflowRobot">
+      <div class="setting-box" v-if="!isWorkflowRobot && !isWorkspaceAgent">
         <SuggestedIssues :robotList="workFlowRobotList" :compact="isWorkspace" />
       </div>
       <div class="setting-box" v-if="!isWorkflowRobot">
@@ -141,6 +141,7 @@ const { robotInfo } = storeToRefs(robotStore)
 const { getRobot, fetchChatVariables } = robotStore
 
 const modelStore = useModelStore()
+const isWorkspaceAgent = computed(() => isWorkspace.value && Number(robotInfo.value.application_type) === 2)
 const isWorkflowRobot = computed(() => Number(robotInfo.value.application_type || 0) === 1)
 
 const scrollBoxToBottom = () => {
@@ -240,7 +241,7 @@ const handleTabChange = () => {
 
 
 onMounted(()=>{
-  getWorkFlowRobotList()
+  if (!isWorkspaceAgent.value) getWorkFlowRobotList()
   modelStore.getAllmodelList()
   fetchChatVariables()
 })

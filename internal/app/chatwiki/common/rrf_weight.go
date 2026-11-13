@@ -3,8 +3,7 @@
 package common
 
 import (
-	"chatwiki/internal/app/chatwiki/i18n"
-	"errors"
+	"math"
 
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/tool"
@@ -13,41 +12,35 @@ import (
 type RrfWeightConfig struct {
 	Vector uint `json:"vector"`
 	Search uint `json:"search"`
-	Graph  uint `json:"graph"`
 }
 
 // GetDefaultRrfWeight Get the default RRF algorithm weight configuration
-func GetDefaultRrfWeight(adminUserId int) RrfWeightConfig {
-	if GetNeo4jStatus(adminUserId) {
-		return RrfWeightConfig{Vector: 50, Search: 30, Graph: 20}
-	}
-	return RrfWeightConfig{Vector: 70, Search: 30, Graph: 0}
+func GetDefaultRrfWeight() RrfWeightConfig {
+	return RrfWeightConfig{Vector: 70, Search: 30}
 }
 
-// CheckRrfWeight Validate the RRF algorithm weight parameters configured by the frontend
-func CheckRrfWeight(rrfWeight, lang string) error {
-	if len(rrfWeight) == 0 {
-		return nil // Skip validation for empty values, use default values directly
+// NormalizeRrfWeight drops the retired graph weight and rescales vector/search to 100.
+func NormalizeRrfWeight(config RrfWeightConfig) RrfWeightConfig {
+	sum := config.Vector + config.Search
+	if sum == 0 || sum < config.Vector { // Empty or overflowed sum.
+		return GetDefaultRrfWeight()
 	}
-	config := RrfWeightConfig{}
-	if err := tool.JsonDecodeUseNumber(rrfWeight, &config); err != nil {
-		return errors.New(i18n.Show(lang, `param_invalid`, `rrf_weight`))
+	if sum == 100 {
+		return RrfWeightConfig{Vector: config.Vector, Search: config.Search}
 	}
-	if config.Vector+config.Search+config.Graph != 100 {
-		return errors.New(i18n.Show(lang, `rrf_weight_config_sum_invalid`))
-	}
-	return nil
+	vector := min(uint(math.Round(float64(config.Vector)*100/float64(sum))), 100)
+	return RrfWeightConfig{Vector: vector, Search: 100 - vector}
 }
 
 // ParseRrfWeight Parse the RRF algorithm weight configuration parameters
-func ParseRrfWeight(adminUserId int, rrfWeight string) RrfWeightConfig {
+func ParseRrfWeight(rrfWeight string) RrfWeightConfig {
 	if len(rrfWeight) == 0 { // Not configured, use default value
-		return GetDefaultRrfWeight(adminUserId)
+		return GetDefaultRrfWeight()
 	}
 	config := RrfWeightConfig{}
 	if err := tool.JsonDecodeUseNumber(rrfWeight, &config); err != nil {
-		logs.Error(`admin_user_id:%d,rrf_weight:%s,err:%v`, adminUserId, rrfWeight, err)
-		return GetDefaultRrfWeight(adminUserId)
+		logs.Error(`parse rrf_weight error: %v`, err)
+		return GetDefaultRrfWeight()
 	}
-	return config
+	return NormalizeRrfWeight(config)
 }

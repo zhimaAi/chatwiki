@@ -1,7 +1,19 @@
 <template>
   <section class="knowledge-page">
-    <CustomerPageHeader v-model:active-key="tab" :title="t('knowledge_base')" :tabs="headerTabs" @change="selectLibrary" />
-      <!-- <a-button v-if="tab !== 'other'" class="library-settings-button" :disabled="loading || !settingsTargetId || uploading" :title="tab === 'normal' && !normalId ? t('library_settings_empty_tip') : t('library_settings')" @click="openSettings"><SettingOutlined />{{ t('library_settings') }}</a-button> -->
+    <CustomerPageHeader v-model:active-key="tab" :title="t('knowledge_base')" :tabs="headerTabs" @change="selectLibrary">
+      <template #extra>
+        <a-button
+          v-if="tab !== 'other'"
+          class="library-settings-button"
+          :disabled="loading || !settingsTargetId || uploading"
+          :title="tab === 'normal' && !settingsTargetId ? t('library_settings_empty_tip') : t('library_settings')"
+          :aria-label="t(tab === 'qa' ? 'qa_library_settings' : 'normal_library_settings')"
+          @click="openSettings"
+        >
+          <template #icon><SettingOutlined /></template>
+        </a-button>
+      </template>
+    </CustomerPageHeader>
     <div v-if="error" class="feedback"><a-alert type="error" :message="error" show-icon /><a-button @click="retry">{{ t('retry') }}</a-button></div>
     <div v-if="loading" class="feedback"><a-spin /></div>
     <div v-else class="knowledge-content" :class="{ 'qa-document-content': tab === 'qa', 'normal-document-content': tab === 'normal', 'document-content': tab !== 'other', 'fixed-document-content': detailId && (tab === 'qa' || (tab === 'normal' && normalId && !files.length && !uploading)), 'other-library-content': tab === 'other' }">
@@ -9,7 +21,7 @@
         <div class="library-filters" role="group" :aria-label="t('other_libraries')"><button v-for="filter in libraryFilters" :key="filter.key" type="button" :class="{ active: libraryFilter === filter.key }" :aria-pressed="libraryFilter === filter.key" @click="libraryFilter = filter.key">{{ filter.label }}</button></div>
         <div class="other-libraries-list">
         <div v-if="filteredOtherLibraries.length" class="library-grid">
-          <article v-for="item in filteredOtherLibraries" :key="item.id" class="library-card" :class="{ linked: isAssociated(item.id), 'actions-open': openLibraryMenuId === String(item.id), 'is-busy': relatingId === String(item.id) }">
+          <article v-for="item in filteredOtherLibraries" :key="item.id" class="library-card" :class="{ linked: isAssociated(item.id), 'actions-open': openLibraryMenuId === String(item.id), 'is-busy': relatingId === String(item.id) || deletingId === String(item.id) }">
             <button type="button" class="library-info" :aria-label="item.library_name" @click="openLibrary(item)">
               <a-avatar class="library-avatar" :class="{ faq: Number(item.type) === 2 }" :size="40" shape="square" :src="item.avatar || libraryTypeIcons[Number(item.type)] || otherLibraryIcon" />
               <span class="library-copy"><span class="library-heading"><span class="library-name" :title="item.library_name">{{ item.library_name }}</span><span class="library-badge" :class="{ 'linked-badge': isAssociated(item.id) }">{{ t(isAssociated(item.id) ? 'library_linked' : 'library_unlinked') }}</span></span>
@@ -23,13 +35,13 @@
             </button>
               <div class="library-actions">
                 <a-tooltip :title="t(isAssociated(item.id) ? 'remove_relation' : 'link_library')">
-                  <a-button size="small" class="relation-button" :class="{ 'is-linked': isAssociated(item.id) }" :type="isAssociated(item.id) ? 'default' : 'primary'" :loading="relatingId === String(item.id)" :disabled="!!relatingId" :aria-label="t(isAssociated(item.id) ? 'remove_relation' : 'link_library')" :aria-pressed="isAssociated(item.id)" @click="toggleLibrary(item)">
+                  <a-button size="small" class="relation-button" :class="{ 'is-linked': isAssociated(item.id) }" :type="isAssociated(item.id) ? 'default' : 'primary'" :loading="relatingId === String(item.id)" :disabled="!!relatingId || !!deletingId" :aria-label="t(isAssociated(item.id) ? 'remove_relation' : 'link_library')" :aria-pressed="isAssociated(item.id)" @click="toggleLibrary(item)">
                     <template #icon><img :src="isAssociated(item.id) ? unlinkLibraryIcon : linkLibraryIcon" alt="" /></template>
                   </a-button>
                 </a-tooltip>
                 <a-dropdown :trigger="['click']" :open="openLibraryMenuId === String(item.id)" @openChange="openLibraryMenuId = $event ? String(item.id) : ''">
                   <a-button type="text" class="library-more" :aria-label="t('library_more')" :aria-expanded="openLibraryMenuId === String(item.id)"><img :src="libraryMoreIcon" alt="" /></a-button>
-                  <template #overlay><a-menu @click="openLibrary(item)"><a-menu-item key="view">{{ t('view') }}</a-menu-item></a-menu></template>
+                  <template #overlay><a-menu @click="handleLibraryMenu($event, item)"><a-menu-item key="view">{{ t('view') }}</a-menu-item><a-menu-item key="delete" danger :disabled="!!relatingId || !!deletingId">{{ t('delete') }}</a-menu-item></a-menu></template>
                 </a-dropdown>
               </div>
           </article>
@@ -47,11 +59,11 @@
         </div>
       </template>
       <QaDocument v-else-if="tab === 'qa' && detailId" :key="detailId" :library_id="detailId" compact />
-      <KnowledgeDocument v-else-if="tab === 'normal' && detailId" :key="detailId" :library_id="detailId" compact />
+      <KnowledgeDocument v-else-if="tab === 'normal' && detailId" :key="detailId" ref="normalDocument" :library_id="detailId" compact />
       <a-empty v-else :description="t('empty_libraries')" />
     </div>
-    <a-modal :open="settingsOpen" :title="t(settingsTab === 'qa' ? 'qa_library_settings' : 'normal_library_settings')" :width="960" :footer="null" :closable="!settingsClosing" :keyboard="!settingsClosing" :mask-closable="false" destroy-on-close @cancel="closeSettings">
-      <div class="library-settings-body"><KnowledgeConfig v-if="settingsOpen" :key="settingsLibraryId" ref="settingsForm" :library-id="settingsLibraryId" embedded @view-documents="closeSettings" /></div>
+    <a-modal :open="settingsOpen" :title="t(settingsTab === 'qa' ? 'qa_library_settings' : 'normal_library_settings')" :width="960" :footer="null" :closable="!settingsClosing" :keyboard="!settingsClosing"  destroy-on-close @cancel="closeSettings">
+      <div class="library-settings-body"><KnowledgeConfig v-if="settingsOpen" :key="settingsLibraryId" ref="settingsForm" :library-id="settingsLibraryId" embedded @saved="handleSettingsSaved" @view-documents="closeSettings" /></div>
     </a-modal>
   </section>
 </template>
@@ -64,7 +76,8 @@ import { message, Modal } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useLibraryStore } from '@/stores/modules/library'
 import { formatFileSize } from '@/utils/index'
-import { getLibraryList, addLibraryFile } from '@/api/library'
+import { getLibraryPermission } from '@/utils/permission'
+import { getLibraryList, addLibraryFile, deleteLibrary } from '@/api/library'
 import { ensureRobotNormalLibrary, relationLibrary } from '@/api/robot'
 import QaDocument from '@/views/library/library-details/qa-knowledge-document/index.vue'
 import KnowledgeDocument from '@/views/library/library-details/knowledge-document.vue'
@@ -82,6 +95,7 @@ import linkLibraryIcon from '@/assets/img/customer-service/other-knowledge/link.
 import unlinkLibraryIcon from '@/assets/img/customer-service/other-knowledge/unlink.svg'
 import tooltipBeak from '@/assets/img/customer-service/other-knowledge/tooltip-beak.svg'
 const { t } = useI18n('views.customer-service.index')
+const { t: libraryT } = useI18n('views.library.library-list.library-list')
 const router = useRouter()
 const context = inject('customerRobotContext')
 const robotId = context.robotInfo.id
@@ -100,15 +114,20 @@ const uploading = ref(false)
 const files = ref([])
 const detailId = ref('')
 const relatingId = ref('')
+const deletingId = ref('')
 const settingsOpen = ref(false)
 const settingsClosing = ref(false)
 const settingsLibraryId = ref('')
 const settingsTab = ref('qa')
 const settingsForm = ref(null)
+const normalDocument = ref(null)
 const associatedIds = computed(() => String(context.robotInfo.library_ids || '').split(',').filter(Boolean))
 const associatedLibraries = computed(() => libraries.value.filter(item => associatedIds.value.includes(String(item.id))))
 const normalId = computed(() => Number(context.robotInfo.normal_library_id) || 0)
-const settingsTargetId = computed(() => tab.value === 'normal' ? (normalId.value ? String(normalId.value) : '') : detailId.value)
+const settingsTargetId = computed(() => {
+  const id = tab.value === 'qa' ? context.robotInfo.default_library_id : tab.value === 'normal' ? context.robotInfo.normal_library_id : ''
+  return Number.isInteger(Number(id)) && Number(id) > 0 ? String(id) : ''
+})
 let sequence = 0
 let loadSequence = 0
 let alive = true
@@ -145,6 +164,20 @@ function openSettings() {
   settingsTab.value = tab.value
   settingsOpen.value = true
 }
+function handleSettingsSaved(id, config) {
+  if (!alive || String(id) !== String(settingsLibraryId.value)) return
+  const library = libraries.value.find(item => String(item.id) === String(id))
+  if (library) Object.assign(library, config)
+  if (String(detailId.value) !== String(id)) return
+  libraryStore.$patch({
+    library_name: config.library_name,
+    library_intro: config.library_intro,
+    avatar: config.avatar,
+    type: Number(config.type),
+    qa_index_type: config.qa_index_type
+  })
+  normalDocument.value?.syncLibraryConfig(config)
+}
 async function closeSettings() {
   if (settingsClosing.value) return
   settingsClosing.value = true
@@ -154,7 +187,6 @@ async function closeSettings() {
     if (alive) {
       settingsOpen.value = false
       settingsClosing.value = false
-      await load(false)
     }
   }
 }
@@ -217,7 +249,7 @@ async function upload() {
   } finally { if (alive) uploading.value = false }
 }
 async function setRelation(item, linked) {
-  if (!alive || relatingId.value || isProtected(item.id)) return
+  if (!alive || relatingId.value || deletingId.value || isProtected(item.id)) return
   relatingId.value = String(item.id)
   try {
     await context.waitForSave()
@@ -237,12 +269,39 @@ async function setRelation(item, linked) {
   finally { if (alive) relatingId.value = '' }
 }
 function toggleLibrary(item) {
-  if (relatingId.value) return
+  if (relatingId.value || deletingId.value) return
   if (isAssociated(item.id)) {
     Modal.confirm({ title: t('confirm_remove_relation'), onOk: () => setRelation(item, false) })
   } else {
     void setRelation(item, true)
   }
+}
+function handleLibraryMenu({ key }, item) {
+  openLibraryMenuId.value = ''
+  if (key === 'view') return openLibrary(item)
+  if (key !== 'delete' || !alive || relatingId.value || deletingId.value || isProtected(item.id)) return
+  if (getLibraryPermission(item.id) != 4) return message.error(libraryT('no_permission_delete'))
+  Modal.confirm({
+    title: libraryT('confirm_delete_library_title', { library_name: item.library_name }),
+    content: libraryT('confirm_delete_content'),
+    okText: t('delete'), okType: 'danger', cancelText: t('cancel'),
+    onOk: async () => {
+      if (!alive || relatingId.value || deletingId.value || isProtected(item.id)) return
+      deletingId.value = String(item.id)
+      try {
+        await context.waitForSave()
+        if (!alive) return
+        await context.refreshRobot()
+        if (!alive || isProtected(item.id)) return
+        if (getLibraryPermission(item.id) != 4) { message.error(libraryT('no_permission_delete')); return }
+        await deleteLibrary({ id: item.id })
+        if (!alive) return
+        libraries.value = libraries.value.filter(library => String(library.id) !== String(item.id))
+        message.success(libraryT('delete_success'))
+        await load(false)
+      } finally { if (alive) deletingId.value = '' }
+    }
+  })
 }
 function openLibrary(item) {
   openLibraryMenuId.value = ''
@@ -255,7 +314,7 @@ onBeforeUnmount(() => { alive = false; sequence++ })
 </script>
 <style lang="less" scoped>
 .knowledge-page { flex: 1; display: flex; flex-direction: column; min-height: 0; margin: 8px 8px 8px 0; border-radius: 12px; overflow: hidden; background: #fff; }
-.library-settings-button { margin-left: auto; border-radius: 8px; }
+.library-settings-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 8px; font-size: 18px; }
 .library-settings-body { height: min(70vh, 720px); min-height: 240px; overflow: hidden; }
 .knowledge-content { flex: 1; min-height: 0; overflow: auto; padding: 16px 24px; }
 .knowledge-content.fixed-document-content {

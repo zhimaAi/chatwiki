@@ -255,13 +255,6 @@ export const getLibraryRobotInfo = (params = {}) => {
   })
 }
 
-export const createGraph = (data) => {
-  return request.post({
-    url: '/manage/constructGraph',
-    data: data
-  })
-}
-
 export const reconstructVector = (data) => {
   return request.post({
     url: '/manage/reconstructVector',
@@ -272,13 +265,6 @@ export const reconstructVector = (data) => {
 export const reconstructCategoryVector = (data) => {
   return request.post({
     url: '/manage/reconstructCategoryVector',
-    data: data
-  })
-}
-
-export const reconstructGraph = (data) => {
-  return request.post({
-    url: '/manage/reconstructGraph',
     data: data
   })
 }
@@ -368,14 +354,6 @@ export const cancelOcrPdf = (data) => {
 export const getLibRawFileOnePage = (params = {}) => {
   return request.get({
     url: '/manage/getLibRawFileOnePage',
-    params: params
-  })
-}
-
-// 获取知识图谱数据
-export const getFileGraphInfo = (params) => {
-  return request.get({
-    url: '/manage/getFileGraphInfo',
     params: params
   })
 }

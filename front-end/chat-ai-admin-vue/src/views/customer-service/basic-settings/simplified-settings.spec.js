@@ -4,7 +4,7 @@ import { reactive, ref } from 'vue'
 
 const mocks = vi.hoisted(() => ({
   leaf: name => ({ name, template: '<div />' }), robotStore: null, save: vi.fn(), legacySave: vi.fn(),
-  libraries: vi.fn(), meta: vi.fn(), variables: vi.fn(), error: vi.fn(), graphShow: vi.fn(), verify: vi.fn()
+  libraries: vi.fn(), meta: vi.fn(), variables: vi.fn(), error: vi.fn(), verify: vi.fn()
 }))
 vi.mock('@/hooks/web/useI18n', () => ({ useI18n: () => ({ t: key => key }) }))
 vi.mock('@/stores/modules/robot', () => ({ useRobotStore: () => mocks.robotStore }))
@@ -17,7 +17,6 @@ vi.mock('@/components/model-select', () => ({ getModelNameText: () => 'Rerank mo
 vi.mock('@/components/model-select/model-select.vue', () => ({ default: mocks.leaf('ModelSelect') }))
 vi.mock('@/components/weight-select/index.vue', () => ({ default: { name: 'WeightSelect', props: ['rrf_weight'], emits: ['update:rrf_weight'], template: '<div />' } }))
 vi.mock('@/views/robot/robot-config/basic-config/components/meta-filter-box.vue', () => ({ default: { name: 'MetaFilterBox', props: ['rule', 'type'], setup: (_, { expose }) => { expose({ verify: mocks.verify }) }, template: '<div />' } }))
-vi.mock('@/views/robot/robot-config/basic-config/components/associated-knowledge-base/no-open-graph-modal.vue', () => ({ default: { name: 'GraphWarning', props: ['list'], setup: (_, { expose }) => { expose({ show: mocks.graphShow }) }, template: '<div />' } }))
 vi.mock('@/views/robot/robot-config/basic-config/components/at-input/index.vue', () => ({ default: { name: 'AtInput', props: ['defaultValue'], emits: ['change'], template: '<textarea :value="defaultValue" @input="$emit(\'change\', $event.target.value)" />' } }))
 vi.mock('@/views/robot/robot-config/basic-config/components/ai-create-prompt.vue', () => ({ default: mocks.leaf('AiCreatePrompt') }))
 vi.mock('@/views/customer-service/basic-settings/components/ai-prompt-dialog.vue', () => ({ default: mocks.leaf('AiCreatePrompt') }))
@@ -65,7 +64,7 @@ const promptStruct = role => Object.fromEntries(['role', 'task', 'constraints', 
 function setupContext(applicationType = 0) {
   const robotInfo = reactive({ id: 7, robot_key: 'seven', application_type: applicationType, prompt: 'original custom', prompt_type: 1,
     prompt_struct: promptStruct('original role'), prompt_struct_default: promptStruct('default'), library_ids: '101,202', default_library_id: 101, normal_library_id: 202,
-    work_flow_ids: '900', form_ids: '12', search_type: 1, top_k: 5, similarity: 0.4, rerank_status: 0, meta_search_switch: 0, meta_search_type: 1, rrf_weight: '{"vector":0.5,"search":0.3,"graph":0.2}' })
+    work_flow_ids: '900', form_ids: '12', search_type: 1, top_k: 5, similarity: 0.4, rerank_status: 0, meta_search_switch: 0, meta_search_type: 1, rrf_weight: '{"vector":70,"search":30}' })
   mocks.robotStore = reactive({ robotInfo, chatVariables: [], getRobot: vi.fn(), fetchChatVariables: vi.fn() })
   const context = { robotInfo, savedRevision: ref(0), updateRobotInfo: vi.fn(), saveAction: vi.fn(async task => {
     try {
@@ -90,7 +89,7 @@ describe('workspace basic settings compatibility', () => {
     localStorage.clear()
     mocks.save.mockResolvedValue({ res: 0 })
     mocks.legacySave.mockResolvedValue(true)
-    mocks.libraries.mockResolvedValue({ data: [{ id: 101, graph_switch: 0 }] })
+    mocks.libraries.mockResolvedValue({ data: [{ id: 101 }] })
     mocks.meta.mockResolvedValue({ data: [] })
     mocks.variables.mockResolvedValue({ data: [] })
     mocks.verify.mockReturnValue(true)
@@ -283,7 +282,6 @@ describe('workspace basic settings compatibility', () => {
     await flushPromises()
     expect(context.robotInfo.top_k).toBe(12)
     expect(mocks.save).toHaveBeenLastCalledWith(expect.objectContaining({ library_ids: '101,202', default_library_id: 101, normal_library_id: 202 }), 0)
-    expect(mocks.graphShow).toHaveBeenCalledOnce()
     expect(named(dialog, 'AModal').props('open')).toBe(false)
     expect(dialog.emitted('change')).toBeUndefined()
     wrapper.unmount()
@@ -292,7 +290,7 @@ describe('workspace basic settings compatibility', () => {
   it('preserves legacy recall close/change behavior when no async submit is supplied', async () => {
     const context = setupContext()
     const wrapper = mount(RecallDialog, options(context))
-    wrapper.vm.open({ ...context.robotInfo, rrf_weight: { vector: 0.5, search: 0.3, graph: 0.2 } }, context.robotInfo)
+    wrapper.vm.open({ ...context.robotInfo, rrf_weight: { vector: 70, search: 30 } }, context.robotInfo)
     await flushPromises()
     named(wrapper, 'AModal').vm.$emit('ok')
     await flushPromises()
@@ -309,7 +307,7 @@ describe('workspace basic settings compatibility', () => {
     await wrapper.find('.edit-box-header button').trigger('click')
     await flushPromises()
     const dialog = wrapper.findComponent(RecallDialog)
-    expect(named(dialog, 'WeightSelect').props('rrf_weight')).toEqual({ vector: 0, search: 0, graph: 0 })
+    expect(named(dialog, 'WeightSelect').props('rrf_weight')).toEqual({ vector: 70, search: 30 })
     named(dialog, 'AInputNumber').vm.$emit('update:value', 29)
     named(dialog, 'AModal').vm.$emit('update:open', false)
     await flushPromises()

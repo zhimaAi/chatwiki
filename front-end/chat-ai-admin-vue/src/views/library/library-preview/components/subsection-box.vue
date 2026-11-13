@@ -34,17 +34,6 @@
               </div>
             </a-tooltip>
           </span>
-          <span v-if="detailsInfo.graph_switch">
-            {{ t('knowledge_graph_status') }}：{{ item.graph_status_text }}
-            <a-tooltip
-              v-if="item.graph_status == 3 && item.graph_err_msg"
-              :title="item.graph_err_msg"
-            >
-              <strong class="cfb363f"
-                >{{ t('reason') }}<ExclamationCircleOutlined class="err-icon cfb363f"
-              /></strong>
-            </a-tooltip>
-          </span>
         </div>
         <div class="right-opration">
           <a-tooltip title="向上合并分段">
@@ -92,15 +81,6 @@
             </div>
           </a-tooltip>
 
-          <template v-if="detailsInfo.graph_switch">
-            <a-tooltip>
-              <template #title>{{ t('knowledge_graph') }}</template>
-              <div class="hover-btn-box" @click="openGraphModel(item)">
-                <svg-icon name="graph-icon" style="font-size: 16px;color: #595959;"></svg-icon>
-              </div>
-            </a-tooltip>
-          </template>
-
           <a-tooltip>
             <template #title>{{ t('re_convert') }}</template>
             <div class="hover-btn-box">
@@ -135,7 +115,6 @@
       </div>
     </div>
     <ClassificationMarkModal @ok="getCategoryLists" ref="classificationMarkModalRef" />
-    <GraphModel ref="graphModelRef" />
     <!-- 选择内容气泡 -->
     <div
       v-if="showBubble"
@@ -190,7 +169,6 @@ import {
 } from '@ant-design/icons-vue'
 import { Modal } from 'ant-design-vue'
 import ClassificationMarkModal from './classification-mark-modal.vue'
-import GraphModel from './graph-model/index.vue'
 import colorLists from '@/utils/starColors.js'
 import AnnotationSetting from './annotation-setting.vue'
 import {
@@ -337,12 +315,6 @@ const handleSetCategory = (item, star = {}) => {
     item.category_id = star.id
     getCategoryLists()
   })
-}
-
-const graphModelRef = ref(null)
-const openGraphModel = (item) => {
-
-  graphModelRef.value.open(item)
 }
 
 const containerRef = ref(null);

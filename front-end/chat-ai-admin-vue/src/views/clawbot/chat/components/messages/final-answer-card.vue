@@ -11,10 +11,12 @@
         enable-image-preview
       ></CherryMarkdown>
     </div>
+    <PromptOptimizeButton v-if="!item.loading && !item.startLoading" :robot="robotInfo" scene="conversation" :messageId="item.id" />
   </div>
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import '@/assets/style/markdown/markdown.less'
 

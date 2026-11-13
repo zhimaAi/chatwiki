@@ -350,7 +350,7 @@ func applyEmptyRobotMultilingualConfig(robot msql.Params, lang string) msql.Para
 	return robot
 }
 
-// ApplyRobotMultilingualConfig overlays robot legacy fields by language, with English fallback.
+// ApplyRobotMultilingualConfig overlays robot legacy fields by language, with English and legacy fallback.
 func ApplyRobotMultilingualConfig(robot msql.Params, lang string) msql.Params {
 	if len(robot) == 0 {
 		return robot
@@ -370,8 +370,26 @@ func ApplyRobotMultilingualConfig(robot msql.Params, lang string) msql.Params {
 	}
 	var list []msql.Params
 	_ = tool.JsonDecodeUseNumber(robot[`multi_lang_configs`], &list)
-	if len(list) == 0 {
-		return applyEmptyRobotMultilingualConfig(robot, lang)
+	if len(list) == 0 { //keep consistent with manage.GetRobotInfo: fall back to legacy robot fields
+		for _, one := range BuildRobotMultilingualConfigsByLegacy(
+			robot[`welcomes`],
+			robot[`unknown_question_prompt`],
+			robot[`tips_before_answer_content`],
+			cast.ToBool(robot[`tips_before_answer_switch`]),
+			cast.ToBool(robot[`enable_common_question`]),
+			robot[`common_question_list`],
+		) {
+			list = append(list, msql.Params{
+				`lang_key`:                   one.LangKey,
+				`welcomes`:                   one.Welcomes,
+				`unknown_question_prompt`:    one.UnknownQuestionPrompt,
+				`tips_before_answer_switch`:  cast.ToString(one.TipsBeforeAnswerSwitch),
+				`tips_before_answer_content`: one.TipsBeforeAnswerContent,
+				`enable_common_question`:     cast.ToString(one.EnableCommonQuestion),
+				`common_question_list`:       one.CommonQuestionList,
+			})
+		}
+		robot[`multi_lang_configs`] = tool.JsonEncodeNoError(list)
 	}
 	langMap := make(map[string]msql.Params)
 	for _, one := range list {

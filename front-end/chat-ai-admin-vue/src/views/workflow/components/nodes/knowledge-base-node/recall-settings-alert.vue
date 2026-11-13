@@ -325,6 +325,7 @@
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import { reactive, ref, toRaw, computed } from 'vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import WeightSelect from '@/components/weight-select/index.vue'
@@ -409,7 +410,7 @@ const open = (data,  r=null, library_ids=[]) => {
   formState.meta_search_switch = Number(data.meta_search_switch)
   formState.meta_search_type = Number(data.meta_search_type)
   formState.meta_search_condition_list = data.meta_search_condition_list
-  formState.rrf_weight = data.rrf_weight
+  formState.rrf_weight = normalizeRrfWeight(data.rrf_weight)
   formState.recall_neighbor_switch = data.recall_neighbor_switch
   formState.recall_neighbor_top_k = data.recall_neighbor_top_k
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
@@ -444,6 +445,7 @@ const checkRerank = () => {
 }
 
 const handleSave = () => {
+  if (![1, 2, 3].includes(Number(formState.search_type))) return
   if (checkRerank()) {
     return message.error(t('msg_select_rerank_model'))
   }

@@ -134,8 +134,3 @@ export default defineComponent({
   padding-left: 0;
 }
 </style>
-<style>
-.page-knowledgeGraph {
-  padding: 0 !important;
-}
-</style>

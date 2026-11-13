@@ -191,7 +191,9 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
     if (!isCurrentRobot(source)) throw new Error('robot_not_ready')
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('invalid_settings_patch')
     const keys = Object.keys(patch)
-    const isPromptPatch = keys.length === 1 && keys[0] === 'prompt' && typeof patch.prompt === 'string'
+    const isPromptPatch = keys.includes('prompt') && typeof patch.prompt === 'string' &&
+      keys.every(key => key === 'prompt' || key === 'prompt_type') &&
+      (!('prompt_type' in patch) || patch.prompt_type === 0)
     const isModelPatch = keys.length === 2 && keys.includes('model_config_id') && keys.includes('use_model') &&
       patch.model_config_id !== undefined && patch.model_config_id !== null && typeof patch.use_model === 'string'
     if (!isPromptPatch && !isModelPatch) throw new Error('invalid_settings_patch')

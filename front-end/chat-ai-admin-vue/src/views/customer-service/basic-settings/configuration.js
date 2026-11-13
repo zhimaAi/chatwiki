@@ -10,7 +10,7 @@ export const recallFields = [
 export function getRecallConfig(robot) {
   const config = Object.fromEntries(recallFields.map(key => [key, cloneConfig(robot[key])]))
   if (typeof config.rrf_weight === 'string') config.rrf_weight = JSON.parse(config.rrf_weight || '{}')
-  config.rrf_weight = { vector: 0, search: 0, graph: 0, ...config.rrf_weight }
+  config.rrf_weight = { vector: 0, search: 0, ...config.rrf_weight }
   return config
 }
 

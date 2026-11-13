@@ -213,7 +213,6 @@
       <div v-else-if="embedded && loadError" class="settings-feedback"><a-alert type="error" :message="loadError" show-icon /><a-button @click="getInfo">{{ workspaceT('retry') }}</a-button></div>
       <div v-else class="form-box">
         <a-alert v-if="embedded && saveError" class="settings-error" type="error" :message="saveError" show-icon><template #action><a @click="handleEdit()">{{ workspaceT('retry') }}</a></template></a-alert>
-        <div v-if="embedded && pendingSaves" class="settings-saving">{{ workspaceT('saving') }}</div>
         <a-form :label-col="{ span: 6 }">
           <a-form-item ref="name" :label="t('label_library_name')" v-bind="validateInfos.library_name">
             <a-input
@@ -313,25 +312,6 @@
               v-model:modeId="formState.model_config_id"
               style="width: 472px"
               @change="onChangeModel"
-            />
-          </a-form-item>
-          <a-form-item :label="t('label_generate_graph')" v-show="neo4j_status">
-            <a-switch
-              @change="handleGraphSwitch"
-              :checked="formState.graph_switch"
-              :checked-children="t('switch_on')"
-              :un-checked-children="t('switch_off')"
-            />
-            <div class="form-item-tip">{{ t('tip_generate_graph') }}</div>
-          </a-form-item>
-          <a-form-item :label="t('label_graph_model')" v-show="formState.graph_switch && neo4j_status">
-            <ModelSelect
-              modelType="LLM"
-              v-model:modeName="formState.graph_use_model"
-              v-model:modeId="formState.graph_model_config_id"
-              style="width: 472px"
-              @change="onChangeModel"
-              @loaded="onVectorModelLoaded"
             />
           </a-form-item>
           <a-form-item :label="t('label_indexing_method')" v-if="isQaLibrary">
@@ -682,7 +662,6 @@
           </template>
         </a-form>
       </div>
-      <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
     </div>
   </cu-scroll>
 </template>
@@ -699,8 +678,6 @@ import { getLibraryInfo, editLibrary, getSeparatorsList } from '@/api/library'
 import { LIBRARY_OPEN_AVATAR } from '@/constants/index'
 import AvatarInput from '@/views/library/add-library/components/avatar-input.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import OpenGrapgModal from './components/open-grapg-modal.vue'
-import { useCompanyStore } from '@/stores/modules/company'
 import { formatSeparatorsNo } from '@/utils/index'
 import { useI18n } from '@/hooks/web/useI18n'
 
@@ -717,10 +694,6 @@ let saveQueue = Promise.resolve()
 let saveRevision = 0
 const { t: thinkingT } = useI18n('views.robot.robot-config.basic-config.components.model-settings')
 const { t: expireT } = useI18n('components.library-expire-status.index')
-const companyStore = useCompanyStore()
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 const rotue = useRoute()
 const router = useRouter()
@@ -736,9 +709,6 @@ const formState = reactive({
   model_config_id: '',
   avatar: defaultAvatar,
   avatar_file: '',
-  graph_switch: false,
-  graph_model_config_id: void 0,
-  graph_use_model: '',
   chunk_type: 1,
   normal_chunk_default_separators_no: [12, 11],
   normal_chunk_default_chunk_size: 512,
@@ -816,11 +786,6 @@ const getInfo = async () => {
     formState.model_config_id = res.data.model_config_id
     formState.avatar = res.data.avatar ? res.data.avatar : defaultAvatar
     formState.avatar_file = res.data.avatar_file ? res.data.avatar_file : ''
-
-    formState.graph_switch = res.data.graph_switch != '0'
-    formState.graph_model_config_id =
-      res.data.graph_model_config_id > 0 ? res.data.graph_model_config_id : void 0
-    formState.graph_use_model = res.data.graph_use_model
 
     formState.chunk_type = +res.data.chunk_type
     formState.normal_chunk_default_separators_no = formatSeparatorsNo(
@@ -954,55 +919,9 @@ const setDefaultModel = () => {
   }
 }
 
-const openGrapgModalRef = ref(null)
-const handleGraphSwitch = (val) => {
-  if (val) {
-    formState.graph_switch = false
-    let data = {
-      graph_model_config_id: formState.graph_model_config_id,
-      graph_use_model: formState.graph_use_model
-    }
-    if (!formState.graph_model_config_id || !formState.graph_use_model) {
-      if (vectorModelList.value.length > 0) {
-        let modelConfig = vectorModelList.value[0]
-        if (modelConfig) {
-          let model = modelConfig.children[0]
-          data.graph_use_model = model.name
-          data.graph_model_config_id = model.model_config_id
-        }
-      }
-    }
-    openGrapgModalRef.value.show(data)
-  } else {
-    formState.graph_switch = false
-    handleEdit()
-  }
-}
-
 const handleChangeSegmentationType = (type) => {
   formState.chunk_type = type
   handleEdit()
-}
-
-const handleOpenGrapgOk = (data) => {
-  if (data.graph_model_config_id) {
-    formState.graph_switch = true
-    formState.graph_model_config_id = data.graph_model_config_id
-    formState.graph_use_model = data.graph_use_model
-    handleEdit(() => {
-      Modal.confirm({
-        title: t('modal_graph_enabled_title'),
-        content: t('modal_graph_enabled_content'),
-        cancelText: t('modal_graph_enabled_cancel'),
-        okText: t('modal_graph_enabled_ok'),
-        icon: h(CheckCircleFilled, { style: { color: '#52c41a' } }),
-        onOk: () => props.embedded ? emit('view-documents') : router.push({
-            path: '/library/details/knowledge-document',
-            query: { id: props.libraryId || query.id }
-          })
-      })
-    })
-  }
 }
 
 const handleEdit = (callback = null) => {
@@ -1017,9 +936,6 @@ const handleEdit = (callback = null) => {
     use_model: formState.use_model,
     model_config_id: formState.model_config_id,
     is_offline: formState.is_offline,
-    graph_switch: formState.graph_switch ? 1 : 0,
-    graph_model_config_id: formState.graph_model_config_id,
-    graph_use_model: formState.graph_use_model,
     chunk_type: formState.chunk_type,
     normal_chunk_default_separators_no: JSON.stringify(
       formState.normal_chunk_default_separators_no
@@ -1059,6 +975,7 @@ const handleEdit = (callback = null) => {
   }
   if (props.embedded) {
     const revision = ++saveRevision
+    const savedConfig = { ...data, avatar: formState.avatar, type: libraryInfo.value.type }
     pendingSaves.value++
     // 每次提交保留当时的配置快照，串行保存，避免较早响应覆盖后续修改。
     const request = saveQueue.catch(() => {}).then(() => editLibrary(data))
@@ -1066,7 +983,7 @@ const handleEdit = (callback = null) => {
       if (res?.res !== undefined && res.res !== 0) throw new Error(res.msg || workspaceT('save_failed'))
       if (!alive) return
       if (revision === saveRevision) saveError.value = ''
-      emit('saved', data.id)
+      emit('saved', data.id, savedConfig)
       if (typeof callback === 'function') callback()
     })
     void saveQueue.catch(err => {

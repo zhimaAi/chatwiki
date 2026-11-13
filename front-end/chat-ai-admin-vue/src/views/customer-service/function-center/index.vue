@@ -1,24 +1,34 @@
 <template>
   <section class="function-page">
-    <CustomerPageHeader :title="pane === 'logs' ? t('invoke_logs') : pane === 'rate' ? t('rate_limit') : t('function_center')" :back="pane !== 'home'" :back-label="t('back')" @back="pane = 'home'" />
+    <CustomerPageHeader :title="pane === 'logs' ? t('invoke_logs') : pane === 'rate' ? t('rate_limit') : pane === 'e2b' ? t('e2b_settings') : t('function_center')" :back="pane !== 'home'" :back-label="t('back')" @back="pane = 'home'" />
     <div class="content" :class="{ 'home-content': pane === 'home' }">
       <div v-show="pane === 'rate'" class="rate-pane"><RateLimit ref="rateLimit" :robot-key="robotKey" embedded @status-change="rateStatus = $event" /></div>
-      <InvokeLogs v-if="pane === 'logs' && selected" :key="selected.id" :robot-id="selected.id" :robot-key="selected.robot_key" />
+      <div v-if="isAgent" v-show="pane === 'e2b'" class="rate-pane"><E2bSetting ref="e2b" @status-change="e2bStatus = $event" /></div>
+      <InvokeLogs v-if="!isAgent && pane === 'logs' && selected" :key="selected.id" :robot-id="selected.id" :robot-key="selected.robot_key" />
       <div v-else-if="pane === 'home'" class="function-home">
-        <div class="workflow-tip"><img :src="icons.info" alt="" /><p>{{ t('workflow_tip') }}</p></div>
-        <div class="workflow-toolbar">
+        <div v-if="!isAgent" class="workflow-tip"><img :src="icons.info" alt="" /><p>{{ t('workflow_tip') }}</p></div>
+        <div v-if="!isAgent" class="workflow-toolbar">
           <a-dropdown :trigger="['click']"><a-button type="primary" class="add-workflow"><img :src="icons.add" alt="" />{{ t('add_workflow') }}</a-button>
             <template #overlay><a-menu><a-menu-item key="create" @click="creator?.open(1)">{{ t('create_workflow') }}</a-menu-item><a-menu-item key="import" @click="importer?.open()">{{ t('import_csl') }}</a-menu-item></a-menu></template>
           </a-dropdown>
         </div>
         <a-alert v-if="error" type="error" :message="error" show-icon><template #action><a @click="load">{{ t('retry') }}</a></template></a-alert>
         <a-alert v-if="rateStatus.error" class="rate-error" type="error" :message="rateStatus.error" show-icon><template #action><a @click="pane = 'rate'">{{ t('view') }}</a></template></a-alert>
+        <a-alert v-if="isAgent && e2bStatus.error" type="error" :message="e2bStatus.error" show-icon><template #action><a @click="e2b?.reload()">{{ t('retry') }}</a></template></a-alert>
         <a-spin :spinning="loading">
           <div class="cards">
             <article class="function-card rate-card" role="button" tabindex="0" @click="pane = 'rate'" @keydown.enter.self="pane = 'rate'" @keydown.space.self.prevent="pane = 'rate'">
               <div class="card-controls" @click.stop @keydown.stop><a-switch :checked="rateStatus.enabled" :loading="rateStatus.loading" :disabled="!rateStatus.ready || rateStatus.loading" :aria-label="t('rate_limit')" @change="toggleRate" /></div>
               <span class="feature-icon rate-icon"><img :src="icons.rate" alt="" /></span>
               <h3>{{ t('rate_limit') }}</h3><p :title="t('rate_limit_desc')">{{ t('rate_limit_desc') }}</p>
+            </article>
+            <article v-if="isAgent" class="function-card e2b-card" role="button" tabindex="0" @click="pane = 'e2b'" @keydown.enter.self="pane = 'e2b'" @keydown.space.self.prevent="pane = 'e2b'">
+              <div class="card-controls" @click.stop @keydown.stop>
+                <a-button type="text" :aria-label="t('e2b_settings')" @click="pane = 'e2b'">···</a-button>
+                <a-switch :checked="e2bStatus.enabled" :loading="e2bStatus.loading" :disabled="!e2bStatus.ready || e2bStatus.loading" :aria-label="t('e2b_settings')" @change="e2b?.toggle()" />
+              </div>
+              <span class="feature-icon e2b-icon"><svg-icon name="e2b-settings" /></span>
+              <h3>{{ t('e2b_settings') }}</h3><p :title="t('e2b_description')">{{ t('e2b_description') }}</p>
             </article>
             <article v-for="item in workflows" :key="item.id" class="function-card workflow-card" :class="{ active: isAssociated(item.id) }" role="button" tabindex="0" @click="openWorkflow(item)" @keydown.enter.self="openWorkflow(item)" @keydown.space.self.prevent="openWorkflow(item)">
               <div class="card-controls" @click.stop @keydown.stop>
@@ -32,20 +42,20 @@
               <p :title="item.robot_intro || '—'">{{ item.robot_intro || '—' }}</p>
             </article>
           </div>
-          <a-empty v-if="!loading && !workflows.length" :description="t('empty_workflows')" />
+          <a-empty v-if="!isAgent && !loading && !workflows.length" :description="t('empty_workflows')" />
         </a-spin>
       </div>
     </div>
-    <AddRobotAlert ref="creator" create-redirect="none" @ok="created" @edit-robot="load" />
-    <ImportCsl ref="importer" :application-type="1" @ok="imported" />
-    <ExportModal ref="exporter" @ok="exportWorkflow" />
+    <AddRobotAlert v-if="!isAgent" ref="creator" create-redirect="none" @ok="created" @edit-robot="load" />
+    <ImportCsl v-if="!isAgent" ref="importer" :application-type="1" @ok="imported" />
+    <ExportModal v-if="!isAgent" ref="exporter" @ok="exportWorkflow" />
   </section>
 </template>
 
 <script setup>
 import { computed, inject, onBeforeUnmount, ref } from 'vue'
 import CustomerPageHeader from '../components/page-header.vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { getRobotList, getRobotInfo, robotCopy, deleteRobot, relationWorkFlow } from '@/api/robot'
@@ -53,6 +63,7 @@ import { useOpenUrlWithToken } from '@/hooks/web/useOpenUrlWithToken'
 import AddRobotAlert from '@/views/robot/robot-list/components/add-robot-alert.vue'
 import ImportCsl from '@/views/robot/robot-list/components/import-csl-alert.vue'
 import ExportModal from '@/views/robot/robot-list/components/workflow-export-modal.vue'
+import E2bSetting from '@/views/clawbot/settings/components/e2b-setting.vue'
 import RateLimit from '@/views/robot/robot-config/rate-limit/index.vue'
 import InvokeLogs from '@/views/robot/robot-config/invoke-logs/index.vue'
 import infoIcon from '@/assets/img/customer-service/function-center/info.svg'
@@ -80,7 +91,11 @@ const { openUrlWithToken } = useOpenUrlWithToken()
 const context = inject('customerRobotContext')
 const robotId = context.robotInfo.id
 const robotKey = String(context.robotInfo.robot_key)
-const pane = ref('home')
+const route = useRoute()
+const isAgent = Number(context.robotInfo.application_type) === 2
+const pane = ref(isAgent && ['rate', 'e2b'].includes(route.query.pane) ? route.query.pane : 'home')
+const e2b = ref(null)
+const e2bStatus = ref({ ready: false, enabled: false, loading: true, error: '' })
 const selected = ref(null)
 const workflows = ref([])
 const loading = ref(false)
@@ -170,7 +185,7 @@ function action(key, item) {
     }
   })
 }
-void load()
+if (!isAgent) void load()
 onBeforeUnmount(() => { alive = false; sequence++ })
 </script>
 <style lang="less" scoped>
@@ -178,6 +193,7 @@ onBeforeUnmount(() => { alive = false; sequence++ })
 .content { flex: 1; min-height: 0; overflow: auto; padding: 20px 24px; }
 .home-content { padding: 32px; }
 .function-home { display: flex; flex-direction: column; gap: 24px; min-width: 0; container-type: inline-size; }
+.e2b-icon { background: #00bf8f; color: #fff; font-size: 24px; }
 .rate-pane { height: 100%; }
 .workflow-tip {
   display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 8px; background: #f1f6fe;

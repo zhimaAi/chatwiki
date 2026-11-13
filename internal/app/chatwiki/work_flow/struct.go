@@ -1900,9 +1900,6 @@ func (params *LibsNodeParams) Verify(adminUserId int, lang string) error {
 	if _, err := common.NormalizeLibrarySearchType(params.SearchType.Int(), params.LibrarySearchType); err != nil {
 		return errors.New(i18n.Show(lang, `param_invalid`, `library_search_type`))
 	}
-	if err := common.CheckRrfWeight(params.RrfWeight, lang); err != nil {
-		return err
-	}
 	if params.TopK <= 0 || params.TopK > 500 {
 		return errors.New(i18n.Show(lang, `library_search_topk_range`))
 	}

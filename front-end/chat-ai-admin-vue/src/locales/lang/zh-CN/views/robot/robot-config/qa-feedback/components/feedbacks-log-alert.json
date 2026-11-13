@@ -10,5 +10,12 @@
   "label_dislike": "点踩",
   "label_only_knowledge_base": "仅知识库",
   "label_direct_connection": "直连",
-  "label_hybrid": "混合"
+  "label_hybrid": "混合",
+  "label_customer_name": "客户名称",
+  "label_channel": "所属渠道",
+  "label_chat_history": "聊天记录",
+  "btn_retry": "重试",
+  "btn_earlier_messages": "加载更早消息",
+  "btn_later_messages": "加载后续消息",
+  "msg_load_failed": "加载失败，请重试"
 }

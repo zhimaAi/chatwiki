@@ -129,11 +129,6 @@
           <div class="library-title-block">
             <div class="title-text">{{ item.library_name }}</div>
             <LibraryExpireStatus :library="item" />
-            <!-- <a-tooltip v-if="neo4j_status">
-              <template #title>{{ item.graph_switch == 0 ? '未' : '已' }}开启知识图谱生成</template>
-              <div class="graph-tag" :class="{ active: item.graph_switch == 1 }">Graph</div>
-            </a-tooltip>
-            <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }">Graph</span> -->
           </div>
           <div class="desc-info-block">{{ item.library_intro }}</div>
         </div>
@@ -148,7 +143,6 @@
         <span v-if="formState.search_type == 1">{{ t('label_hybrid_search') }}</span>
         <span v-if="formState.search_type == 2">{{ t('label_vector_search') }}</span>
         <span v-if="formState.search_type == 3">{{ t('label_fulltext_search') }}</span>
-        <span v-if="formState.search_type == 4">{{ t('label_graph_search') }}</span>
       </div>
       <div class="set-item">
         {{ t('label_top_k') }}
@@ -170,7 +164,6 @@
       :showWxType="!!wxAppLibary"
     />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
-    <NoOpenGraphModal :list="noOpenLibraryList" @refreshList="getList" ref="noOpenGraphModalRef" />
   </edit-box>
 </template>
 
@@ -183,7 +176,6 @@ import { Modal } from 'ant-design-vue'
 import EditBox from '../edit-box.vue'
 import LibrarySelectAlert from './library-select-alert.vue'
 import RecallSettingsAlert from './recall-settings-alert.vue'
-import NoOpenGraphModal from './no-open-graph-modal.vue'
 import { getModelNameText } from '@/components/model-select/index.js'
 import { useI18n } from '@/hooks/web/useI18n'
 import LibraryExpireStatus from '@/components/library-expire-status/index.vue'
@@ -192,12 +184,7 @@ const { t } = useI18n('views.robot.robot-config.basic-config.components.associat
 
 const { getStorage, removeStorage } = useStorage('localStorage')
 
-import { useCompanyStore } from '@/stores/modules/company'
 import { getSpecifyAbilityConfig } from '@/api/explore/index.js'
-const companyStore = useCompanyStore()
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 const isEdit = ref(false)
 
@@ -242,10 +229,6 @@ const selectedLibraryRows = computed(() => {
   })
 })
 
-const noOpenLibraryList = computed(() => {
-  return selectedLibraryRows.value.filter((item) => item.graph_switch == 0)
-})
-
 // 移除知识库
 const handleRemoveCheckedLibrary = (item) => {
   let index = formState.library_ids.indexOf(item.id)
@@ -272,8 +255,6 @@ const handleOpenRecallSettingsAlert = () => {
   recallSettingsAlertRef.value.open(toRaw(formState), robotInfo)
 }
 
-const noOpenGraphModalRef = ref(null)
-
 const onChangeRecallSettings = (data) => {
   formState.rerank_status = data.rerank_status
   formState.rerank_use_model = data.rerank_use_model
@@ -290,11 +271,6 @@ const onChangeRecallSettings = (data) => {
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
   formState.library_search_type = data.library_search_type
-  if (data.search_type == 1 || data.search_type == 4) {
-    if (noOpenLibraryList.value.length > 0) {
-      noOpenGraphModalRef.value.show()
-    }
-  }
   onSave()
 }
 
@@ -352,7 +328,7 @@ watchEffect(() => {
   formState.meta_search_switch = robotInfo.meta_search_switch
   formState.meta_search_type = robotInfo.meta_search_type
   formState.meta_search_condition_list = robotInfo.meta_search_condition_list
-  formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0, graph: 0}
+  formState.rrf_weight = robotInfo.rrf_weight != '' ? JSON.parse(robotInfo.rrf_weight) : {vector: 0, search: 0}
   formState.recall_neighbor_switch = robotInfo.recall_neighbor_switch
   formState.recall_neighbor_top_k = robotInfo.recall_neighbor_top_k
   formState.recall_neighbor_before_num = robotInfo.recall_neighbor_before_num

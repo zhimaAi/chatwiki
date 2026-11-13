@@ -232,7 +232,7 @@
           </div>
         </div>
 
-        <div class="form-item" v-if="formState.search_type != 3 && formState.search_type != 4">
+        <div class="form-item" v-if="formState.search_type == 1 || formState.search_type == 2">
           <div class="form-item-label">
             <span>{{ t('similarity_threshold') }}&nbsp;</span>
             <a-tooltip>
@@ -361,12 +361,6 @@ const retrievalModeList = ref([
     desc: t('vector_retrieval_desc')
   },
   {
-    iconName: 'graph-icon',
-    title: t('graph_retrieval'),
-    value: 4,
-    desc: t('graph_retrieval_desc')
-  },
-  {
     iconName: 'search-check-icon',
     title: t('full_text_retrieval'),
     value: 3,
@@ -461,6 +455,7 @@ const handleWeightChange = () => {
 const debouncedHandleWeightChange = debounce(handleWeightChange, 500); // 500ms 延迟
 
 const onSave = () => {
+  if (![1, 2, 3].includes(Number(formState.search_type))) return
   let params = { ...formState }
 
   if (!params.prompt && formState.prompt_type == '1') {
@@ -468,8 +463,7 @@ const onSave = () => {
   }
   params.rrf_weight = JSON.stringify(formState.rrf_weight)
 
-  if (formState.search_type == 3 || formState.search_type == 4) {
-    // 当选择"知识图谱检索"和"全文检索"类型时，不显示"相似度阈值"设置项。
+  if (formState.search_type == 3) {
     delete params.similarity
   }
 

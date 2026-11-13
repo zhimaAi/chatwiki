@@ -193,15 +193,3 @@ export const KNOWLEDGE_SOURCE_TYPE_MAP = () => {
     6: t('feishu_knowledge')
   }
 }
-
-export const GRAPH_STATUS_MAP = () => {
-  const { t } = useI18n('constants.index')
-  return {
-    0: t('pending_generation'),
-    1: t('in_queue'),
-    2: t('generation_complete'),
-    3: t('generation_failed'),
-    4: t('generating'),
-    5: t('partial_success')
-  }
-}

@@ -11,8 +11,6 @@
   "label_docs": "文档",
   "label_size": "大小",
   "label_related_apps": "关联应用",
-  "msg_graph_disabled": "未开启知识图谱生成",
-  "msg_graph_enabled": "已开启知识图谱生成",
   "msg_confirm_set_default": "确定将{library_name}设为默认知识库吗？",
   "msg_one_default_library": "一个 Agent 只能有一个默认知识库",
   "empty_tip": "暂未关联知识库，点击右上方“关联知识库”按钮添加",

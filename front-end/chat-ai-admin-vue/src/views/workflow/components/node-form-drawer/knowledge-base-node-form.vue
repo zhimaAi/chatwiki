@@ -97,6 +97,7 @@
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import NodeFormLayout from './node-form-layout.vue'
 import NodeFormHeader from './node-form-header.vue'
 import { ref, reactive, watch, computed, onMounted, h, toRaw } from 'vue'
@@ -119,7 +120,6 @@ const rrf_weight = computed(() => {
   return {
     vector: 0,
     search: 0,
-    graph: 0
   }
 })
 
@@ -214,7 +214,7 @@ const update = () => {
         : void 0,
       question_value: formState.question_value.join('.'),
       library_ids: formState.library_ids.join(','),
-      rrf_weight: JSON.stringify(formState.rrf_weight),
+      rrf_weight: JSON.stringify(normalizeRrfWeight(formState.rrf_weight)),
       recall_neighbor_switch: formState.recall_neighbor_switch,
       recall_neighbor_top_k: formState.recall_neighbor_top_k,
       recall_neighbor_before_num: formState.recall_neighbor_before_num,

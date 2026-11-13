@@ -1,11 +1,12 @@
 <template>
-<div class="message-box">
-  <div class="message-top-box">
+<div class="message-box" :class="{ 'readonly-messages': readOnly }">
+  <div v-if="!readOnly" class="message-top-box">
     <div class="message-top-title">{{ props.robotInfo.robot_name }}</div>
     <div v-if="sessionSource" class="message-top-source">({{ formatSource(sessionSource) }})</div>
   </div>
   <div class="message-list-wrapper" ref="scrollBoxRef" @scroll="onScroll">
     <div class="message-list">
+      <slot name="before" />
       <div class="empty-box" v-if="props.isEmpty || !props.messages">
         <img src="@/assets/img/library/detail/empty.png" alt="" />
         <div class="title">{{ t('msg_empty_result') }}</div>
@@ -47,7 +48,7 @@
           </div>
         </div>
         <!-- 机器人的消息 -->
-        <div class="message-item robot-message" :id="'msg-' + item.uid" v-else>
+        <div class="message-item robot-message" :class="{ 'highlight-message': item.id == highlightMessageId }" :id="'msg-' + item.uid" v-else>
           <div class="itme-left">
             <a-spin size="small" :spinning="item.loading">
               <img class="robot-avatar" :src="item.robot_avatar" />
@@ -152,7 +153,7 @@
               </template>
               <div
                 class="message-action-wrap"
-                v-if="showQuoteFileBox(item)"
+                v-if="!readOnly && showQuoteFileBox(item)"
               >
                 <div class="message-action">
                   <div class="action-btn">
@@ -165,9 +166,11 @@
             <div v-if="item.voice_content && item.voice_content.length && !isWorkFlowFinishReplyList(item.reply_content_list)">
               <VoiceMessage :voice_content="item.voice_content" />
             </div>
+            <PromptOptimizeButton v-if="!readOnly && item.content && !item.loading" :robot="props.robotInfo" scene="conversation" :messageId="item.id" />
           </div>
         </div>
       </template>
+      <slot name="after" />
       <div v-if="loading" class="loading-box"><a-spin /></div>
     </div>
   </div>
@@ -175,9 +178,10 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import ProcessTimeline from '@/views/clawbot/chat/components/messages/process-timeline.vue'
 import { hasVisibleProcessSteps } from '@/utils/agent-process'
-import { ref, nextTick, toRaw } from 'vue'
+import { ref, nextTick, toRaw, onBeforeUnmount } from 'vue'
 import { formatDisplayChatTime } from '@/utils/index'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
 import VoiceMessage from '@/views/robot/robot-test/components/voice-message.vue'
@@ -189,6 +193,8 @@ const { t } = useI18n('views.robot.robot-config.session-record.components.messag
 const emit = defineEmits(['scroll', 'scrollStart', 'scrollEnd', 'openPromptLog'])
 
 const props = defineProps({
+  readOnly: { type: Boolean, default: false },
+  highlightMessageId: { type: [String, Number], default: '' },
   messages: {
     type: Array,
     default: () => []
@@ -223,7 +229,13 @@ const scrollOption = {
 }
 
 let scrollEventTimer = null // 滚动条防抖
+let unlockTimer = null
 let onScrollEventLock = false // 时间触发锁
+
+onBeforeUnmount(() => {
+  clearTimeout(scrollEventTimer)
+  clearTimeout(unlockTimer)
+})
 
 const formatSource = (val) => {
   let newVal
@@ -303,12 +315,15 @@ const scrollToBottom = () => {
     return
   }
   nextTick(() => {
+    const scroller = scrollBoxRef.value
+    if (!scroller) return
     // 手动控制滚动到底部不触发触底事件
     onScrollEventLock = true
 
-    scrollBoxRef.value.scrollTop = scrollBoxRef.value.scrollHeight + 1
-    setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+    scroller.scrollTop = scroller.scrollHeight + 1
+    clearTimeout(unlockTimer)
+    unlockTimer = setTimeout(() => {
+      scrollOption.scrollTop = scroller.scrollTop
       onScrollEventLock = false
     }, 50)
   })
@@ -316,6 +331,8 @@ const scrollToBottom = () => {
 
 function scrollToMessage(id, direction) {
   nextTick(() => {
+    const scroller = scrollBoxRef.value
+    if (!scroller) return
     // 手动控制滚动到底部不触发触底事件
     onScrollEventLock = true
 
@@ -323,20 +340,20 @@ function scrollToMessage(id, direction) {
       direction = 'top'
     }
 
-    let scroller = scrollBoxRef.value
-    let element = document.querySelector('#msg-' + id)
+    const element = scroller.querySelector('[id="msg-' + id + '"]')
 
     if (element) {
       // 没数据时时没有element的
       if (direction == 'top') {
-        scroller.scrollTop = element.offsetTop
+        scroller.scrollTop += element.getBoundingClientRect().top - scroller.getBoundingClientRect().top
       } else {
-        scroller.scrollTop = element.offsetTop - scroller.clientHeight + element.clientHeight
+        scroller.scrollTop += element.getBoundingClientRect().bottom - scroller.getBoundingClientRect().bottom
       }
     }
 
-    setTimeout(() => {
-      scrollOption.scrollTop = scrollBoxRef.value.scrollTop
+    clearTimeout(unlockTimer)
+    unlockTimer = setTimeout(() => {
+      scrollOption.scrollTop = scroller.scrollTop
       onScrollEventLock = false
     }, 50)
   })
@@ -806,4 +823,42 @@ defineExpose({
     }
   }
 }
+
+.readonly-messages {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+
+  .message-list-wrapper {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    margin: 0;
+    padding: 16px 24px;
+  }
+
+  .robot-message .item-body {
+    margin-right: 0;
+    background-color: #f2f4f7;
+  }
+
+  .user-message .message-content {
+    color: #3a4559;
+    background-color: #e8efff;
+  }
+
+  .message-list .user-message .multiple-content :deep(.text-message) {
+    color: #3a4559 !important;
+  }
+
+  .highlight-message .message-content {
+    color: #2475fc;
+
+    :deep(.cherry-markdown), :deep(p), :deep(a) {
+      color: inherit;
+    }
+  }
+}
+
 </style>

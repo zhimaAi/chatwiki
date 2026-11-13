@@ -40,6 +40,10 @@ export const getFeedbackDetail = (params = {}) => {
   })
 }
 
+export const getFeedbackMessages = (params = {}) => {
+  return request.get({ url: '/manage/feedback/messages', params })
+}
+
 export const getFeedbackStats = (params = {}) => {
   // 后台反馈统计
   return request.get({

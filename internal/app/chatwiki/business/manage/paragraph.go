@@ -44,7 +44,6 @@ func GetParagraphList(c *gin.Context) {
 		return
 	}
 	req.Status = c.DefaultQuery(`status`, `-1`)
-	req.GraphStatus = c.DefaultQuery(`graph_status`, `-1`)
 	req.CategoryId = c.DefaultQuery(`category_id`, `-1`)
 	req.GroupId = c.DefaultQuery(`group_id`, `-1`)
 	data, httpStatus, err := BridgeGetParagraphList(adminUserId, userId, common.GetLang(c), &req)
@@ -827,16 +826,6 @@ func SaveSplitParagraph(c *gin.Context) {
 		}
 	}
 
-	if common.GetNeo4jStatus(adminUserId) {
-		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
-		if err != nil {
-			logs.Error(err.Error())
-		} else {
-			if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
-				logs.Error(err.Error())
-			}
-		}
-	}
 	c.String(http.StatusOK, lib_web.FmtJson(list, nil))
 }
 

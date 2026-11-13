@@ -1,0 +1,1 @@
+import{cR as r,C as i}from"../../index-DBkFoe8_.js";function u(o,a,t=o.query){const e=r(o);return{path:`/clawbot/${a}`,query:e?{id:o.query.id,robot_key:o.query.robot_key,...t,layout:i}:t}}export{u as g};

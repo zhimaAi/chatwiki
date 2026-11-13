@@ -139,7 +139,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -148,6 +148,7 @@ import { getE2bConf, saveE2bConf } from '@/api/clawbot'
 import { E2B_DOC_URL } from '@/constants'
 import E2bSettingModal from './e2b-setting-modal.vue'
 
+const emit = defineEmits(['status-change'])
 const { t } = useI18n('views.clawbot.settings.index')
 const clawbotStore = useClawbotStore()
 const { currentAssistant } = storeToRefs(clawbotStore)
@@ -236,6 +237,8 @@ watch(
   robotKey,
   (currentRobotKey) => {
     modalOpen.value = false
+    switchLoading.value = false
+    submitLoading.value = false
     loadConfig(currentRobotKey)
   },
   { immediate: true }
@@ -246,7 +249,7 @@ const handleEdit = () => {
 }
 
 const handleSwitchClick = async () => {
-  if (!robotKey.value || switchLoading.value || submitLoading.value) {
+  if (!robotKey.value || pageLoading.value || loadError.value || switchLoading.value || submitLoading.value) {
     return
   }
 
@@ -255,12 +258,15 @@ const handleSwitchClick = async () => {
     return
   }
 
+  const targetKey = robotKey.value
+  const version = requestVersion
   switchLoading.value = true
   try {
     const res = await saveE2bConf({
-      robot_key: robotKey.value,
+      robot_key: targetKey,
       switch_status: 0
     })
+    if (version !== requestVersion || targetKey !== robotKey.value) return
 
     if (res?.res !== 0) {
       message.error(res?.msg || t('e2b.msg_save_failed'))
@@ -270,30 +276,33 @@ const handleSwitchClick = async () => {
     applyConfig({
       ...config.value,
       ...(res?.data || {}),
-      robot_key: robotKey.value
+      switch_status: 0,
+      robot_key: targetKey
     })
     loadError.value = ''
     message.success(t('e2b.msg_close_success'))
-  } catch (error) {
-    console.error(error)
-    // message.error(t('e2b.msg_save_failed'))
+  } catch {
+    // 请求封装统一展示网络错误；保留原开关状态以便重试。
   } finally {
-    switchLoading.value = false
+    if (version === requestVersion) switchLoading.value = false
   }
 }
 
 const handleSubmit = async (payload) => {
-  if (!robotKey.value) {
+  if (!robotKey.value || pageLoading.value || loadError.value || submitLoading.value) {
     return
   }
 
+  const targetKey = robotKey.value
+  const version = requestVersion
   submitLoading.value = true
   try {
     const res = await saveE2bConf({
-      robot_key: robotKey.value,
-      switch_status: 1,
-      ...payload
+      ...payload,
+      robot_key: targetKey,
+      switch_status: 1
     })
+    if (version !== requestVersion || targetKey !== robotKey.value) return
 
     if (res?.res !== 0) {
       message.error(res?.msg || t('e2b.msg_save_failed'))
@@ -303,18 +312,26 @@ const handleSubmit = async (payload) => {
     applyConfig({
       ...config.value,
       ...(res?.data || {}),
-      robot_key: robotKey.value
+      switch_status: 1,
+      robot_key: targetKey
     })
     loadError.value = ''
     modalOpen.value = false
     message.success(t('e2b.msg_save_success'))
-  } catch (error) {
-    // message.error(t('e2b.msg_save_failed'))
-    console.error(error)
+  } catch {
+    // 网络错误由请求封装提示，配置弹窗保持打开。
   } finally {
-    submitLoading.value = false
+    if (version === requestVersion) submitLoading.value = false
   }
 }
+watch(() => ({
+  ready: !!robotKey.value && !pageLoading.value && !loadError.value,
+  enabled: isEnabled.value,
+  loading: pageLoading.value || switchLoading.value || submitLoading.value,
+  error: loadError.value
+}), status => emit('status-change', status), { immediate: true })
+defineExpose({ toggle: handleSwitchClick, edit: handleEdit, reload: () => loadConfig(robotKey.value) })
+onBeforeUnmount(() => { requestVersion++ })
 </script>
 
 <style lang="less" scoped>

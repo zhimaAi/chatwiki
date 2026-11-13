@@ -57,7 +57,6 @@ import { useI18n } from '@/hooks/web/useI18n'
 import SelectStarBox from '@/views/library/library-preview/components/selct-star-box.vue'
 import {
   getLibFileInfo,
-  reconstructGraph,
   reconstructCategoryVector,
   getCategoryParagraphList
 } from '@/api/library'
@@ -79,12 +78,6 @@ const startLists = ref([])
 const paragraphLists = ref([])
 
 const total = ref(0)
-const graphStatusMap = {
-  0: t('status_graph_pending'),
-  4: t('status_graph_generating'),
-  2: t('status_graph_success'),
-  3: t('status_graph_failed')
-}
 
 const listStatusMap = {
   0: t('status_convert_unconverted'),
@@ -209,7 +202,6 @@ const updataList = () => {
     let list = data.list || []
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
-      item.graph_status_text = graphStatusMap[item.graph_status]
       if(item.similar_questions){
         item.similar_questions = JSON.parse(item.similar_questions)
       }
@@ -241,7 +233,6 @@ const getParagraphLists = () => {
     }
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
-      item.graph_status_text = graphStatusMap[item.graph_status]
       if(item.similar_questions){
         item.similar_questions = JSON.parse(item.similar_questions)
       }

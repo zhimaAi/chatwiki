@@ -11,8 +11,6 @@
   "label_docs": "Docs",
   "label_size": "Size",
   "label_related_apps": "Related Apps",
-  "msg_graph_disabled": "Knowledge graph generation is disabled",
-  "msg_graph_enabled": "Knowledge graph generation is enabled",
   "msg_confirm_set_default": "Are you sure you want to set {library_name} as the default knowledge base?",
   "msg_one_default_library": "An Agent can have only one default knowledge base",
   "empty_tip": "No knowledge base is associated yet. Click \"Associate Knowledge Base\" in the top right to add one.",

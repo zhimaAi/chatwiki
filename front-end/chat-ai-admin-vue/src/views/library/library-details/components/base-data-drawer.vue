@@ -60,36 +60,6 @@
           <div class="label">{{ t('label_yesterday_triggers') }}</div>
         </div>
       </div>
-      <div class="info-box">
-        <div class="base-title">知识图谱</div>
-        <div class="info-items">
-          <div class="info-item">
-            <span class="info-label">知识图谱</span>
-            <span class="info-value">
-              <span :class="`state_${record.graph_status}`">{{ STATUS_MAP[record.graph_status] }}</span>
-              <a v-if="record.graph_status == 0 || record.graph_status == 3" class="ml8" @click="emit('createGraphTask', record)">生成</a>
-              <template v-if="record.graph_status == 3 && record.graph_err_msg">
-                <a-divider type="vertical" />
-                <a-tooltip :title="record.graph_err_msg">
-                  <a>原因</a>
-                </a-tooltip>
-              </template>
-            </span>
-          </div>
-          <div v-if="record.graph_status == 5" class="info-item">
-            <span class="info-label">失败数</span>
-            <span class="info-value">
-              {{ record.graph_err_count || 0 }}
-              <a-divider type="vertical" />
-              <a @click="emit('handlePreview', record, {graph_status: 3})">详情</a>
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">知识图谱数</span>
-            <span class="info-value">{{ record.graph_entity_count || 0 }}</span>
-          </div>
-        </div>
-      </div>
       <div v-if="Array.isArray(record?.meta_list) && record.meta_list.length" class="info-box">
         <div class="base-title">元数据</div>
         <div class="info-items">
@@ -109,12 +79,10 @@ import { useI18n } from '@/hooks/web/useI18n'
 import defaultCover from '@/assets/img/default-cover.png'
 import emptyDocumentIcon from '@/assets/svg/empty-document.svg'
 import { convertTime } from '@/utils/index'
-import {GRAPH_STATUS_MAP} from "@/constants/index.js";
 
 const { t } = useI18n('views.library.library-details.components.base-data-drawer')
 
-const STATUS_MAP = GRAPH_STATUS_MAP()
-const emit = defineEmits(['close', 'editOnline', 'createGraphTask'])
+const emit = defineEmits(['close', 'editOnline'])
 const props = defineProps({
   open: {
     type: Boolean,
