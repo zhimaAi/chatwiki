@@ -1,9 +1,18 @@
+import customerServiceRoutes from './customer-service'
+import { getCustomerServiceAgentPage } from '@/views/customer-service/navigation'
+
+// 仅新版 Agent 的菜单会进入这些路由；直接复用客服业务组件，不复制页面。
+const customerAgentRoutes = customerServiceRoutes.children
+  .filter(page => ['session-record', 'web-app', 'other-channels', 'basic-settings', 'function-center', 'analytics'].includes(page.path))
+  .map(page => ({ ...page, name: getCustomerServiceAgentPage(page.path).routeName }))
+
 export default {
   path: '/clawbot',
   name: 'Clawbot',
   redirect: '/clawbot/chat',
   component: () => import('@/views/clawbot/index.vue'),
   children: [
+    ...customerAgentRoutes,
     {
       path: 'chat',
       name: 'clawbotChat',

@@ -6,7 +6,7 @@ import WeightSelect from '@/components/weight-select/index.vue'
 const mocks = vi.hoisted(() => ({ error: vi.fn(), verify: vi.fn() }))
 vi.mock('@/hooks/web/useI18n', () => ({ useI18n: () => ({ t: key => key }) }))
 vi.mock('ant-design-vue', async importOriginal => ({ Modal: (await importOriginal()).Modal, message: { error: mocks.error } }))
-vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: { neo4j_status: 'true' } }) }))
+vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: {} }) }))
 vi.mock('@/api/library', () => ({ getRobotMetaSchemaList: vi.fn().mockResolvedValue({ data: [] }) }))
 vi.mock('@/api/robot', () => ({ getChatVariables: vi.fn().mockResolvedValue({ data: [] }) }))
 vi.mock('@/components/model-select/model-select.vue', () => ({ default: { name: 'ModelSelect', props: ['modeId', 'modeName', 'modelType'], emits: ['update:modeId', 'update:modeName'], template: '<div />' } }))
@@ -36,37 +36,38 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
 describe('workspace recall settings', () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.verify.mockReturnValue(true) })
 
-  it('shows the corresponding fields for all four modes and preserves the existing weight control', async () => {
+  it('shows the corresponding fields for all three modes and normalizes legacy mixed weights', async () => {
     const { wrapper } = await render()
     expect(named(wrapper, 'AModal').props('width')).toBe(880)
-    const states = [[true, true, true], [false, true, false], [false, false, false], [false, false, true]]
-    for (let index = 0; index < 4; index++) {
-      await wrapper.findAll('.retrieval-mode-item')[index].trigger('click')
+    const modes = wrapper.findAll('.retrieval-mode-item')
+    expect(modes).toHaveLength(3)
+    const states = [[true, true, true], [false, true, false], [false, true, true]]
+    for (let index = 0; index < modes.length; index++) {
+      await modes[index].trigger('click')
       expect(wrapper.findComponent(WeightSelect).exists()).toBe(states[index][0])
       expect(wrapper.findAll('.number-box')).toHaveLength(states[index][1] ? 2 : 1)
       expect(named(wrapper, 'ARadioGroup').exists()).toBe(states[index][2])
-      expect(wrapper.findAll('.retrieval-mode-item')[index].attributes('aria-checked')).toBe('true')
+      expect(modes[index].attributes('aria-checked')).toBe('true')
     }
     await wrapper.findAll('.retrieval-mode-item')[0].trigger('click')
     const weights = wrapper.findComponent(WeightSelect)
-    expect(weights.props('rrf_weight')).toEqual({ vector: 36, search: 28, graph: 36 })
-    expect(weights.findAll('.list-item')).toHaveLength(3)
-    expect(named(weights, 'ASlider').props('range')).toBe(true)
-    expect(named(weights, 'ASlider').props('value')).toEqual([36, 64])
+    expect(weights.props('rrf_weight')).toEqual({ vector: 56, search: 44 })
+    expect(weights.findAll('.list-item')).toHaveLength(2)
+    expect(named(weights, 'ASlider').props('value')).toBe(56)
     wrapper.unmount()
   })
 
-  it('keeps the three-way weight values and fulltext selection until confirmation', async () => {
+  it('keeps edited weights and fulltext selection in the draft until confirmation', async () => {
     const { wrapper, submit, data } = await render()
     const slider = named(wrapper.findComponent(WeightSelect), 'ASlider')
-    slider.vm.$emit('update:value', [40, 70])
+    slider.vm.$emit('update:value', 40)
     slider.vm.$emit('change')
     named(wrapper, 'ARadioGroup').vm.$emit('update:value', 'keywordSearch')
     await flushPromises()
     expect(submit).not.toHaveBeenCalled()
     expect(data.rrf_weight).toEqual({ vector: 36, search: 28, graph: 36 })
     await confirm(wrapper)
-    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ rrf_weight: { vector: 40, search: 30, graph: 30 }, library_search_type: 'keywordSearch' }))
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ rrf_weight: { vector: 40, search: 60 }, library_search_type: 'keywordSearch' }))
     wrapper.unmount()
   })
 

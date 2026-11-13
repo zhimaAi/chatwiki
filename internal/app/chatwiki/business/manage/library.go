@@ -405,17 +405,13 @@ func LibraryRecallTest(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
 		return
 	}
-	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
 	librarySearchType, normalizeErr := common.NormalizeLibrarySearchType(searchType, librarySearchType)
 	if normalizeErr != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
-		return
-	}
-	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	if modelConfigId > 0 || useModel != "" {
@@ -451,16 +447,6 @@ func LibraryRecallTest(c *gin.Context) {
 			robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
 			robot[`rerank_use_model`] = cast.ToString(rerankUseModel)
 			robot[`robot_name`] = robotName
-		}
-		if searchType == define.SearchTypeGraph {
-			if !cast.ToBool(info[`graph_switch`]) {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
-				return
-			}
-			robot[`admin_user_id`] = info[`admin_user_id`]
-			robot[`model_config_id`] = info[`graph_model_config_id`]
-			robot[`use_model`] = info[`graph_use_model`]
-			robot[`id`] = strconv.Itoa(0)
 		}
 		if modelConfigId > 0 && useModel != "" {
 			robot[`model_config_id`] = cast.ToString(modelConfigId)

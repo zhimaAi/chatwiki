@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import { message, Modal } from 'ant-design-vue'
 
-const api = vi.hoisted(() => ({ files: vi.fn(), groups: vi.fn(), remove: vi.fn(), add: vi.fn(), edit: vi.fn(), graph: vi.fn(), crawl: vi.fn(), cancel: vi.fn(), deleteGroup: vi.fn(), reorder: vi.fn(), relearn: vi.fn(), custom: vi.fn(), feishu: vi.fn() }))
-vi.mock('@/api/library', () => ({ getLibraryFileList: api.files, getLibraryGroup: api.groups, delLibraryFile: api.remove, addLibraryFile: api.add, editLibrary: api.edit, createGraph: api.graph, manualCrawl: api.crawl, cancelOcrPdf: api.cancel, deleteLibraryGroup: api.deleteGroup, sortLibararyListGroup: api.reorder, restudyLibraryFile: api.relearn }))
+const api = vi.hoisted(() => ({ files: vi.fn(), groups: vi.fn(), remove: vi.fn(), add: vi.fn(), edit: vi.fn(), crawl: vi.fn(), cancel: vi.fn(), deleteGroup: vi.fn(), reorder: vi.fn(), relearn: vi.fn(), custom: vi.fn(), feishu: vi.fn() }))
+vi.mock('@/api/library', () => ({ getLibraryFileList: api.files, getLibraryGroup: api.groups, delLibraryFile: api.remove, addLibraryFile: api.add, editLibrary: api.edit, manualCrawl: api.crawl, cancelOcrPdf: api.cancel, deleteLibraryGroup: api.deleteGroup, sortLibararyListGroup: api.reorder, restudyLibraryFile: api.relearn }))
 vi.mock('@/hooks/web/useI18n', () => ({ useI18n: () => ({ t: key => key }) }))
 vi.mock('@/stores/modules/user', () => ({ useUserStore: () => ({ getToken: 'test-token' }) }))
-vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: { neo4j_status: 'false' } }) }))
-vi.mock('@/stores/modules/library', () => ({ useLibraryStore: () => ({ changeGraphSwitch: vi.fn() }) }))
+vi.mock('@/stores/modules/company', () => ({ useCompanyStore: () => ({ companyInfo: {} }) }))
+vi.mock('@/stores/modules/library', () => ({ useLibraryStore: () => ({}) }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ push: vi.fn(), replace: vi.fn(), resolve: value => ({ href: JSON.stringify(value) }) }) }))
 vi.mock('@/router', () => ({ default: { push: vi.fn() } }))
 vi.mock('@/components/model-select/model-select.vue', () => ({ default: { name: 'ModelSelect', props: ['modelType'], emits: ['loaded'], template: '<div />' } }))
@@ -32,7 +32,7 @@ async function render(compact = true) {
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
-  api.files.mockImplementation(async () => ({ data: { info: { id: 101, type: 0, use_model: 'embedding', model_config_id: 1, graph_switch: '0' }, list: [{ id: 11, file_name: '真实文档.pdf', file_ext: 'pdf', status: '2', doc_type: 1 }], total: 1, count_data: {} } }))
+  api.files.mockImplementation(async () => ({ data: { info: { id: 101, type: 0, use_model: 'embedding', model_config_id: 1 }, list: [{ id: 11, file_name: '真实文档.pdf', file_ext: 'pdf', status: '2', doc_type: 1 }], total: 1, count_data: {} } }))
   api.groups.mockResolvedValue({ data: [{ id: 0, group_name: '未分组', total: 0 }, { id: 7, group_name: '产品资料', total: 1 }] })
   api.reorder.mockResolvedValue({})
   api.remove.mockResolvedValue({})

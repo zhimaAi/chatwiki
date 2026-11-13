@@ -37,7 +37,7 @@ func SaveLibrarySearch(c *gin.Context) {
 	similarity := cast.ToFloat32(c.DefaultPostForm(`similarity`, `0.6`))
 	searchType := cast.ToInt(c.DefaultPostForm(`search_type`, `1`))
 	librarySearchType := strings.TrimSpace(c.PostForm(`library_search_type`))
-	rrfWeight := strings.TrimSpace(c.PostForm(`rrf_weight`))
+	rrfWeight := tool.JsonEncodeNoError(common.ParseRrfWeight(strings.TrimSpace(c.PostForm(`rrf_weight`))))
 	rerankStatus := cast.ToInt(c.PostForm(`rerank_status`))
 	rerankModelConfigID := cast.ToInt(c.PostForm(`rerank_model_config_id`))
 	rerankUseModel := strings.TrimSpace(c.PostForm(`rerank_use_model`))
@@ -48,17 +48,13 @@ func SaveLibrarySearch(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `prompt`))))
 		return
 	}
-	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText, define.SearchTypeGraph}) {
+	if !tool.InArrayInt(searchType, []int{define.SearchTypeMixed, define.SearchTypeVector, define.SearchTypeFullText}) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
 	librarySearchType, normalizeErr := common.NormalizeLibrarySearchType(searchType, librarySearchType)
 	if normalizeErr != nil {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `library_search_type`))))
-		return
-	}
-	if err := common.CheckRrfWeight(rrfWeight, common.GetLang(c)); err != nil {
-		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
 	m := msql.Model(`user_search_config`, define.Postgres)
@@ -118,8 +114,8 @@ func GetLibrarySearch(c *gin.Context) {
 		common.FmtError(c, err.Error())
 		return
 	}
-	if len(data) > 0 && len(data[`rrf_weight`]) == 0 { // fill default value
-		data[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight(userId))
+	if len(data) > 0 && len(data[`rrf_weight`]) == 0 {
+		data[`rrf_weight`] = tool.JsonEncodeNoError(common.GetDefaultRrfWeight())
 	}
 	common.FmtOk(c, data)
 }
@@ -160,7 +156,7 @@ func LibraryAiSummary(c *gin.Context) {
 		prompt = define.PromptLibAiSummary
 	}
 	size = min(500, size) // cap recall size at 500
-	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText && searchType != define.SearchTypeGraph {
+	if searchType != define.SearchTypeMixed && searchType != define.SearchTypeVector && searchType != define.SearchTypeFullText {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, `search_type`))))
 		return
 	}
@@ -201,12 +197,6 @@ func LibraryAiSummary(c *gin.Context) {
 			robot[`rerank_model_config_id`] = cast.ToString(rerankModelConfigID)
 			robot[`rerank_use_model`] = cast.ToString(rerankUseModel)
 			robot[`robot_name`] = robotName
-		}
-		if searchType == define.SearchTypeGraph {
-			if !cast.ToBool(info[`graph_switch`]) {
-				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `graph is not enabled`))))
-				return
-			}
 		}
 		robot[`admin_user_id`] = info[`admin_user_id`]
 		robot[`model_config_id`] = cast.ToString(modelConfigId)

@@ -135,7 +135,6 @@ func GetCompany(c *gin.Context) {
 		common.FmtError(c, `company_not_exist`)
 		return
 	}
-	data[`neo4j_status`] = cast.ToString(common.GetNeo4jStatus(cast.ToInt(data[`parent_id`])))
 	data[`wechat_ip`] = define.Config.WebService[`wechat_ip`]
 	data[`version`] = define.Version
 	data[`is_public_network`] = cast.ToString(define.IsPublicNetWork)

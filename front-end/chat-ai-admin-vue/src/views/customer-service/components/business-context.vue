@@ -14,6 +14,7 @@ import { getRobotInfo, saveRobot } from '@/api/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 import { cloneConfig, createSaveQueue, serializeRobotConfig } from '../config-session'
 
+const emit = defineEmits(['refresh'])
 const props = defineProps({ robot: { type: Object, required: true } })
 const { t } = useI18n('views.customer-service.index')
 const customer = useCustomerServiceStore()
@@ -38,6 +39,7 @@ function apply(data, updateForm = true) {
   try {
     if (updateForm) robotStore.setRobotInfo(cloneConfig(data))
     customer.syncRobot(data)
+    emit('refresh', data)
   } finally { syncing = false }
 }
 function initialize() {

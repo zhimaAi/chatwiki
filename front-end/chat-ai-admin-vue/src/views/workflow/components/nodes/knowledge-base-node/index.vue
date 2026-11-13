@@ -114,6 +114,7 @@
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import { ref, reactive, watch, onMounted, inject, nextTick, onBeforeUnmount, computed } from 'vue'
 import NodeCommon from '../base-node.vue'
 import UserQuestionText from '../user-question-text.vue'
@@ -221,7 +222,7 @@ const update = () => {
         : void 0,
       question_value: formState.question_value.join('.'),
       library_ids: formState.library_ids.join(','),
-      rrf_weight: JSON.stringify(formState.rrf_weight),
+      rrf_weight: JSON.stringify(normalizeRrfWeight(formState.rrf_weight)),
       recall_neighbor_switch: formState.recall_neighbor_switch,
       recall_neighbor_top_k: formState.recall_neighbor_top_k,
       recall_neighbor_before_num: formState.recall_neighbor_before_num,

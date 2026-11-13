@@ -84,13 +84,13 @@
         </a-table-column>
       </a-table>
     </div>
-    <FeedbacksLogAlert ref="feedbacksLogAlertRef" />
+    <FeedbacksLogAlert ref="feedbacksLogAlertRef" :robot-id="props.robotId || route.query.id" />
   </div>
 </template>
 <script setup>
 import { useRequestState } from '@/composables/useRequestState'
-import { ref, reactive, onMounted  } from 'vue'
-import { getFeedbackList, getFeedbackDetail } from '@/api/manage/index.js'
+import { ref, reactive, watch } from 'vue'
+import { getFeedbackList } from '@/api/manage/index.js'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import DateSelect from './components/date.vue'
@@ -146,9 +146,8 @@ const onDateChange = (date) => {
   onSearch()
 }
 
-const handleOpenFeedbacksLog = async (item) => {
-  const res = await getFeedbackDetail({id: item.id})
-  feedbacksLogAlertRef.value?.open(res.data)
+const handleOpenFeedbacksLog = (item) => {
+  feedbacksLogAlertRef.value?.open(item)
 }
 
 const onReset = () => {
@@ -202,9 +201,11 @@ const handleChangeModel = (val) => {
   onSearch()
 }
 
-onMounted(() => {
-    // Get model
-    // onSearch()
+watch(() => props.robotId || route.query.id, (robotId) => {
+  requestParams.robot_id = robotId
+  tableData.value = []
+  requestParams.total = 0
+  onSearch()
 })
 
 </script>

@@ -173,7 +173,6 @@
 </template>
 
 <script setup>
-import { useStorage } from '@/hooks/web/useStorage'
 import { reactive, ref, toRaw, onUnmounted, onMounted, computed } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -194,15 +193,11 @@ import {
   hardDelLibraryFile
 } from '@/api/library'
 import { formatFileSize } from '@/utils/index'
-import { useLibraryStore } from '@/stores/modules/library'
 import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from '@/hooks/web/useI18n'
 
 const { t } = useI18n('views.library.library-details.import-record')
-const { setStorage } = useStorage('localStorage')
 const userStore = useUserStore()
-const libraryStore = useLibraryStore()
-const { changeGraphSwitch } = libraryStore
 
 const rotue = useRoute()
 const router = useRouter()

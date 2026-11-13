@@ -105,7 +105,7 @@ const selectItem = computed(() => {
 })
 
 const selectChildItem = computed(() => {
-  if (selectItem.value.children && selectItem.value.children.length) {
+  if (selectItem.value?.children && selectItem.value.children.length) {
     return selectItem.value.children.find((item) => item.use_model_name == props.modeName)
   }
   return {}

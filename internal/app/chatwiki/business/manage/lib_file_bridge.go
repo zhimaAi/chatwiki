@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/spf13/cast"
 	"github.com/zhimaAi/go_tools/logs"
 	"github.com/zhimaAi/go_tools/msql"
@@ -62,13 +61,6 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		Where(`f.delete_time`, `0`).
 		Group(`f.id`).
 		Field(`f.*, count(d.id) as paragraph_count`).
-		Field(`count(case when d.graph_status = 3 then 1 else null end) as graph_err_count`).
-		Field(`
-			COALESCE(
-    			(SELECT graph_err_msg FROM chat_ai_library_file_data WHERE file_id = f.id AND graph_err_msg <> '' LIMIT 1),
-    			'no error'
-  			) AS graph_err_msg
-		`).
 		Field(`COALESCE((SELECT SUM(yesterday_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as yesterday_hits`).
 		Field(`COALESCE((SELECT SUM(today_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as today_hits`).
 		Field(`COALESCE((SELECT SUM(total_hits) FROM chat_ai_library_file_data WHERE file_id = f.id), 0) as total_hits`)
@@ -143,32 +135,9 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 	}
 
 	countData, err := GetLibFileCount(wheres)
-	var graphEntityCountRes *neo4j.EagerResult
-	var idList []string
-	for _, item := range list {
-		idList = append(idList, cast.ToString(item[`id`]))
-	}
-	if len(idList) > 0 && common.GetNeo4jStatus(adminUserId) {
-		graphEntityCountRes, err = common.NewGraphDB(adminUserId).GetEntityCount(idList)
-		if err != nil {
-			logs.Error(err.Error())
-			return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
-		}
-	}
 	libFileIds := make([]string, 0)
 	for _, item := range list {
 		libFileIds = append(libFileIds, item[`id`])
-		item[`graph_entity_count`] = `0`
-		if graphEntityCountRes == nil {
-			continue
-		}
-		for _, record := range graphEntityCountRes.Records {
-			fileId, exists1 := record.Get("file_id")
-			count, exists2 := record.Get("count")
-			if exists1 && exists2 && fileId == cast.ToInt64(item[`id`]) {
-				item[`graph_entity_count`] = cast.ToString(count)
-			}
-		}
 	}
 
 	//Populate group_name/meta_list for each list item (built-in + custom)
@@ -410,14 +379,6 @@ func BridgeDelLibraryFile(adminUserId int, ids, lang string) error {
 			logs.Error(err.Error())
 		}
 
-		if common.GetNeo4jStatus(adminUserId) {
-			for _, dataId := range dataIdList {
-				err = common.NewGraphDB(adminUserId).DeleteByData(cast.ToInt(dataId))
-				if err != nil {
-					logs.Error(err.Error())
-				}
-			}
-		}
 	}
 	return nil
 }

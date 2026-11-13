@@ -1,11 +1,10 @@
 <template>
   <div class="details-library-page" :class="{ 'workspace-document': compact }">
     <template v-if="compact">
-    <WorkspaceDocumentView v-if="compact" :groups="groupCards" :group-id="groupId" :group-width="groupBoxWidth" :collapsed="isHiddenGroup" :files="fileList" :counts="count_data" :pagination="queryParams" :extra-columns="columns.filter(column => column.key?.startsWith('meta_') || ['graph_status', 'graph_entity_count'].includes(column.key))" :view-mode="viewMode" :library-id="libraryId" :loading="isLoading" :readonly="type == 3" :update-frequency="formatUpdateFrequency" :status-options="statusList.map(item => ({ value: item.id, label: item.name }))" v-model:file-name="queryParams.file_name" v-model:status="queryParams.status"
+    <WorkspaceDocumentView v-if="compact" :groups="groupCards" :group-id="groupId" :group-width="groupBoxWidth" :collapsed="isHiddenGroup" :files="fileList" :counts="count_data" :pagination="queryParams" :extra-columns="columns.filter(column => column.key?.startsWith('meta_'))" :view-mode="viewMode" :library-id="libraryId" :loading="isLoading" :readonly="type == 3" :update-frequency="formatUpdateFrequency" :status-options="statusList.map(item => ({ value: item.id, label: item.name }))" v-model:file-name="queryParams.file_name" v-model:status="queryParams.status"
       @toggle-groups="handleChangeHideStatus" @resize-groups="handleResizeMouseDown" @reorder-groups="workspaceReorderGroups" @select-group="handleChangeGroup" @group-action="workspaceGroupAction" @search="onSearch" @view-change="workspaceViewChange" @metadata="showMetaModal(1)" @add="handleMenuClick" @action="workspaceDocumentAction" @sort="sorter => onTableChange({}, {}, sorter)" @page-change="onWorkspacePageChange" />
-    <BaseDataDrawer v-if="compact" v-model:open="baseDataOpen" :record="baseDataModelRecord" @createGraphTask="val => createGraphTask(val, true)" @handlePreview="handlePreview" @close="baseDataOpen = false" @editOnline="handleEditOnlineDoc" />
+    <BaseDataDrawer v-if="compact" v-model:open="baseDataOpen" :record="baseDataModelRecord" @close="baseDataOpen = false" @editOnline="handleEditOnlineDoc" />
     <ModelSelect modelType="TEXT EMBEDDING" style="display: none" @loaded="onVectorTextModelLoaded" />
-    <ModelSelect v-if="neo4j_status" modelType="LLM" style="display: none" @loaded="onVectorModelLoaded" />
     </template>
     <template v-else>
     <div
@@ -301,16 +300,6 @@
                 </template>
               </a-input>
             </div>
-            <a-flex align="center" v-if="neo4j_status && !compact" class="tool-item custom-select-box pd-5-8">
-              <ModelSelect modelType="LLM" v-show="false" @loaded="onVectorModelLoaded" />
-              <span>{{ t('label_generate_knowledge_graph') }}</span>
-              <a-switch
-                v-model:checked="createGraphSwitch"
-                @change="createGraphSwitchChange"
-                :checked-children="t('switch_on')"
-                :un-checked-children="t('switch_off')"
-              />
-            </a-flex>
             <a-button v-if="props.type != 3" @click="showMetaModal(1)">{{ t('btn_metadata') }} <SettingOutlined/></a-button>
             <div class="tool-item">
               <a-dropdown :trigger="['hover']" overlayClassName="add-dropdown-btn">
@@ -509,8 +498,6 @@
           <BaseDataDrawer
             v-model:open="baseDataOpen"
             :record="baseDataModelRecord"
-            @createGraphTask="(val) => createGraphTask(val, true)"
-            @handlePreview="handlePreview"
             @close="baseDataOpen=false"
             @editOnline="handleEditOnlineDoc"
           />
@@ -541,14 +528,6 @@
               </template>
               <template v-else-if="column.key === 'file_name'">
                 {{ t('col_doc_name_total', { total: queryParams.total || 0 }) }}
-              </template>
-              <template v-else-if="column.key === 'graph_entity_count'">
-                <div class="title-box">
-                  <div class="zm-line1">{{ t('col_entity_count') }}</div>
-                  <a-tooltip :title="t('tooltip_entity_count')">
-                    <QuestionCircleOutlined />
-                  </a-tooltip>
-                </div>
               </template>
             </template>
             <template #bodyCell="{ column, record }">
@@ -590,9 +569,6 @@
                     {{ t('label_remark') }}{{ record.remark }}
                   </div>
                 </div>
-              </template>
-              <template v-if="column.key === 'graph_entity_count'">
-                <a @click="toGraph(record)">{{ record.graph_entity_count }}</a>
               </template>
               <!-- 状态 -->
               <!-- <template v-if="column.key === 'status'">
@@ -697,36 +673,6 @@
                     <SyncOutlined class="btn-hover-block" @click="handleRelearn(record)" />
                   </a-tooltip>
                 </div>
-              </template>
-              <template v-if="column.key === 'graph_status'">
-                <!--0待生成 1排队中 2生成完成 3生成失败 4生成中 5部分成功-->
-                <template v-if="record.graph_status == 0">
-                  <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_generate') }}</span>
-                  <a class="ml8" @click="createGraphTask(record)">{{ t('btn_generate') }}</a>
-                </template>
-                <span v-else-if="record.graph_status == 1" class="status-tag running"
-                  ><HourglassFilled /> {{ t('status_queueing') }}</span
-                >
-                <span v-else-if="record.graph_status == 2" class="status-tag complete"
-                  ><CheckCircleFilled /> {{ t('status_generate_complete') }}</span
-                >
-                <template v-else-if="record.graph_status == 3">
-                  <span class="status-tag error"><CloseCircleFilled /> {{ t('status_generate_failed') }}</span>
-                  <a class="ml8" @click="createGraphTask(record)">{{ t('btn_generate') }}</a>
-                  <a-tooltip v-if="record.graph_err_msg" :title="record.graph_err_msg">
-                    <div class="zm-line1 reason-text">{{ t('label_reason') }}{{ record.graph_err_msg }}</div>
-                  </a-tooltip>
-                </template>
-                <span v-else-if="record.graph_status == 4" class="status-tag running"
-                  ><a-spin size="small" /> {{ t('status_generating') }}</span
-                >
-                <template v-else-if="record.graph_status == 5">
-                  <span class="status-tag warning"><CheckCircleFilled /> {{ t('status_partial_success') }}</span>
-                  <div class="reason-text">
-                    {{ t('label_fail_count') }}{{ record.graph_err_count || 0 }}
-                    <a class="ml8" @click="handlePreview(record, { graph_status: 3 })">{{ t('btn_details') }}</a>
-                  </div>
-                </template>
               </template>
               <template v-if="column.key === 'file_size'">
                 <span>
@@ -936,7 +882,6 @@
       ref="addCustomDocumentRef"
     ></AddCustomDocument>
     <RenameModal @ok="onSearch" ref="renameModalRef" />
-    <OpenGrapgModal @ok="handleOpenGrapgOk" ref="openGrapgModalRef" />
     <GuideLearningTips ref="guideLearningTipsRef" />
     <EditOnlineDoc @ok="getData" ref="editOnlineDocRef" />
     <AddGroup group_type="1" ref="addGroupRef" @ok="initData" />
@@ -947,7 +892,6 @@
 </template>
 
 <script setup>
-import { useStorage } from '@/hooks/web/useStorage'
 import { useI18n } from '@/hooks/web/useI18n'
 import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode, nextTick } from 'vue'
 import { message, Modal } from 'ant-design-vue'
@@ -967,7 +911,6 @@ import {
   LoadingOutlined,
   DownOutlined,
   SettingOutlined,
-  QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
@@ -975,7 +918,6 @@ import {
   delLibraryFile,
   addLibraryFile,
   editLibrary,
-  createGraph,
   manualCrawl,
   cancelOcrPdf,
   getLibraryGroup,
@@ -988,7 +930,6 @@ import UploadFilesInput from '../add-library/components/upload-input.vue'
 import { transformUrlData } from '@/utils/validate.js'
 import AddCustomDocument from './components/add-custom-document.vue'
 import ModelSelect from '@/components/model-select/model-select.vue'
-import OpenGrapgModal from '@/views/library/library-details/components/open-grapg-modal.vue'
 import QaUploadModal from './components/qa-upload-modal.vue'
 import RenameModal from './components/rename-modal.vue'
 import PageAlert from '@/components/page-alert/page-alert.vue'
@@ -1012,19 +953,15 @@ import AddFeishuDocument from "./components/add-feishu-document.vue";
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
 import {KNOWLEDGE_SOURCE_TYPE_MAP} from "@/constants/index.js";
 
-const { setStorage } = useStorage('localStorage')
 const { t } = useI18n('views.library.library-details.knowledge-document')
 const SOURCE_TYPE_MAP = KNOWLEDGE_SOURCE_TYPE_MAP()
 
 const libraryStore = useLibraryStore()
 let alive = true
 let listRequestSequence = 0
-const { changeGraphSwitch } = libraryStore
+let savedLibraryConfig = null
 
 const companyStore = useCompanyStore()
-const neo4j_status = computed(() => {
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 const ali_ocr_switch = computed(() => {
   return companyStore.companyInfo?.ali_ocr_switch == '1'
 })
@@ -1093,9 +1030,7 @@ const query = rotue.query
 
 const isLoading = ref(false)
 const guideLearningTipsRef = ref(null)
-const openGrapgModalRef = ref(null)
 const feishuRef = ref(null)
-const createGraphSwitch = ref(false)
 const libraryInfo = ref({
   library_intro: '',
   library_name: '',
@@ -1155,12 +1090,6 @@ const saveLibraryConfig = (showSuccessTip = true, callback = null) => {
       message.success(t('msg_save_success'))
     }
   })
-}
-
-const vectorModelList = ref([])
-
-const onVectorModelLoaded = (list) => {
-  vectorModelList.value = list
 }
 
 const vectorModelTextList = ref([])
@@ -1586,24 +1515,6 @@ const columnsDefault = [
     sorter: true
   },
   {
-    title: t('col_knowledge_graph'),
-    dataIndex: 'graph_status',
-    key: 'graph_status',
-    resizable: true,
-    minWidth: 120,
-    maxWidth: 400,
-    width: 200
-  },
-  {
-    title: t('col_entity_count'),
-    dataIndex: 'graph_entity_count',
-    key: 'graph_entity_count',
-    resizable: true,
-    minWidth: 120,
-    maxWidth: 320,
-    width: 160
-  },
-  {
     title: t('col_status'),
     dataIndex: 'status',
     key: 'status',
@@ -1800,9 +1711,20 @@ const handlePreview = (record, params = {}) => {
   router.push({ name: 'libraryPreview', query: { id: record.id, ...params } })
 }
 
+const syncLibraryConfig = (config) => {
+  if (!alive || String(config.id) !== String(libraryId.value)) return
+  savedLibraryConfig = { ...config }
+  libraryInfo.value = { ...libraryInfo.value, ...savedLibraryConfig }
+  modelForm.use_model = config.use_model
+  modelForm.model_config_id = config.model_config_id
+}
+
+defineExpose({ syncLibraryConfig })
+
 const getData = (append = false) => {
   if (!alive) return
   const sequence = ++listRequestSequence
+  const configAtRequest = savedLibraryConfig
   let params = { ...toRaw(queryParams) }
   if (params.status == 0) {
     params.status = ''
@@ -1813,6 +1735,10 @@ const getData = (append = false) => {
     .then((res) => {
       if (!alive || sequence !== listRequestSequence) return
       let info = res.data.info
+      // 保存前发出的轮询请求可能较晚返回，保留已经保存的新配置。
+      if (savedLibraryConfig && savedLibraryConfig !== configAtRequest) {
+        info = { ...info, ...savedLibraryConfig }
+      }
 
       if (!modelForm.use_model && modelForm.use_model != info.use_model) {
         modelForm.use_model = info.use_model
@@ -1820,15 +1746,8 @@ const getData = (append = false) => {
       }
 
       libraryInfo.value = { ...info }
-      createGraphSwitch.value = info.graph_switch == 1
       if (!append) {
-        if (info.graph_switch == '0' || !neo4j_status.value) {
-          columns.value = columnsDefault.filter(
-            (item) => !['graph_status', 'graph_entity_count'].includes(item.key)
-          )
-        } else {
-          columns.value = columnsDefault
-        }
+        columns.value = columnsDefault
         if (props.type != 3) {
           columns.value = columns.value.filter(i => i.key != 'official_article_update_time')
         }
@@ -2083,50 +2002,6 @@ const toReSegmentationPage = (record) => {
   })
 }
 
-const createGraphTask = (record, tip=false) => {
-  createGraph({ id: record.id }).then(() => {
-    tip && message.success('正在生成...')
-    getData()
-  })
-}
-
-const createGraphSwitchChange = () => {
-  if (createGraphSwitch.value) {
-    createGraphSwitch.value = false
-    let data = {
-      graph_model_config_id: libraryInfo.value.graph_model_config_id,
-      graph_use_model: libraryInfo.value.graph_use_model
-    }
-    if (
-      (!data.graph_model_config_id || !data.graph_use_model) &&
-      vectorModelList.value.length > 0
-    ) {
-      let modelConfig = vectorModelList.value[0]
-      let model = modelConfig.children[0]
-      data.graph_use_model = model.name
-      data.graph_model_config_id = model.model_config_id
-    }
-    openGrapgModalRef.value.show(data)
-  } else {
-    libraryInfo.value.graph_switch = 0
-    saveLibraryConfig(false, () => {
-      getData()
-      changeGraphSwitch(0)
-    })
-  }
-}
-
-const handleOpenGrapgOk = (data) => {
-  createGraphSwitch.value = true
-  libraryInfo.value.graph_switch = 1
-  libraryInfo.value.graph_model_config_id = data.graph_model_config_id
-  libraryInfo.value.graph_use_model = data.graph_use_model
-  saveLibraryConfig(false, () => {
-    getData()
-    changeGraphSwitch(1)
-  })
-}
-
 const pdfParseTypeChange = (item) => {
   if (item.key == 4 && !ali_ocr_switch.value) {
     return false
@@ -2166,17 +2041,6 @@ const handleCancelOcrPdf = (record) => {
         message.success(t('msg_cancel_success'))
         getData()
       })
-    }
-  })
-}
-
-const toGraph = (record) => {
-  setStorage('graph:autoOpenFileId', record.id)
-
-  router.push({
-    path: '/library/details/knowledge-graph',
-    query: {
-      id: libraryId.value
     }
   })
 }
@@ -2446,7 +2310,6 @@ function workspaceGroupAction({ key, record }) {
 function workspaceDocumentAction({ key, record }) {
   if (key === 'base') return showBaseData(record)
   if (key === 'preview') return handlePreview(record, { open_new: true })
-  if (key === 'graph-details') return handlePreview(record, { graph_status: 3, open_new: true })
   if (key === 'edit') return handleEditOnlineDoc(record)
   if (key === 'rename') return handleOpenRenameModal(record)
   if (key === 'group') return openEditGroupModal(record)
@@ -2454,8 +2317,6 @@ function workspaceDocumentAction({ key, record }) {
   if (key === 'resegment') return toReSegmentationPage(record)
   if (key === 'relearn') return handleRelearn(record)
   if (key === 'cancel-ocr') return handleCancelOcrPdf(record)
-  if (key === 'generate-graph') return createGraphTask(record)
-  if (key === 'graph') return toGraph(record)
   if (key === 'delete') Modal.confirm({ title: t('confirm_delete'), okType: 'danger', onOk: () => onDelete(record) })
 }
 

@@ -195,11 +195,11 @@ func (libraryCsl *LibraryCsl) Import(lang string, adminUserId, userId int, cslId
 			if len(val) > 0 {
 				libraryData[key] = models.VectorUseModel
 			}
-		case `summary_model_config_id`, `graph_model_config_id`, `ai_chunk_model_config_id`:
+		case `summary_model_config_id`, `ai_chunk_model_config_id`:
 			if cast.ToInt(val) > 0 {
 				libraryData[key] = cast.ToString(models.LlmModelConfigId)
 			}
-		case `ai_summary_model`, `graph_use_model`, `ai_chunk_model`:
+		case `ai_summary_model`, `ai_chunk_model`:
 			if len(val) > 0 {
 				libraryData[key] = models.LlmUseModel
 			}

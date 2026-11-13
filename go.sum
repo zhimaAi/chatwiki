@@ -403,8 +403,6 @@ github.com/mxschmitt/playwright-go v0.6401.0 h1:PQbHqgzMQiY6pq8YsBBM5AXYnOs9Tnly
 github.com/mxschmitt/playwright-go v0.6401.0/go.mod h1:vLBP2yVO1gokUlb9ENA+YE3VQaVqf2A9BGxcb7aPjMI=
 github.com/ncruces/go-strftime v0.1.9 h1:bY0MQC28UADQmHmaF5dgpLmImcShSi2kHU9XLdhx/f4=
 github.com/ncruces/go-strftime v0.1.9/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
-github.com/neo4j/neo4j-go-driver/v5 v5.28.0 h1:chDT68PHNa8JZRmjSkGzAbk1weLWo4rMtDvccvpobg0=
-github.com/neo4j/neo4j-go-driver/v5 v5.28.0/go.mod h1:Vff8OwT7QpLm7L2yYr85XNWe9Rbqlbeb9asNXJTHO4k=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nikolalohinski/gonja v1.5.3 h1:GsA+EEaZDZPGJ8JtpeGN78jidhOlxeJROpqMT9fTj9c=
 github.com/nikolalohinski/gonja v1.5.3/go.mod h1:RmjwxNiXAEqcq1HeK5SSMmqFJvKOfTfXhkJv6YBtPa4=
@@ -557,8 +555,8 @@ github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 github.com/zhimaAi/go_tools v0.0.0-20260612072211-1b1647da5f18 h1:3z5lH5UL8tEhtdD9dUAK8XuOV4T6ApDOlP1kWn3Nt8I=
 github.com/zhimaAi/go_tools v0.0.0-20260612072211-1b1647da5f18/go.mod h1:xvn8i0v2+QKFQSwzrFGM69bg/EJ/qpVgyRdU00/wxVg=
-github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261019090835-9226d0be9f84 h1:kitXrN/Za6vFTQOKYhK6k9rTzOgNMQCUXoVaI5FEkco=
-github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261019090835-9226d0be9f84/go.mod h1:bbNYpABhTJz3ZsWHNGkhtcf+bU1xu9hykYVwfwF9nn8=
+github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261113063018-7df02175e9f6 h1:itEFfIaeZcwoE9MxGCYxKornvIjuiQq5K6WHGT4uL8g=
+github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261113063018-7df02175e9f6/go.mod h1:bbNYpABhTJz3ZsWHNGkhtcf+bU1xu9hykYVwfwF9nn8=
 github.com/zhimaAi/pdf v0.0.0-20260702061841-31ece7763f10 h1:UYMfjMJBRUdAGqhtkwWpKmmSi+e6zb8uDECdaSb90+0=
 github.com/zhimaAi/pdf v0.0.0-20260702061841-31ece7763f10/go.mod h1:zULDifjL+NqvjoryV4hzQpU5kPF0B1e1/qIBoIJtGWg=
 gitlab.com/golang-commonmark/html v0.0.0-20191124015941-a22733972181 h1:K+bMSIx9A7mLES1rtG+qKduLIXq40DAzYHtb0XuCukA=

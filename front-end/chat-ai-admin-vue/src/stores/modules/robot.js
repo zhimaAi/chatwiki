@@ -160,7 +160,6 @@ export const useRobotStore = defineStore('robot', () => {
     rrf_weight:{
       vector: 0,
       search: 0,
-      graph: 0,
     },
     tips_before_answer_content: '思考中、请稍候...',
     tips_before_answer_switch: 'true',

@@ -20,17 +20,16 @@ import (
 )
 
 type BridgeGetParagraphListReq struct {
-	LibraryId   string `form:"library_id"`
-	FileId      string `form:"file_id"`
-	Page        string `form:"page"`
-	Size        string `form:"size"`
-	Status      string `form:"status"`
-	GraphStatus string `form:"graph_status"`
-	CategoryId  string `form:"category_id"`
-	GroupId     string `form:"group_id"`
-	SortField   string `form:"sort_field"`
-	SortType    string `form:"sort_type"`
-	Search      string `form:"search"`
+	LibraryId  string `form:"library_id"`
+	FileId     string `form:"file_id"`
+	Page       string `form:"page"`
+	Size       string `form:"size"`
+	Status     string `form:"status"`
+	CategoryId string `form:"category_id"`
+	GroupId    string `form:"group_id"`
+	SortField  string `form:"sort_field"`
+	SortType   string `form:"sort_type"`
+	Search     string `form:"search"`
 }
 
 func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *BridgeGetParagraphListReq) (map[string]any, int, error) {
@@ -50,7 +49,6 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 	page := max(1, cast.ToInt(req.Page))
 	size := max(1, cast.ToInt(req.Size))
 	status := cast.ToInt(req.Status)
-	graphStatus := cast.ToInt(req.GraphStatus)
 	categoryId := cast.ToInt(req.CategoryId)
 	groupId := cast.ToInt(req.GroupId)
 	sortField := req.SortField
@@ -118,10 +116,6 @@ func BridgeGetParagraphList(adminUserId, loginUserId int, lang string, req *Brid
 			query.Where(`b.status`, cast.ToString(status))
 			exception.Where(`b.status`, cast.ToString(status))
 		}
-	}
-	if graphStatus >= 0 {
-		query.Where(`a.graph_status`, cast.ToString(graphStatus))
-		exception.Where(`a.graph_status`, cast.ToString(graphStatus))
 	}
 	if categoryId >= 0 {
 		query.Where(`a.category_id`, cast.ToString(categoryId))
@@ -640,16 +634,6 @@ func BridgeSaveParagraph(adminUserId, loginUserId int, lang string, req *BridgeS
 		}
 	}
 
-	if common.GetNeo4jStatus(adminUserId) {
-		message, err := tool.JsonEncode(map[string]any{`id`: id, `file_id`: fileId})
-		if err != nil {
-			logs.Error(err.Error())
-		} else {
-			if err = common.AddJobs(define.ConvertGraphTopic, message); err != nil {
-				logs.Error(err.Error())
-			}
-		}
-	}
 	info, err := m.Where(`id`, cast.ToString(id)).Find()
 	if err != nil {
 		logs.Error(err.Error())
@@ -697,15 +681,6 @@ func BridgeDeleteParagraph(adminUserId int, ids, lang string) error {
 		if err != nil {
 			logs.Error(err.Error())
 			return errors.New(i18n.Show(lang, `sys_err`))
-		}
-		if common.GetNeo4jStatus(adminUserId) {
-			for _, id := range strings.Split(ids, `,`) {
-				err = common.NewGraphDB(adminUserId).DeleteByData(cast.ToInt(id))
-				if err != nil {
-					logs.Error(err.Error())
-					return errors.New(i18n.Show(lang, `sys_err`))
-				}
-			}
 		}
 	}
 	if err = common.ClearAdminMiniCardRelationsByTargetIds(adminUserId, common.AdminMiniCardTargetLibraryParagraph, targetIds); err != nil {

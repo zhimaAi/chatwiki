@@ -109,6 +109,7 @@
     </section>
     <PromptDrawer
       :key="identityVersion"
+      :robot="robot"
       :open="promptOpen"
       :prompt="robot.prompt || ''"
       :robotKey="readyRobotKey"
@@ -383,7 +384,9 @@ const onChangeChatModel = (model) => {
   if (String(model.model_config_id) === String(robot.value.model_config_id) && model.name === robot.value.use_model) return
   void saveSettings({ model_config_id: model.model_config_id, use_model: model.name || '' }, 'model')
 }
-const onSavePrompt = (prompt) => { void saveSettings({ prompt }, 'prompt') }
+const onSavePrompt = (prompt, promptType) => {
+  void saveSettings({ prompt, ...(promptType === 0 ? { prompt_type: 0 } : {}) }, 'prompt')
+}
 
 const onVariablesLoaded = (list) => {
   if (!robotReady.value || !promptOpen.value || chatStatus.value !== 'ready') return

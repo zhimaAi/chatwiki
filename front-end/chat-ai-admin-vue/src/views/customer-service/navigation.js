@@ -2,16 +2,6 @@ import { CUSTOMER_SERVICE_LAYOUT } from '@/utils/clawbot-layout'
 
 export const CUSTOMER_SERVICE_DEFAULT_MENU_KEY = 'session-record'
 
-export const CUSTOMER_SERVICE_AGENT_MENU_ITEMS = [
-  { key: 'chat', titleKey: 'nav_chat', routeName: 'clawbotChat', icon: 'chat-menu' },
-  { key: 'assistant', titleKey: 'nav_agent', routeName: 'clawbotAssistant', icon: 'agent-menu' },
-  { key: 'skills', titleKey: 'nav_skill', routeName: 'clawbotSkills', icon: 'skill-menu' },
-  { key: 'knowledge', titleKey: 'nav_knowledge_base', routeName: 'clawbotKnowledge', icon: 'knowledge-menu' },
-  { key: 'services', titleKey: 'nav_external_services', routeName: 'clawbotServices', icon: 'service-menu' },
-  { key: 'stats', titleKey: 'nav_analytics', routeName: 'clawbotStats', icon: 'analytics-menu' },
-  { key: 'settings', titleKey: 'nav_settings', routeName: 'clawbotSettings', icon: 'settings-menu', query: { menu: 'basic' } }
-]
-
 // 菜单和路由共享稳定标识；标签保持为i18n key，由展示层响应式翻译。
 export const CUSTOMER_SERVICE_MENU_ITEMS = [
   {
@@ -72,6 +62,36 @@ export const CUSTOMER_SERVICE_MENU_ITEMS = [
     routeName: 'customerServiceAnalytics'
   }
 ]
+
+const agentRoutes = {
+  chat: 'clawbotChat',
+  'session-record': 'customerAgentSessionRecord',
+  'web-app': 'customerAgentWebApp',
+  'other-channels': 'customerAgentOtherChannels',
+  'basic-settings': 'customerAgentBasicSettings',
+  'knowledge-base': 'clawbotKnowledge',
+  'function-center': 'customerAgentFunctionCenter',
+  skills: 'clawbotSkills',
+  analytics: 'customerAgentAnalytics'
+}
+
+// 新版 Agent 共用客服菜单结构，业务内容仍使用各自的应用上下文。
+export const CUSTOMER_SERVICE_AGENT_MENU_ITEMS = CUSTOMER_SERVICE_MENU_ITEMS.map(item => {
+  if (!item.children) return { ...item, routeName: agentRoutes[item.key] }
+  return {
+    ...item,
+    children: item.children.map(page => {
+      const key = page.key === 'skill' ? 'skills' : page.key
+      return { ...page, key, routeName: agentRoutes[key] }
+    })
+  }
+})
+
+export function getCustomerServiceAgentPage(menuKey) {
+  const key = menuKey === 'skill' ? 'skills' : menuKey
+  return CUSTOMER_SERVICE_AGENT_MENU_ITEMS.flatMap(item => item.children || [item])
+    .find(item => item.key === key)
+}
 
 export function getCustomerServicePage(menuKey) {
   for (const menuItem of CUSTOMER_SERVICE_MENU_ITEMS) {

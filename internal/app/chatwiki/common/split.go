@@ -776,28 +776,6 @@ func SaveLibFileSplit(userId, fileId, wordTotal, qaIndexType int, splitParams de
 		}
 	}
 
-	if GetNeo4jStatus(userId) {
-		err = NewGraphDB(userId).DeleteByFile(fileId)
-		if err != nil {
-			logs.Error(err.Error())
-			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
-		}
-		_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
-			Where(`id`, cast.ToString(fileId)).
-			Update(msql.Datas{`graph_status`: define.GraphStatusNotStart})
-		if err != nil {
-			logs.Error(err.Error())
-			return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
-		}
-		lib_redis.DelCacheData(define.Redis, &LibFileCacheBuildHandler{FileId: fileId})
-		if cast.ToInt(info[`graph_status`]) == define.GraphStatusConverted {
-			if err = ConstructGraph(cast.ToInt(info[`id`])); err != nil {
-				logs.Error(err.Error())
-				return []int64{}, errors.New(i18n.Show(lang, `sys_err`))
-			}
-		}
-	}
-
 	return dataIds, nil
 }
 

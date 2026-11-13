@@ -15,7 +15,7 @@
           :auto-size="{ minRows: 2, maxRows: 8 }"
         />
         <div class="question-actions">
-          <a-button type="primary" :loading="loading" @click="handleRecallTest">
+          <a-button type="primary" :loading="loading" :disabled="!selectedRetrievalMode" @click="handleRecallTest">
             {{ t('btn_test') }}
             <span v-if="!loading" class="send-icon">
               <img src="@/assets/img/library/detail/recall-test-arrow.svg" alt="" />
@@ -153,6 +153,7 @@
 </template>
 
 <script setup>
+import { normalizeRrfWeight } from '@/utils/rrf-weight'
 import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -208,7 +209,6 @@ const formState = reactive({
   rrf_weight: {
     vector: 0,
     search: 100,
-    graph: 0
   },
   library_search_type: 'fullTextSearch'
 })
@@ -237,17 +237,11 @@ const persistedFields = [
 ]
 let hasResolvedRrfWeight = false
 
-// 产品要求：召回测试不展示图谱权重，graph 固定为 0，全文权重 = 100 - 向量权重
-const normalizeRrfWeight = (weight) => {
-  const vector = Number(weight?.vector) || 0
-  return { vector, search: 100 - vector, graph: 0 }
-}
-
 // 本页面内联两段权重滑块（向量/全文），不复用公共 WeightSelect，避免改动影响其他页面
 const weightValue = ref(0)
 
 const handleWeightChange = () => {
-  formState.rrf_weight = normalizeRrfWeight({ vector: weightValue.value })
+  formState.rrf_weight = { vector: weightValue.value, search: 100 - weightValue.value }
 }
 
 watch(
@@ -286,7 +280,7 @@ const restoreFormState = () => {
   const hasStoredRrfWeight = Boolean(
     storedState.rrf_weight &&
     typeof storedState.rrf_weight === 'object' &&
-    ['vector', 'search', 'graph'].every((key) => typeof storedState.rrf_weight[key] === 'number')
+    ['vector', 'search'].every((key) => typeof storedState.rrf_weight[key] === 'number')
   )
 
   persistedFields.forEach((field) => {
@@ -298,11 +292,6 @@ const restoreFormState = () => {
 
   if (hasStoredRrfWeight) {
     formState.rrf_weight = normalizeRrfWeight(formState.rrf_weight)
-  }
-
-  // 旧缓存可能包含已移除的知识图谱模式，回退到当前可见的默认模式。
-  if (!retrievalModeList.value.some((mode) => mode.value === formState.search_type)) {
-    formState.search_type = 1
   }
 
   hasResolvedRrfWeight = hasStoredRrfWeight
@@ -398,7 +387,6 @@ onMounted(() => {
       formState.rrf_weight = normalizeRrfWeight(res.data || {
         vector: 0,
         search: 0,
-        graph: 0
       })
     })
   }

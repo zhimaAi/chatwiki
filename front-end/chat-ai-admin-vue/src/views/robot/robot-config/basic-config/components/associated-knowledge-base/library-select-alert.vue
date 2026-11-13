@@ -214,8 +214,6 @@
                 <div class="info-content-box">
                   <div class="title-info-block">
                     {{ item.library_name }}
-                    <span class="type-tag" :class="{ 'gray-tag': item.graph_switch == 0 }"
-                      >{{ t('tag_graph') }}</span
                     >
                     <span class="type-tag" v-if="item.type == 0">{{ t('tag_normal_library') }}</span>
                     <span class="type-tag" v-if="item.type == 1">{{ t('tag_external_library') }}</span>

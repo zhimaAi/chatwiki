@@ -48,6 +48,7 @@ import { useCustomerServiceStore } from '@/stores/modules/customer-service'
 import CustomerSidebar from './components/customer-sidebar.vue'
 import BusinessContext from './components/business-context.vue'
 import {
+  getCustomerServiceAgentPage,
   getCustomerServiceChatLocation,
   getCustomerServicePage,
   normalizeCustomerServiceQueryValue,
@@ -201,7 +202,10 @@ watch([robotStatus, robot], async ([status, info]) => {
     String(info.id) !== robotId.value || info.robot_key !== robotKey.value) return
   const sourcePath = route.fullPath
   try {
-    const failure = await router.replace(getCustomerServiceChatLocation(info))
+    const page = getCustomerServiceAgentPage(route.meta.customerServiceMenuKey)
+    const location = getCustomerServiceChatLocation(info)
+    if (page) location.name = page.routeName
+    const failure = await router.replace(location)
     if (alive && route.fullPath === sourcePath && failure &&
       !isNavigationFailure(failure, NavigationFailureType.duplicated)) localError.value = 'error_switch_robot'
   } catch {

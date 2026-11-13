@@ -55,7 +55,6 @@ require (
 	github.com/mark3labs/mcp-go v0.42.0
 	github.com/matiasinsaurralde/go-e2b v0.1.2
 	github.com/mxschmitt/playwright-go v0.6401.0
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.0
 	github.com/pdfcpu/pdfcpu v0.9.1
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/pressly/goose/v3 v3.20.0
@@ -71,7 +70,7 @@ require (
 	github.com/xuri/excelize/v2 v2.10.1
 	github.com/yuin/goldmark v1.7.12
 	github.com/zhimaAi/go_tools v0.0.0-20260612072211-1b1647da5f18
-	github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261019090835-9226d0be9f84
+	github.com/zhimaAi/llm_adaptor/v2 v2.0.0-20261113063018-7df02175e9f6
 	github.com/zhimaAi/pdf v0.0.0-20260702061841-31ece7763f10
 	gitlab.com/golang-commonmark/markdown v0.0.0-20211110145824-bf3e522c626a
 	go.uber.org/zap v1.27.0

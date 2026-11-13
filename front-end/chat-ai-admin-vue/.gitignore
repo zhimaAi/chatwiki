@@ -15,6 +15,13 @@ dist-ssr
 coverage
 *.local
 
+# Test files and directories
+*.test.*
+*.spec.*
+__tests__/
+tests/
+test/
+
 /cypress/videos/
 /cypress/screenshots/
 

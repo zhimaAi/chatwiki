@@ -160,9 +160,6 @@ const formState = reactive({
   semantic_chunk_default_chunk_size: 512,
   semantic_chunk_default_chunk_overlap: 50,
   semantic_chunk_default_threshold: 90,
-  graph_switch: false,
-  graph_model_config_id: void 0,
-  graph_use_model: '',
   ai_chunk_size: 5000, // ai大模型分段最大字符数
   ai_chunk_model: '', // ai大模型分段模型名称
   ai_chunk_model_config_id: '', // ai大模型分段模型配置id
@@ -243,9 +240,6 @@ const saveForm = () => {
     formState.semantic_chunk_default_chunk_overlap
   )
   formData.append('semantic_chunk_default_threshold', formState.semantic_chunk_default_threshold)
-  formData.append('graph_switch', formState.graph_switch ? 1 : 0)
-  formData.append('graph_model_config_id', formState.graph_model_config_id)
-  formData.append('graph_use_model', formState.graph_use_model)
 
   formData.append('ai_chunk_size', formState.ai_chunk_size)
   formData.append('ai_chunk_model', formState.ai_chunk_model)
@@ -274,7 +268,6 @@ const show = () => {
   formState.semantic_chunk_default_chunk_size = 512
   formState.semantic_chunk_default_chunk_overlap = 50
   formState.semantic_chunk_default_threshold = 50
-  formState.graph_switch = false
 
   formState.ai_chunk_size = 5000
   formState.ai_chunk_model = ''

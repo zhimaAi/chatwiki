@@ -329,6 +329,7 @@
         @close="onCloseSkillDrawer"
       />
       <PromptDrawer
+        :robot="robotInfo"
         :open="promptDrawerOpen"
         :prompt="robotInfo.prompt || ''"
         :robotKey="currentAssistant?.robot_key || ''"
@@ -665,7 +666,7 @@ const onCloseSkillDrawer = () => {
   skillDrawerOpen.value = false
 }
 
-const onSavePrompt = async (prompt) => {
+const onSavePrompt = async (prompt, promptType) => {
   if (savePromptLoading.value) {
     return
   }
@@ -674,7 +675,8 @@ const onSavePrompt = async (prompt) => {
 
   try {
     await clawbotStore.saveAssistant({
-      prompt
+      prompt,
+      ...(promptType === 0 ? { prompt_type: 0 } : {})
     }, {
       optimistic: false,
       refreshAfterSave: true,

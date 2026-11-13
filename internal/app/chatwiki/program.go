@@ -73,7 +73,6 @@ func Stop() {
 func StartConsumer() {
 	common.RunTask(define.ConvertHtmlTopic, define.ConvertHtmlChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertHtml`]), business.ConvertHtml)
 	common.RunTask(define.ConvertVectorTopic, define.ConvertVectorChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertVector`]), business.ConvertVector)
-	common.RunTask(define.ConvertGraphTopic, define.ConvertGraphChannel, cast.ToUint(define.Config.ConsumerNum[`ConvertGraph`]), business.ConvertGraph)
 	common.RunTask(define.CrawlArticleTopic, define.CrawlArticleChannel, cast.ToUint(define.Config.ConsumerNum[`CrawlArticle`]), business.CrawlArticle)
 	common.RunTask(define.CrawlFeishuDocTopic, define.CrawlFeishuDocChannel, cast.ToUint(define.Config.ConsumerNum[`CrawlFeishuDoc`]), business.CrawlFeishuDoc)
 	common.RunTask(lib_define.AppPushMessage, lib_define.AppPushChannel, cast.ToUint(define.Config.ConsumerNum[`AppPushMessage`]), business.AppPush)
@@ -140,7 +139,6 @@ func PostgresTable() {
 	if insert {
 		CreateDefaultBaaiModel(userId)
 	}
-	common.SetNeo4jStatus(cast.ToInt(userId), cast.ToBool(define.Config.Neo4j["enabled"]))
 	InitRoleRootPermissions()
 	InitRoleUserPermissions()
 }

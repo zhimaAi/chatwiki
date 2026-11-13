@@ -131,15 +131,6 @@ export default {
           }
         },
         {
-          path: '/library/details/knowledge-graph',
-          name: 'knowledgeGraph',
-          component: () => import('@/views/library/knowledge-graph/index.vue'),
-          meta: {
-            title: 'routes.basic.knowledge_graph',
-            activeMenu: '/library'
-          }
-        },
-        {
           path: '/library/details/knowledge-config',
           name: 'knowledgeConfig',
           component: () => import('../views/library/library-details/knowledge-config/index.vue'),

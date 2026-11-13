@@ -137,6 +137,7 @@
                   :voice_content="item.voice_content"
                 />
               </div>
+              <PromptOptimizeButton v-if="item.msg_type == 1 && item.content && !item.loading && !item.startLoading" :robot="props.robotInfo" scene="conversation" :messageId="item.id" />
               <div class="message-footer">
                 <span class="message-time">{{ formatTime(item.create_time) }}</span>
               </div>
@@ -150,6 +151,7 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import { nextTick, ref, toRaw } from 'vue'
 import dayjs from 'dayjs'
 import { Empty } from 'ant-design-vue'

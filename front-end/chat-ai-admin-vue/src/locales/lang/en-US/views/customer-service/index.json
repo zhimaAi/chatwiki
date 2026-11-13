@@ -20,6 +20,8 @@
   "other_libraries_total": "{total} knowledge bases",
   "app_name": "AI Customer Service",
   "navigation": "Application Navigation",
+  "e2b_settings": "E2B Settings",
+  "e2b_description": "E2B provides an isolated, secure and reproducible cloud sandbox for Agents.",
   "chat": "Chat",
   "session_record": "Session Records",
   "channels": "Channels",

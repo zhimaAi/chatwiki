@@ -366,11 +366,6 @@
       @change="onChangeLibrarySelected"
     />
     <RecallSettingsAlert ref="recallSettingsAlertRef" @change="onChangeRecallSettings" />
-    <NoOpenGraphModal
-      ref="noOpenGraphModalRef"
-      :list="noOpenLibraryList"
-      @refreshList="getLibraryOptions"
-    />
     <AddToolModal
       v-model:visible="toolModalVisible"
       :robotId="currentAssistant?.id"
@@ -431,7 +426,6 @@ import GoodsRecommendScopeModal from '@/views/clawbot/skills/components/GoodsRec
 import LocalDocUploadModal from '@/views/clawbot/components/LocalDocUploadModal.vue'
 import LibrarySelectAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/library-select-alert.vue'
 import RecallSettingsAlert from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/recall-settings-alert.vue'
-import NoOpenGraphModal from '@/views/robot/robot-config/basic-config/components/associated-knowledge-base/no-open-graph-modal.vue'
 
 const { t } = useI18n('views.clawbot.skills.index')
 const props = defineProps({
@@ -475,7 +469,6 @@ const scopeModalVisible = ref(false)
 const libraryList = ref([])
 const librarySelectAlertRef = ref(null)
 const recallSettingsAlertRef = ref(null)
-const noOpenGraphModalRef = ref(null)
 const wxAppLibary = ref(null)
 
 const updateOverflowTooltip = (el, value) => {
@@ -532,13 +525,13 @@ const formState = reactive({
 
 const parseRrfWeight = (value) => {
   if (!value) {
-    return { vector: 0, search: 0, graph: 0 }
+    return { vector: 0, search: 0 }
   }
 
   try {
     return typeof value === 'string' ? JSON.parse(value) : value
   } catch {
-    return { vector: 0, search: 0, graph: 0 }
+    return { vector: 0, search: 0 }
   }
 }
 
@@ -567,10 +560,6 @@ const selectedLibraryRows = computed(() => {
 })
 
 const skills = computed(() => uploadedSkills.value)
-
-const noOpenLibraryList = computed(() => {
-  return selectedLibraryRows.value.filter((item) => item.graph_switch == 0)
-})
 
 watchEffect(() => {
   if (!robotInfo.value) {
@@ -960,10 +949,6 @@ const onChangeRecallSettings = (data) => {
   formState.recall_neighbor_before_num = data.recall_neighbor_before_num
   formState.recall_neighbor_after_num = data.recall_neighbor_after_num
   formState.library_search_type = data.library_search_type
-
-  if ((data.search_type == 1 || data.search_type == 4) && noOpenLibraryList.value.length > 0) {
-    noOpenGraphModalRef.value?.show()
-  }
 
   saveKnowledgeConfig()
 }

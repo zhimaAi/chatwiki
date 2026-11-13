@@ -51,22 +51,11 @@
           <a-select-option :value="-1">{{ t('select_all_embed_status') }}</a-select-option>
           <a-select-option v-for="(i, key) in listStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
         </a-select>
-        <a-select
-          v-if="detailsInfo.graph_switch"
-          v-model:value="filterData.graph_status"
-          :placeholder="t('ph_select')"
-          @change="search"
-          style="width: 160px"
-        >
-          <a-select-option :value="-1">{{ t('select_all_graph_status') }}</a-select-option>
-          <a-select-option v-for="(i, key) in graphStatusMap" :key="i" :value="key">{{ i }}</a-select-option>
-        </a-select>
         <a-button @click="showMetaModal">{{ t('btn_modify_metadata') }}</a-button>
         <a-dropdown>
           <template #overlay>
             <a-menu>
               <a-menu-item @click="reEmbeddingVectors">{{ t('btn_re_embed_vectors') }}</a-menu-item>
-              <a-menu-item v-if="detailsInfo.graph_switch" @click="reExtractingGraph">{{ t('btn_re_extract_graph') }}</a-menu-item>
               <a-menu-item @click="handleRenameModal">{{ t('btn_rename') }}</a-menu-item>
               <a-menu-item v-if="doc_type == 2" @click="showUpdateFrequen"
                 >{{ t('btn_set_update_frequency') }}</a-menu-item
@@ -302,7 +291,6 @@ import {
   getLibFileInfo,
   saveLibFileSplit,
   getParagraphList,
-  reconstructGraph,
   reconstructVector
 } from '@/api/library'
 import CuScroll from '@/components/cu-scroll/cu-scroll.vue'
@@ -315,26 +303,14 @@ import { useUserStore } from '@/stores/modules/user.js'
 import ReSegmentationPage from './components/re-segmentation-page.vue'
 import QaSubsectionBox from './components/qa-subsection-box.vue'
 import SelectStarBox from './components/selct-star-box.vue'
-import { useCompanyStore } from '@/stores/modules/company'
 import SegmentationSettingModal from './components/segmentation-setting-modal.vue'
 import MetadataManageModal from "@/views/library/library-details/components/metadata-manage-modal.vue";
-
-const companyStore = useCompanyStore()
-const neo4j_status = computed(()=>{
-  return companyStore.companyInfo?.neo4j_status == 'true'
-})
 
 const metaRef = ref(false)
 const isCollapsed = ref(false)
 const pdfRef = ref(null)
 const pdfLoadedPage = ref(0)
 const pdfTotalPage = ref(0)
-const graphStatusMap = {
-  0: t('status_pending_generation'),
-  4: t('status_generating'),
-  2: t('status_generation_success'),
-  3: t('status_generation_failed')
-}
 
 const startLists = ref([])
 const getStatrList = (data) => {
@@ -368,7 +344,6 @@ const detailsInfo = ref({})
 const metaList = ref([])
 const filterData = reactive({
   status: -1,
-  graph_status: -1,
   category_id: -1,
   search: '',
 })
@@ -506,7 +481,6 @@ const getFileInfo = async () => {
     library_type.value = res.data.library_type
     detailsInfo.value = {
       ...res.data,
-      graph_switch: res.data.graph_switch == '1' && neo4j_status.value
     }
     metaList.value = res?.data?.meta_list || []
     let status = res.data.status
@@ -628,7 +602,6 @@ const getParagraphLists = (callback = null) => {
     let isExcelQa = data.info?.is_qa_doc == '1' && data.info?.is_table_file == '1'
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
-      item.graph_status_text = graphStatusMap[item.graph_status]
       item.isExcelQa = isExcelQa
       if(item.similar_questions){
         item.similar_questions = JSON.parse(item.similar_questions)
@@ -687,7 +660,6 @@ const updataList = () => {
     let isExcelQa = data.info?.is_qa_doc == '1' && data.info?.is_table_file == '1'
     list.forEach((item) => {
       item.status_text = listStatusMap[item.status]
-      item.graph_status_text = graphStatusMap[item.graph_status]
       item.isExcelQa = isExcelQa
       if(item.similar_questions){
         item.similar_questions = JSON.parse(item.similar_questions)
@@ -777,9 +749,6 @@ const reEmbeddingVectors = () => {
   reconstructVector({ id: route.query.id }).then(() => message.success(t('msg_operation_completed')))
 }
 
-const reExtractingGraph = () => {
-  reconstructGraph({ id: route.query.id }).then(() => message.success(t('msg_operation_completed')))
-}
 const renameModalRef = ref(null)
 const handleRenameModal = () => {
   renameModalRef.value.show(detailsInfo.value)
@@ -1251,10 +1220,6 @@ function showMetaModal() {
 
 onMounted(() => {
   getParagraphCountFn()
-  if (route.query.graph_status) {
-    filterData.graph_status = route.query.graph_status
-    search()
-  }
 })
 </script>
 

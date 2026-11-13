@@ -86,12 +86,12 @@ const handleTagChange = () => {
 const handleDateChange = (dates, dateStrings) => {
   const startDate = dayjs(dates[0]);
   const endDate = dayjs(dates[1]);
-  if (endDate.diff(startDate, 'days') > 29) {
+  if (endDate.diff(startDate, 'days') > 30) {
     range.value[0] = dates[0];
-    range.value[1] = startDate.add(29, 'days')
+    range.value[1] = startDate.add(30, 'days')
     start_time.value = range.value[0].format('YYYY-MM-DD')
     end_time.value = range.value[1].format('YYYY-MM-DD')
-    message.error(t('error_max_30_days'))
+    message.error(t('error_max_31_days'))
   } else {
     range.value = dates
     start_time.value = dateStrings[0]

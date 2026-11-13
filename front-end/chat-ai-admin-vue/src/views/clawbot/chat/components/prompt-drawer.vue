@@ -40,7 +40,15 @@
     <div class="prompt-card">
       <div class="prompt-card-header">
         <span class="prompt-label">{{ t('label_prompt') }}</span>
+        <div class="prompt-insert-tip">{{ promptWordsT('msg_var_insert_tip_custom') }}</div>
         <div class="prompt-actions">
+          <PromptOptimizeButton
+            v-if="props.open && !props.loading"
+            appearance="persona"
+            :robot="props.robot"
+            save-mode="draft"
+            :onSave="applyOptimizedPromptDraft"
+          />
           <template v-if="editing">
             <button class="action-btn action-btn-cancel" type="button" :disabled="props.loading" @click="handleCancelEdit">
               {{ t('btn_cancel') }}
@@ -57,7 +65,6 @@
         </div>
       </div>
 
-      <div v-if="editing" class="prompt-insert-tip">{{ promptWordsT('msg_var_insert_tip_custom') }}</div>
       <div class="prompt-content-box" :class="{ editing, 'is-disabled': !editing || props.loading }">
         <AtInput
           ref="atInputRef"
@@ -93,6 +100,7 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -110,6 +118,7 @@ const { t: promptWordsT } = useI18n('views.robot.robot-config.basic-config.compo
 const emit = defineEmits(['close', 'save'])
 
 const props = defineProps({
+  robot: { type: Object, default: () => ({}) },
   open: {
     type: Boolean,
     default: false
@@ -195,6 +204,7 @@ onBeforeUnmount(() => {
 
 const editing = ref(false)
 const draftPrompt = ref('')
+const draftPromptType = ref(undefined)
 const atInputRef = ref(null)
 const addVariableModalRef = ref(null)
 const miniCardFormModalRef = ref(null)
@@ -249,6 +259,7 @@ watch(
   ([open]) => {
     variableRequestVersion++
     chatVariables.value = []
+    draftPromptType.value = undefined
     if (open) {
       editing.value = false
       draftPrompt.value = props.prompt || ''
@@ -279,14 +290,26 @@ const handleClose = () => {
     return
   }
   editing.value = false
+  draftPromptType.value = undefined
   draftPrompt.value = props.prompt || ''
   emit('close')
 }
 
 const handleStartEdit = () => {
+  if (props.loading) return
+  draftPromptType.value = undefined
   draftPrompt.value = props.prompt || ''
   editing.value = true
   nextTick(() => atInputRef.value?.refresh())
+}
+
+const applyOptimizedPromptDraft = (prompt) => {
+  if (!props.open || props.loading) return false
+  editing.value = true
+  draftPrompt.value = prompt
+  draftPromptType.value = 0
+  nextTick(() => atInputRef.value?.refresh())
+  return true
 }
 
 const handlePromptChange = (text) => {
@@ -309,12 +332,14 @@ const handleCancelEdit = () => {
     return
   }
   editing.value = false
+  draftPromptType.value = undefined
   draftPrompt.value = props.prompt || ''
 }
 
 const handleSave = () => {
+  if (!editing.value || props.loading) return
   atInputRef.value?.updateValue()
-  emit('save', draftPrompt.value)
+  emit('save', draftPrompt.value, draftPromptType.value)
 }
 </script>
 
@@ -387,9 +412,11 @@ const handleSave = () => {
 .prompt-card-header {
   display: flex;
   flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
   padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .prompt-label {
@@ -402,6 +429,7 @@ const handleSave = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .action-btn {
@@ -411,7 +439,7 @@ const handleSave = () => {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #2475fc;
+  color: #666;
   font-size: 14px;
   line-height: 22px;
   cursor: pointer;
@@ -429,10 +457,10 @@ const handleSave = () => {
 .prompt-content-box {
   flex: 1;
   min-height: 0;
-  margin: 0 16px 16px;
+  margin: 0;
   position: relative;
   border-radius: 8px;
-  background: #f2f4f7;
+  background: #fff;
   overflow: hidden;
   &.editing {
     padding: 0;
@@ -454,7 +482,7 @@ const handleSave = () => {
     box-sizing: border-box;
     border: none;
     padding: 12px 16px;
-    background: #f2f4f7;
+    background: #fff;
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior-y: contain;
@@ -484,7 +512,7 @@ const handleSave = () => {
 
 .prompt-insert-tip {
   flex-shrink: 0;
-  margin: 0 16px 8px;
+  margin: 0;
   color: #8c8c8c;
   font-size: 12px;
 }

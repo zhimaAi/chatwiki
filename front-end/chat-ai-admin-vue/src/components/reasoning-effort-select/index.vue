@@ -1,13 +1,18 @@
 <template>
-  <div class="reasoning-effort-select" @keydown.capture="handleKeydown">
+  <div class="reasoning-effort-select" :class="{ 'is-compact': compact }" @keydown.capture="handleKeydown">
+    <span v-if="compact" class="effort-sizer" aria-hidden="true">{{ inputValue || displayValue }}</span>
     <a-auto-complete
       :value="inputValue"
       :open="dropdownOpen"
       :options="options"
+      :bordered="!compact"
+      :show-arrow="compact || undefined"
+      :size="compact ? 'small' : undefined"
       :dropdown-match-select-width="120"
       :default-active-first-option="false"
       :status="invalid ? 'error' : undefined"
       :placeholder="t('ph_select_or_input')"
+      :aria-label="compact ? t('ph_select_or_input') : undefined"
       :allow-clear="false"
       @search="handleSearch"
       @change="draftValue = $event"
@@ -15,17 +20,23 @@
       @dropdownVisibleChange="handleDropdownVisibleChange"
       @focus="handleFocus"
       @blur="handleBlur"
-    />
+    >
+      <template v-if="compact" #suffixIcon><DownOutlined aria-hidden="true" /></template>
+    </a-auto-complete>
     <div v-if="invalid" class="error-text">{{ t('error_max_length') }}</div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { DownOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { REASONING_EFFORTS, isValidReasoningEffort } from '@/utils/reasoning-effort'
 
-const props = defineProps({ value: { type: String, default: 'none' } })
+const props = defineProps({
+  value: { type: String, default: 'none' },
+  compact: Boolean
+})
 const emit = defineEmits(['update:value', 'change'])
 const { t } = useI18n('components.reasoning-effort-select.index')
 const draftValue = ref('')
@@ -117,5 +128,33 @@ const confirmValue = (value) => {
 .reasoning-effort-select { min-width: 0; width: 120px; max-width: 100%; }
 .reasoning-effort-select :deep(.ant-select) { width: 100%; }
 .reasoning-effort-select :deep(.ant-select-selection-search-input) { text-overflow: ellipsis; }
+.reasoning-effort-select.is-compact {
+  position: relative;
+  width: max-content;
+  min-width: 80px;
+  max-width: 120px;
+}
+.effort-sizer {
+  display: block;
+  height: 24px;
+  padding-inline: 6px 22px;
+  visibility: hidden;
+  white-space: pre;
+  overflow: hidden;
+}
+.reasoning-effort-select.is-compact :deep(.ant-select) {
+  position: absolute;
+  inset: 0 0 auto;
+  color: inherit;
+  font-size: inherit;
+}
+.reasoning-effort-select.is-compact :deep(.ant-select.ant-select-show-arrow .ant-select-selection-search) {
+  inset-inline: 4px 20px;
+}
+.reasoning-effort-select.is-compact :deep(.ant-select-arrow) {
+  inset-inline-end: 4px;
+  color: inherit;
+  font-size: 10px;
+}
 .error-text { color: #ff4d4f; font-size: 12px; }
 </style>

@@ -20,8 +20,8 @@ import CustomerPageHeader from '../components/page-header.vue'
 const { t } = useI18n('views.customer-service.index')
 const context = inject('customerRobotContext')
 const MIN_PREVIEW_WIDTH = 360
-const MAX_PREVIEW_WIDTH = 460
-const DEFAULT_PREVIEW_WIDTH = 400
+const MAX_PREVIEW_WIDTH = 500
+const DEFAULT_PREVIEW_WIDTH = 460
 const PREVIEW_WIDTH_KEY = 'customer_service_basic_preview_width'
 const clampWidth = width => Math.max(MIN_PREVIEW_WIDTH, Math.min(MAX_PREVIEW_WIDTH, width))
 function readPreviewWidth() {

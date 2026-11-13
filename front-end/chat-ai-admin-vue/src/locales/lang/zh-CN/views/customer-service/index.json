@@ -20,6 +20,8 @@
   "other_libraries_total": "共 {total} 个知识库",
   "app_name": "AI客服",
   "navigation": "应用导航",
+  "e2b_settings": "E2B设置",
+  "e2b_description": "E2B 用于为 Agent 提供隔离、安全、可复现的云端沙箱运行环境。",
   "chat": "对话",
   "session_record": "会话记录",
   "channels": "渠道接入",

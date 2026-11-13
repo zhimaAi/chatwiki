@@ -20,7 +20,10 @@
           aria-haspopup="dialog"
           aria-controls="customer-service-app-picker"
         >
-          <img class="brand-logo" :src="currentRobot?.avatar || systemLogo" alt="" />
+          <span class="brand-avatar">
+            <img class="brand-logo" :src="currentRobot?.avatar || systemLogo" alt="" />
+            <span v-if="isAgent" class="agent-label">Agent</span>
+          </span>
           <span class="brand-app-name" :title="currentRobot?.name || t('app_name')">{{ currentRobot?.name || t('app_name') }}</span>
           <span class="brand-caret" aria-hidden="true"><img :src="arrowDownIcon" alt="" /></span>
         </button>
@@ -66,9 +69,8 @@
           :aria-current="selectedKey === item.key ? 'page' : undefined"
           @click="emit('navigate', item.key)"
         >
-          <svg-icon v-if="isAgent" :name="item.icon" size="16px" />
-          <img v-else class="menu-icon" :src="menuIcons[item.key]" alt="" />
-          <span class="menu-label">{{ isAgent ? agentT(item.titleKey) : t(item.titleKey) }}</span>
+          <img class="menu-icon" :src="menuIcons[item.key]" alt="" />
+          <span class="menu-label">{{ t(item.titleKey) }}</span>
         </button>
       </template>
     </nav>
@@ -104,12 +106,11 @@ const props = defineProps({
 })
 const emit = defineEmits(['navigate', 'robot-change', 'retry-robots', 'robot-removed', 'robot-created'])
 const { t } = useI18n('views.customer-service.index')
-const { t: agentT } = useI18n('views.clawbot.components.left-sidebar')
 const route = useRoute()
 const menuItems = computed(() => {
   if (!props.isAgent) return CUSTOMER_SERVICE_MENU_ITEMS
   return CUSTOMER_SERVICE_AGENT_MENU_ITEMS.filter((item) =>
-    getRobotPermission(props.currentRobot?.id) !== 1 || ['chat', 'assistant', 'stats'].includes(item.key)
+    getRobotPermission(props.currentRobot?.id) !== 1 || ['chat', 'analytics'].includes(item.key)
   )
 })
 const selectedKey = computed(() => props.selectedKey || route.meta.customerServiceMenuKey)
@@ -191,6 +192,8 @@ watch(() => route.meta.customerServiceGroupKey, (groupKey) => {
     outline-offset: 2px;
   }
 }
+.brand-avatar { position: relative; flex-shrink: 0; }
+.agent-label { position: absolute; bottom: -5px; left: 0; width: 100%; border-radius: 3px; background: #f3e8ff; color: #722ed1; font-size: 9px; line-height: 12px; text-align: center; }
 .brand-logo {
   display: block;
   flex-shrink: 0;
@@ -200,11 +203,17 @@ watch(() => route.meta.customerServiceGroupKey, (groupKey) => {
   object-fit: contain;
 }
 .brand-app-name {
+  display: -webkit-box;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 13px;
+  line-height: 20px;
 }
 .brand-caret {
   display: flex;

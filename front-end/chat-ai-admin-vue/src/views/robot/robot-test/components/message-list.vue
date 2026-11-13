@@ -657,6 +657,7 @@
               <div v-if="item.voice_content && item.voice_content.length && !isWorkFlowFinishReplyList(item.reply_content_list)">
                 <VoiceMessage :voice_content="item.voice_content" />
               </div>
+              <PromptOptimizeButton v-if="item.content && !item.loading && !item.startLoading" :robot="props.robotInfo" scene="conversation" :messageId="item.id" />
               <GuessYouWant
                 v-if="
                   ((item.guess_you_want && item.guess_you_want.length) ||
@@ -677,6 +678,7 @@
 </template>
 
 <script setup>
+import PromptOptimizeButton from '@/components/prompt-optimize/button.vue'
 import { ref, nextTick, toRaw, computed } from 'vue'
 import { LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import CherryMarkdown from '@/components/cherry-markdown/index.vue'
