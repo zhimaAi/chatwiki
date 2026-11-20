@@ -149,12 +149,14 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     user.name = data.name || ''
     user.nickname = data.nickname || ''
 
+    const robotSnapshot = clawbotStore.robotInfo
     const res = await chatWelcome({
       robot_key: data.robot_key,
       openid: openid.value,
       nickname: user.nickname,
       name: user.name,
       is_background: data.is_background || undefined,
+      is_draft: 1,
       dialogue_id: dialogue_id.value,
     })
 
@@ -176,8 +178,8 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
     if (!normalizedWelcomes.content && !normalizedWelcomes.question.length) {
       delete nextRobotData.welcomes
     }
-    // 将 chatWelcome 返回的 robot 数据合并回 clawbotStore，避免部分字段覆盖完整详情
-    clawbotStore.updateRobotInfo(nextRobotData)
+    // 仅合并到请求时的配置快照，避免旧欢迎响应覆盖保存或刷新后的草稿。
+    if (clawbotStore.robotInfo === robotSnapshot) clawbotStore.updateRobotInfo(nextRobotData)
 
     setTimeout(() => {
       if (requestCreateSeq !== chatCreateSeq) {
@@ -351,7 +353,8 @@ export const useClawbotChatStore = defineStore('clawbotChat', () => {
       question: data.message,
       form_ids: robot.value.form_ids,
       dialogue_id: dialogue_id.value,
-      global: data.global
+      global: data.global,
+      is_draft: 1
     }
 
     let variables_key = `chat_prompt_variables_${robot.value.robot_key}`

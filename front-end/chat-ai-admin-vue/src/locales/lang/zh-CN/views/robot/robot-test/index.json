@@ -1,12 +1,14 @@
 {
   "breadcrumb_robot_management": "机器人管理",
   "btn_new_chat": "新建对话",
+  "tab_published_version": "已发布版本",
+  "tab_draft_version": "草稿版本",
   "title_form_info": "表单信息",
   "btn_edit": "编辑",
   "msg_please_input_message": "请输入消息内容",
   "msg_sensitive_words": "提交的内容包含敏感词：[{words}] 请修改后再提交",
   "confirm_save_prompt": "确定保存提示词吗?",
-  "confirm_save_prompt_content": "如果您已对外提供本机器人，保存后修改的提示问也会立刻生效。如果您只是想要测试优化提示词的效果，直接修改后测试即可，无需保存。",
+  "confirm_save_prompt_content": "提示词将保存为草稿，发布后才会对外生效。",
   "success_save": "保存成功",
   "ai_generated_disclaimer": "内容由AI生成，仅供参考"
 }

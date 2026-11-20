@@ -42,5 +42,9 @@
   "message_learning_preview": "Learning, cannot preview",
   "message_fetching": "Fetching, cannot preview",
   "message_fetch_failed": "Fetch failed, cannot preview",
-  "message_segmenting": "Segmenting, cannot preview"
+  "message_segmenting": "Segmenting, cannot preview",
+  "failure_reason": "Failure reason: ",
+  "failure_suggestion": "Suggestion: ",
+  "failure_unknown": "Unknown failure reason",
+  "failure_unknown_suggestion": "If the problem persists, contact your administrator with the document name and import time."
 }

@@ -1,11 +1,14 @@
 <template>
   <section class="basic-page">
-    <CustomerPageHeader :title="t('basic_settings')"><a-tag v-if="context.saving.value" color="processing">{{ t('saving') }}</a-tag></CustomerPageHeader>
+    <CustomerPageHeader :title="t('basic_settings')">
+      <a-tag v-if="context.saving.value" color="processing">{{ t('saving') }}</a-tag>
+      <template #extra><DraftActions :robot-info="context.robotInfo" :saving="context.saving.value" v-model:busy="context.draftBusy.value" :refresh="refreshAfterDraftAction" /></template>
+    </CustomerPageHeader>
     <div class="basic-columns" :class="{ resizing: isResizing }">
-      <div class="settings"><BasicConfig variant="workspace" /></div>
+      <div class="settings" :inert="context.draftBusy.value ? '' : null"><BasicConfig :key="configRevision" variant="workspace" /></div>
       <div id="basic-settings-preview" class="preview" :style="{ width: `${previewWidth}px` }">
         <div class="preview-divider" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="basic-settings-preview" :aria-label="t('resize_preview')" :aria-valuemin="MIN_PREVIEW_WIDTH" :aria-valuemax="MAX_PREVIEW_WIDTH" :aria-valuenow="previewWidth" @pointerdown="startResize" @keydown="resizeWithKeyboard" @dblclick.prevent="previewWidth = DEFAULT_PREVIEW_WIDTH" />
-        <ChatPreview />
+        <ChatPreview :reset-key="configRevision" />
       </div>
     </div>
   </section>
@@ -17,8 +20,20 @@ import { useI18n } from '@/hooks/web/useI18n'
 import BasicConfig from '@/views/robot/robot-config/basic-config/index.vue'
 import ChatPreview from './chat-preview.vue'
 import CustomerPageHeader from '../components/page-header.vue'
+import DraftActions from '@/views/robot/robot-config/basic-config/components/draft-actions.vue'
+import { useRobotStore } from '@/stores/modules/robot'
 const { t } = useI18n('views.customer-service.index')
 const context = inject('customerRobotContext')
+const robotStore = useRobotStore()
+const configRevision = ref(0)
+async function refreshAfterDraftAction(id, key) {
+  if (String(context.robotInfo.id) !== String(id) || context.robotInfo.robot_key !== key) return false
+  const response = await context.refreshRobot({ resetSaveError: true })
+  if (!response) return false
+  configRevision.value++
+  robotStore.getRobotLists()
+  return true
+}
 const MIN_PREVIEW_WIDTH = 360
 const MAX_PREVIEW_WIDTH = 500
 const DEFAULT_PREVIEW_WIDTH = 460

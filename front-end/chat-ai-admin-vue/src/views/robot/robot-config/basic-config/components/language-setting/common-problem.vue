@@ -146,6 +146,7 @@ import { languageMapList } from './languageMap'
 import { useRobotStore } from '@/stores/modules/robot'
 import { saveRobotLangConfigs } from '@/api/robot/index'
 const customerContext = inject('customerRobotContext', null)
+const draftContext = inject('robotDraftContext', null)
 
 import { useI18n } from '@/hooks/web/useI18n'
 
@@ -332,13 +333,12 @@ const handleSave = () => {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
-  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) show.value = false })
-  saveRobotLangConfigs(parmas).then(() => {
+  const context = customerContext || draftContext
+  if (context) return context.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) show.value = false })
+  saveRobotLangConfigs(parmas).then(async () => {
+    await robotStore.getRobot(robotStore.robotInfo.id)
     message.success('保存成功')
     show.value = false
-    setTimeout(() => {
-      robotStore.getRobot(robotStore.robotInfo.id)
-    }, 200)
   })
 }
 const handleChangeStatus = (val) => {

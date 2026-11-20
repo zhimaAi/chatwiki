@@ -1,1 +1,16 @@
-{"tab_basic_config": "基础配置", "tab_permission_management": "权限管理", "tab_common_questions": "常见问题", "msg_save_success": "保存成功"}
+{
+  "tab_basic_config": "基础配置",
+  "tab_permission_management": "权限管理",
+  "tab_common_questions": "常见问题",
+  "msg_save_success": "保存成功",
+  "label_published_time": "上次发布时间：{time}",
+  "msg_unpublished_changes": "当前修改未发布，发布后生效",
+  "btn_undo_changes": "撤销更改",
+  "btn_publish": "发布",
+  "btn_confirm": "确定",
+  "btn_cancel": "取消",
+  "confirm_undo_changes": "确定撤销更改吗？",
+  "confirm_undo_description": "撤销后机器人设置将恢复到上一个已发布版本",
+  "msg_publish_success": "发布成功",
+  "msg_undo_success": "已撤销更改"
+}

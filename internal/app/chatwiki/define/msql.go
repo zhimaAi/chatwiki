@@ -16,6 +16,7 @@ const (
 	TableChatAiRobotApikey      = "chat_ai_robot_apikey"
 	TableRule                   = "casbin_rule"
 	TableChatAiWechatApp        = "chat_ai_wechat_app"
+	TableChatAiRobotDraft       = "chat_ai_robot_draft"
 	TableUseGuideProcess        = "use_guide_process"
 	TableChatClawTokenLog       = "chatclaw_token_log"
 	TableChatAiClawbotSkill     = "chat_ai_clawbot_skill"

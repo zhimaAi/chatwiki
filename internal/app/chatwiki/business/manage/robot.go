@@ -537,7 +537,6 @@ func SaveRobot(c *gin.Context) {
 	}
 	//data check
 	var robotKey string
-	var beforeRobot msql.Params //for config change log
 	m := msql.Model(`chat_ai_robot`, define.Postgres)
 	if id > 0 {
 		robotKey, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Value(`robot_key`)
@@ -549,11 +548,6 @@ func SaveRobot(c *gin.Context) {
 		if len(robotKey) == 0 {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 			return
-		}
-		//snapshot before update for config change log
-		beforeRobot, err = msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
-		if err != nil {
-			logs.Error(err.Error())
 		}
 	} else {
 		// check max robot num
@@ -602,8 +596,11 @@ func SaveRobot(c *gin.Context) {
 		}
 		libraryIds = strings.Join(validLibraryIds, `,`)
 	}
-	if normalID := beforeRobot["normal_library_id"]; cast.ToInt(normalID) > 0 && !tool.InArrayString(normalID, strings.Split(libraryIds, ",")) {
-		common.FmtError(c, "default_library_remove")
+	// normal library check
+	normalLibraryId, _ := msql.Model(`chat_ai_robot`, define.Postgres).Where(`admin_user_id`, cast.ToString(userId)).
+		Where(`id`, cast.ToString(id)).Value(`normal_library_id`)
+	if cast.ToInt(normalLibraryId) > 0 && !tool.InArrayString(normalLibraryId, strings.Split(libraryIds, `,`)) {
+		common.FmtError(c, `default_library_remove`)
 		return
 	}
 
@@ -685,8 +682,6 @@ func SaveRobot(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_invalid`, "mixture_qa_direct_reply_score"))))
 		return
 	}
-	maxSortNum, _ := GetMaxRobotNum(userId)
-
 	//check common_questions
 	commonQuestionList, err = common.CheckCommonQuestionJson(c, commonQuestionList)
 	if err != nil {
@@ -766,8 +761,6 @@ func SaveRobot(c *gin.Context) {
 		`prompt_role_type`:                      promptRoleType,
 		`tips_before_answer_switch`:             tipsBeforeAnswerSwitch,
 		`tips_before_answer_content`:            tipsBeforeAnswerContent,
-		`is_top`:                                0,
-		`sort_num`:                              maxSortNum + 1,
 		`meta_search_switch`:                    metaSearchSwitch,
 		`meta_search_type`:                      metaSearchType,
 		`meta_search_condition_list`:            metaSearchConditionList,
@@ -796,15 +789,41 @@ func SaveRobot(c *gin.Context) {
 	}
 
 	if id > 0 {
-		_, err = m.Where(`id`, cast.ToString(id)).Update(data)
+		// linked libraries (including linked forms) bypass the draft and take effect immediately
+		relationData := msql.Datas{`update_time`: data[`update_time`]}
+		for _, key := range []string{`library_ids`, `form_ids`} {
+			if val, ok := data[key]; ok {
+				relationData[key] = val
+				delete(data, key)
+			}
+		}
+		if len(relationData) > 1 {
+			if _, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Update(relationData); err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+		}
+		draftRobot := make(msql.Params, len(data))
+		for key, val := range data {
+			if tool.InArrayString(key, common.RobotNonDraftFields) {
+				continue
+			}
+			draftRobot[key] = cast.ToString(val)
+		}
+		err = common.SaveRobotDraftRobotConfig(userId, int(id), draftRobot)
 		if err == nil && opTypeRelationLibrary > 0 && isDefault == define.NotDefault {
 			_ = common.SetStepFinish(userId, define.StepRelationLibrary)
 		}
-		if err == nil {
-			//record config change log
-			common.SaveRobotConfigChangeLog(common.GetLang(c), userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleRobotSetting, beforeRobot, data)
-		}
 	} else {
+		minSortNum, sortErr := GetMinRobotNum(userId)
+		if sortErr != nil {
+			logs.Error(sortErr.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+		data[`is_top`] = 0
+		data[`sort_num`] = minSortNum - 1
 		for i := 0; i < 5; i++ {
 			tempKey := tool.Random(10)
 			if robot, e := common.GetRobotInfo(tempKey); e == nil && len(robot) == 0 {
@@ -823,6 +842,7 @@ func SaveRobot(c *gin.Context) {
 		data[`admin_user_id`] = userId
 		data[`robot_key`] = robotKey
 		data[`create_time`] = data[`update_time`]
+		data[`published_time`] = data[`update_time`]
 		data[`creator`] = loginUserId
 		data[`group_id`] = groupId
 		data[`is_default`] = isDefault
@@ -862,7 +882,8 @@ func SaveRobot(c *gin.Context) {
 	//clear cached data
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
 	common.ClearMCPServerCache(userId)
-	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+	info, _ := common.GetRobotInfo(robotKey)
+	c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
 }
 
 // save robot multi lang config
@@ -886,11 +907,6 @@ func SaveRobotLangConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	beforeLangConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(id))
-	if err != nil {
-		logs.Error(err.Error())
-		beforeLangConfigs = nil
-	}
 	langKey := common.NormalizeRobotLangKey(c.PostForm(`lang_key`))
 	if len(strings.TrimSpace(c.PostForm(`lang_key`))) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -906,27 +922,13 @@ func SaveRobotLangConfig(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	if err = common.SaveRobotMultilingualConfig(userId, cast.ToInt(id), langConfig); err != nil {
+	if err = common.SaveRobotDraftLangConfigs(userId, cast.ToInt(id), []common.RobotMultilingualConfig{langConfig}); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
 	}
-	//sync ch config to robot_info
-	if err = syncRobotLegacyFieldsByLangConfig(userId, id, langConfig); err != nil {
-		logs.Error(err.Error())
-		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-		return
-	}
-	//record config change log
-	langRobotInfo, err := common.GetRobotInfo(robotKey)
-	if err != nil {
-		logs.Error(err.Error())
-	}
-	lang := common.GetLang(c)
-	common.SaveRobotConfigChangeLogDetail(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleLangConfig, cast.ToInt(langRobotInfo[`application_type`]),
-		buildRobotLangConfigChangeDetails(lang, beforeLangConfigs, []common.RobotMultilingualConfig{langConfig}))
-	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
-	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+	info, _ := common.GetRobotInfo(robotKey)
+	c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
 }
 
 // save robot multi lang configs
@@ -950,11 +952,6 @@ func SaveRobotLangConfigs(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
 		return
 	}
-	beforeLangConfigs, err := common.GetRobotMultilingualConfigList(cast.ToInt(id))
-	if err != nil {
-		logs.Error(err.Error())
-		beforeLangConfigs = nil
-	}
 	raw := strings.TrimSpace(c.PostForm(`multi_lang_configs`))
 	if len(raw) == 0 {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
@@ -972,28 +969,161 @@ func SaveRobotLangConfigs(c *gin.Context) {
 			c.String(http.StatusOK, lib_web.FmtJson(nil, buildErr))
 			return
 		}
-		if err = common.SaveRobotMultilingualConfig(userId, cast.ToInt(id), langConfig); err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
-		if err = syncRobotLegacyFieldsByLangConfig(userId, id, langConfig); err != nil {
-			logs.Error(err.Error())
-			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
-			return
-		}
 		nextLangConfigs = append(nextLangConfigs, langConfig)
 	}
-	//record config change log
-	langRobotInfo, err := common.GetRobotInfo(robotKey)
+	if err = common.SaveRobotDraftLangConfigs(userId, cast.ToInt(id), nextLangConfigs); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	info, _ := common.GetRobotInfo(robotKey)
+	c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
+}
+
+// publish robot draft config
+func PublishRobot(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt64(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	robotKey, err := getRobotKeyById(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	draft, _, err := common.GetRobotDraft(cast.ToInt(id))
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if draft == nil || (len(draft.Robot) == 0 && len(draft.LangConfigs) == 0) {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	//snapshot published config before applying the draft for config change log
+	beforeRobot, err := msql.Model(`chat_ai_robot`, define.Postgres).Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Find()
 	if err != nil {
 		logs.Error(err.Error())
 	}
-	lang := common.GetLang(c)
-	common.SaveRobotConfigChangeLogDetail(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleLangConfig, cast.ToInt(langRobotInfo[`application_type`]),
-		buildRobotLangConfigChangeDetails(lang, beforeLangConfigs, nextLangConfigs))
+	var beforeLangConfigs []msql.Params
+	if len(draft.LangConfigs) > 0 {
+		beforeLangConfigs, err = common.GetRobotMultilingualConfigList(cast.ToInt(id))
+		if err != nil {
+			logs.Error(err.Error())
+			beforeLangConfigs = nil
+		}
+	}
+	now := tool.Time2Int()
+	m := msql.Model(`chat_ai_robot`, define.Postgres)
+	appliedRobot := make(msql.Datas)
+	if len(draft.Robot) > 0 {
+		immutableKeys := append([]string{
+			`id`, `robot_key`, `admin_user_id`, `create_time`, `creator`, `published_time`,
+			`is_default`, `application_type`, `start_node_key`,
+			`work_flow_model_config_ids`,
+			`work_flow_ids`, `library_ids`, `form_ids`, `default_library_id`,
+		}, common.RobotNonDraftFields...)
+		for key, val := range draft.Robot {
+			if tool.InArrayString(key, immutableKeys) {
+				continue
+			}
+			appliedRobot[key] = val
+		}
+	}
+	if len(appliedRobot) > 0 {
+		appliedRobot[`update_time`] = now
+		appliedRobot[`published_time`] = now
+		_, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).Update(appliedRobot)
+	} else {
+		_, err = m.Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(userId)).
+			Update(msql.Datas{`published_time`: now})
+	}
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(draft.LangConfigs) > 0 {
+		if err = common.SaveRobotMultilingualConfigs(userId, cast.ToInt(id), draft.LangConfigs); err != nil {
+			logs.Error(err.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		for _, one := range draft.LangConfigs {
+			if err = syncRobotLegacyFieldsByLangConfig(userId, id, one); err != nil {
+				logs.Error(err.Error())
+				c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+				return
+			}
+		}
+	}
+	if err = common.DeleteRobotDraft(cast.ToInt(id)); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	//record config change log on publish
+	if len(beforeRobot) > 0 {
+		lang := common.GetLang(c)
+		if len(appliedRobot) > 0 {
+			afterRobot := make(msql.Datas, len(appliedRobot))
+			for key, val := range appliedRobot {
+				if tool.InArrayString(key, []string{`update_time`, `published_time`}) {
+					continue
+				}
+				afterRobot[key] = val
+			}
+			common.SaveRobotConfigChangeLog(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleRobotSetting, beforeRobot, afterRobot)
+		}
+		if len(draft.LangConfigs) > 0 {
+			common.SaveRobotConfigChangeLogDetail(lang, userId, getLoginUserId(c), id, robotKey, common.RobotChangeModuleLangConfig, cast.ToInt(beforeRobot[`application_type`]),
+				buildRobotLangConfigChangeDetails(lang, beforeLangConfigs, draft.LangConfigs))
+		}
+	}
 	lib_redis.DelCacheData(define.Redis, &common.RobotCacheBuildHandler{RobotKey: robotKey})
-	c.String(http.StatusOK, lib_web.FmtJson(common.GetRobotInfo(robotKey)))
+	info, _ := common.GetRobotInfo(robotKey)
+	c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
+}
+
+// undo robot draft config
+func UndoRobotDraft(c *gin.Context) {
+	var userId int
+	if userId = GetAdminUserId(c); userId == 0 {
+		return
+	}
+	id := cast.ToInt64(c.PostForm(`id`))
+	if id <= 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `param_lack`))))
+		return
+	}
+	robotKey, err := getRobotKeyById(userId, id)
+	if err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	if len(robotKey) == 0 {
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `no_data`))))
+		return
+	}
+	if err = common.DeleteRobotDraft(cast.ToInt(id)); err != nil {
+		logs.Error(err.Error())
+		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+		return
+	}
+	info, _ := common.GetRobotInfo(robotKey)
+	c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
 }
 
 func buildRobotLangConfigChangeDetails(lang string, before []msql.Params, after []common.RobotMultilingualConfig) []common.RobotChangeDetailItem {
@@ -1077,17 +1207,29 @@ func buildRobotMultilingualConfigForSave(c *gin.Context, robotId int64, langKey 
 
 	base := common.RobotMultilingualConfig{LangKey: langKey}
 	if robotId > 0 {
-		exist, err := common.GetRobotMultilingualConfig(cast.ToInt(robotId), langKey)
-		if err != nil {
-			return common.RobotMultilingualConfig{}, err
+		baseFromDraft := false
+		if draft, _, draftErr := common.GetRobotDraft(cast.ToInt(robotId)); draftErr == nil && draft != nil {
+			for _, one := range draft.LangConfigs {
+				if common.NormalizeRobotLangKey(one.LangKey) == langKey {
+					base = one
+					baseFromDraft = true
+					break
+				}
+			}
 		}
-		if len(exist) > 0 {
-			base.Welcomes = exist[`welcomes`]
-			base.UnknownQuestionPrompt = exist[`unknown_question_prompt`]
-			base.TipsBeforeAnswerSwitch = cast.ToBool(exist[`tips_before_answer_switch`])
-			base.TipsBeforeAnswerContent = exist[`tips_before_answer_content`]
-			base.EnableCommonQuestion = cast.ToBool(exist[`enable_common_question`])
-			base.CommonQuestionList = exist[`common_question_list`]
+		if !baseFromDraft {
+			exist, err := common.GetRobotMultilingualConfig(cast.ToInt(robotId), langKey)
+			if err != nil {
+				return common.RobotMultilingualConfig{}, err
+			}
+			if len(exist) > 0 {
+				base.Welcomes = exist[`welcomes`]
+				base.UnknownQuestionPrompt = exist[`unknown_question_prompt`]
+				base.TipsBeforeAnswerSwitch = cast.ToBool(exist[`tips_before_answer_switch`])
+				base.TipsBeforeAnswerContent = exist[`tips_before_answer_content`]
+				base.EnableCommonQuestion = cast.ToBool(exist[`enable_common_question`])
+				base.CommonQuestionList = exist[`common_question_list`]
+			}
 		}
 	}
 	if len(base.Welcomes) == 0 || len(base.UnknownQuestionPrompt) == 0 || len(base.TipsBeforeAnswerContent) == 0 || len(base.CommonQuestionList) == 0 {
@@ -1232,7 +1374,12 @@ func AddFlowRobot(c *gin.Context) {
 	if len(robotAvatarUrl) > 0 {
 		robotAvatar = robotAvatarUrl
 	}
-	maxSortNum, _ := GetMaxRobotNum(userId)
+	minSortNum, err := GetMinRobotNum(userId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
 	//format check
 	welcomes, _ := common.CheckMenuJson(i18n.Show(common.GetLang(c), `default_welcomes`))
 	unknownQuestionPrompt, _ := common.CheckMenuJson(``)
@@ -1249,7 +1396,7 @@ func AddFlowRobot(c *gin.Context) {
 		`welcomes`:                welcomes,
 		`unknown_question_prompt`: unknownQuestionPrompt,
 		`is_top`:                  0,
-		`sort_num`:                maxSortNum + 1,
+		`sort_num`:                minSortNum - 1,
 		`en_name`:                 enName,
 	}
 	for i := 0; i < 5; i++ {
@@ -1569,6 +1716,10 @@ func GetRobotInfo(c *gin.Context) {
 	info[`push_wecom_robot`] = fmt.Sprintf(`%s/push_pwd/wecom_robot`, define.Config.WebService[`push_domain`])
 	info[`push_token`] = lib_define.SignToken
 	info[`push_aeskey`] = lib_define.AesKey
+	if cast.ToBool(c.DefaultQuery(`with_draft`, `false`)) {
+		c.String(http.StatusOK, lib_web.FmtJson(common.RobotInfoWithDraft(info), nil))
+		return
+	}
 	c.String(http.StatusOK, lib_web.FmtJson(info, nil))
 }
 
@@ -1598,6 +1749,9 @@ func DeleteRobot(c *gin.Context) {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
 		return
+	}
+	if err = common.DeleteRobotDraft(id); err != nil {
+		logs.Error(err.Error())
 	}
 	if err = common.ClearAdminMiniCardRelationsByTargetIds(userId, common.AdminMiniCardTargetRobotPrompt, []int{id}); err != nil {
 		logs.Error(err.Error())
@@ -1734,6 +1888,12 @@ func RobotCopy(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
+	minSortNum, err := GetMinRobotNum(userId)
+	if err != nil {
+		logs.Error(err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
 	//database dispose
 	data := make(msql.Datas)
 	for key, val := range info {
@@ -1741,6 +1901,8 @@ func RobotCopy(c *gin.Context) {
 			data[key] = val
 		}
 	}
+	data[`is_top`] = 0
+	data[`sort_num`] = minSortNum - 1
 	var robotKey string
 	for i := 0; i < 5; i++ {
 		tempKey := tool.Random(10)
@@ -1759,6 +1921,7 @@ func RobotCopy(c *gin.Context) {
 	data[`robot_name`] = createNewName(info[`robot_name`])
 	data[`create_time`] = tool.Time2Int()
 	data[`update_time`] = tool.Time2Int()
+	data[`published_time`] = data[`update_time`]
 	if len(info[`en_name`]) > 0 {
 		data[`en_name`] = tool.Random(50)
 	}

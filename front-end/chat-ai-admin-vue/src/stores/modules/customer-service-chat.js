@@ -225,6 +225,7 @@ export const useCustomerServiceChatStore = defineStore('customer-service-chat', 
         nickname: user.nickname,
         name: user.name,
         is_background: 1,
+        is_draft: 1,
         dialogue_id: dialogue_id.value
       })
       if (!isSessionCurrent(context, session)) return null
@@ -437,7 +438,8 @@ export const useCustomerServiceChatStore = defineStore('customer-service-chat', 
         openid: openid.value,
         question: data.checkQuestion ?? data.message,
         form_ids: robot.value.form_ids,
-        dialogue_id: dialogue_id.value
+        dialogue_id: dialogue_id.value,
+        is_draft: data.is_draft
       }), result])
       if (!isCurrentSend()) return false
       const words = permission?.data?.words
@@ -452,7 +454,8 @@ export const useCustomerServiceChatStore = defineStore('customer-service-chat', 
         question: data.message,
         form_ids: robot.value.form_ids,
         dialogue_id: dialogue_id.value,
-        global: data.global ?? JSON.stringify({})
+        global: data.global ?? JSON.stringify({}),
+        is_draft: data.is_draft,
       }
       const variablesKey = `chat_prompt_variables_${contextRobotKey}`
       const cachedVariables = Number(dialogue_id.value || 0) === 0 ? localStorage.getItem(variablesKey) : null

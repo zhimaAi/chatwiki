@@ -23,11 +23,10 @@
     <div class="message-footer">
       <div class="message-footer-left">
         <ChatModelSelect
-          :key="modelSelectVersion"
           class="chat-model-select"
           :disabled="props.modelLoading"
-          :modeId="props.modeId"
-          :modeName="props.modeName"
+          :modeId="selectedModel.id"
+          :modeName="selectedModel.name"
           @change="handleModelChange"
         />
         <div class="quick-entry-list">
@@ -83,7 +82,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 const { t } = useI18n('views.clawbot.chat.components.message-input')
 const { t: chatT } = useI18n('views.customer-service.chat')
 
-// 只处理受控草稿/上传和入口事件；正式配置保存及导航由客服页负责。
+// 只处理受控草稿/上传和入口事件；草稿配置保存及导航由客服页负责。
 const emit = defineEmits(['send', 'stop', 'update:value', 'update:fileList', 'changeModel', 'openPrompt', 'openKnowledge', 'inputClick'])
 
 const props = defineProps({
@@ -123,13 +122,16 @@ const props = defineProps({
 
 const fileList = computed(() => props.fileList)
 const uploadFiles = ref(props.fileList.map((file) => ({ ...file })))
-const modelSelectVersion = ref(0)
+const selectedModel = ref({ id: props.modeId, name: props.modeName })
 let syncingFiles = false
 
-watch(() => props.modelLoading, (loading, previousLoading) => {
-  // 共用选择器会先改内部选中值；保存结束后重新按正式props展示，失败时不能留下假切换。
-  if (previousLoading && !loading) modelSelectVersion.value++
-})
+watch(
+  () => [props.modeId, props.modeName, props.modelLoading],
+  ([id, name, loading]) => {
+    // 保留选择器实例和模型列表；保存中展示当前选择，结束后同步回读值，失败时恢复原模型。
+    if (!loading) selectedModel.value = { id, name }
+  }
+)
 
 // 上传hook会push/splice数组，使用本地副本，不能直接写props或父页的附件对象。
 watch(() => props.fileList, (files) => {
@@ -169,7 +171,9 @@ const disabled = computed(() => {
 })
 
 const handleModelChange = (model) => {
-  if (!props.modelLoading) emit('changeModel', model)
+  if (!model || props.modelLoading) return
+  selectedModel.value = { id: model.model_config_id, name: model.name || '' }
+  emit('changeModel', model)
 }
 
 const onChange = (e) => {

@@ -250,6 +250,7 @@ import EditBox from './edit-box.vue'
 import CuUpload from '@/components/cu-upload/cu-upload.vue'
 import ProfileSettingsDialog from '@/views/customer-service/basic-settings/components/profile-settings-dialog.vue'
 import { useRobotStore } from '@/stores/modules/robot'
+import { editBaseInfo } from '@/api/robot/index'
 import { useI18n } from '@/hooks/web/useI18n'
 import {DEFAULT_ROBOT_AVATAR, DEFAULT_ROBOT_AVATAR_LIST, DEFAULT_WORKFLOW_AVATAR} from "@/constants/index.js";
 
@@ -257,8 +258,10 @@ const { t } = useI18n('views.robot.robot-config.basic-config.components.basic-co
 const props = defineProps({ inlineSummary: { type: Boolean, default: false } })
 const robotStore = useRobotStore()
 const isEdit = ref(false)
+const { robotInfo } = inject('robotInfo')
+const draftContext = inject('robotDraftContext', null)
+const saveLoading = ref(false)
 const profileDialog = ref(null)
-const { robotInfo, updateRobotInfo } = inject('robotInfo')
 
 const formState = reactive({
   robot_name: '',
@@ -293,9 +296,30 @@ const groupName = computed(() => {
   return group_name
 })
 
-const onSave = () => {
-  updateRobotInfo({ ...toRaw(formState) })
-  isEdit.value = false;
+const onSave = async () => {
+  if (saveLoading.value || draftContext?.busy?.value) return
+  saveLoading.value = true
+  const data = {
+    ...toRaw(formState),
+    id: robotInfo.id,
+    en_name: robotInfo.en_name,
+    group_id: robotList.value.find((item) => item.id == robotInfo.id)?.group_id || 0
+  }
+  if (data.robot_avatar instanceof File) delete data.robot_avatar_url
+  try {
+    // 基础资料单独走 editBaseInfo，只把资料字段合并进草稿，不覆盖其它草稿配置。
+    if (draftContext) {
+      const success = await draftContext.saveAction(() => editBaseInfo(data))
+      if (success) isEdit.value = false
+      return
+    }
+    await editBaseInfo(data)
+    await robotStore.getRobot(data.id)
+    robotStore.getRobotLists()
+    isEdit.value = false
+  } finally {
+    saveLoading.value = false
+  }
 }
 
 const handleChangeAvatar = (fileList) => {

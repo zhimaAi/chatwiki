@@ -8,10 +8,7 @@
       <div v-else class="custom-prompt"><PromptTokenText :value="saved.prompt || t('empty_prompt')" :options="tokenOptions" /></div>
     </div>
     <div v-if="canExpand" class="expand"><a-button type="link" size="small" @click="expanded = !expanded">{{ t(expanded ? 'collapse' : 'expand') }}<UpOutlined v-if="expanded" /><DownOutlined v-else /></a-button></div>
-    <SettingsDialog v-if="editing" class="workspace-prompt-dialog" :open="true" :width="1000" :aria-label="t('prompt')" :ok-text="t('save')" :cancel-text="t('cancel')" :confirm-loading="saving" :closable="!saving" :mask-closable="!saving" :keyboard="!saving" :cancel-button-props="{ disabled: saving }" @ok="save" @cancel="close">
-      <template #closeIcon><img src="@/assets/img/customer-service/basic-settings/prompt/close.svg" alt="" /></template>
-      <div class="prompt-dialog" :inert="saving ? '' : null"><PromptEditor ref="editor" :robot-info="draft" :robot-list="robotList" /></div>
-    </SettingsDialog>
+    <PromptDialog v-if="editing" :robot-info="draft" :robot-list="robotList" :saving="saving" @save="save" @cancel="close" />
   </EditBox>
 </template>
 
@@ -19,7 +16,7 @@
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import PromptEditor from './prompt-editor.vue'
+import PromptDialog from './prompt-dialog.vue'
 import EditBox from '@/views/robot/robot-config/basic-config/components/edit-box.vue'
 import { getPromptConfig, saveConfigurationPatch } from '../configuration'
 import { cloneConfig } from '../../config-session'
@@ -27,7 +24,6 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { useMiniCardStore } from '@/stores/modules/mini-card'
 import { getPromptOptions } from '../prompt-tokens'
 import PromptTokenText from './prompt-token-text.vue'
-import SettingsDialog from './settings-dialog.vue'
 
 defineProps({ robotList: { type: Array, default: () => [] } })
 const { t } = useI18n('views.customer-service.index')
@@ -39,7 +35,6 @@ const saved = ref(getPromptConfig(context.robotInfo))
 const draft = ref(null)
 const editing = ref(false)
 const saving = ref(false)
-const editor = ref(null)
 const preview = ref(null)
 const expanded = ref(false)
 const canExpand = ref(false)
@@ -58,10 +53,8 @@ function open() {
   editing.value = true
 }
 function close() { if (!saving.value) editing.value = false }
-async function save() {
+async function save(patch) {
   if (saving.value) return
-  const patch = editor.value?.getDraft()
-  if (!patch) return
   saving.value = true
   try {
     if (await saveConfigurationPatch(context, patch) && alive) {
@@ -86,12 +79,4 @@ onBeforeUnmount(() => { alive = false; observer?.disconnect() })
 .custom-prompt { white-space: pre-wrap; }
 .empty { color: #999; }
 .expand { text-align: center; margin-top: 12px; }
-.prompt-dialog { min-height: 448px; }
-</style>
-<style lang="less">
-.workspace-prompt-dialog.ant-modal {
-  .ant-modal-body { max-height: calc(100dvh - 154px); }
-  .ant-modal-footer { margin-top: 48px; }
-  .ant-modal-close { top: 28px; }
-}
 </style>

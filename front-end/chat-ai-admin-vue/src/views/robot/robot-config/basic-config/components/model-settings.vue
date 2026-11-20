@@ -307,6 +307,7 @@ const handleSave = () => {
 
 const handleCancel = () => {
   getRobot(robotInfo.id).then((res) => {
+    if (!res) return
     formState.model_config_id = res.data.model_config_id
     formState.use_model = res.data.use_model
   })

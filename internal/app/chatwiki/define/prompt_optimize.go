@@ -34,7 +34,7 @@ const (
 	PromptOptimizeRequestIDLength = 64
 	PromptOptimizeRequestTimeout  = 5 * time.Minute
 	PromptOptimizeTemperature     = 0.5
-	PromptOptimizeMaxTokens       = 4096
+	PromptOptimizeMaxTokens       = 30720
 )
 
 type PromptOptimizeRound struct {

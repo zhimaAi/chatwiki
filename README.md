@@ -136,6 +136,21 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/11/20**
+
+1.Kept left sidebar menu positions consistent when switching apps<br/>
+2.Apps in the upper-left corner of the new UI now appear in a fixed order<br/>
+3.Added drafts for chatbots. Edits take effect after publishing<br/>
+4.Workflow HTTP request nodes now require URLs with domain names that resolve to public IP addresses<br/>
+5.Fixed an API security issue in the custom domain deployment service<br/>
+6.AI prompt optimization now uses a fixed maximum of 30,720 tokens<br/>
+7.Chat window settings on the conversation page now reflect the latest draft<br/>
+8.Added a data export dialog to guide users when exporting chatbots as `.csl` files<br/>
+9.Analytics now supports exporting all statistics<br/>
+10.Improved loading performance for the new WebApp and website embeds<br/>
+11.Knowledge base import history now shows why imports failed<br/>
+12.Upgraded Nginx in the Docker image to 1.31.9<br/>
+
 **2026/11/13**
 
 1.[STD] Conversation history now labels replies sent from Xiaohongshu<br/>
@@ -186,15 +201,6 @@ search<br/>
 27.Security: Added authorization checks for single-page previews of knowledge base PDFs<br/>
 28.New UI: Added a notice when no backup model is configured<br/>
 29.New UI: Added the Skill menu<br/>
-
-**2026/10/16**
-
-1.Added Agent execution logs to the chat, conversation history, and real-time conversation interfaces<br/>
-2.Workflow: Added error log output to exception branches of code execution and HTTP request nodes<br/>
-3.Agent code execution on E2B: Replaced bash commands with direct calls<br/>
-4.Workflow debugging now supports multi-turn conversations<br/>
-5.Added validation for chatbot custom prompts exceeding 10,000 characters<br/>
-6.JWT secret key: Replaced the hardcoded key with one generated dynamically on first startup<br/>
 
 ## License
 

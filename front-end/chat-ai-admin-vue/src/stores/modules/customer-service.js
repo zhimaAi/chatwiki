@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getRobotInfo, getRobotList, saveRobot } from '@/api/robot'
+import { resolveRobotDraft } from '@/utils/robot-draft'
+import { useLocaleStoreWithOut } from './locale'
 import { normalizeCustomerServiceQueryValue } from '@/views/customer-service/navigation'
 
 // 客服支持聊天机器人(0)和智能体(2)；先排除空值/空白，避免转成0误收。
@@ -20,7 +22,8 @@ function stringifyQuestionConfig(value) {
 }
 
 function buildSettingsPayload(source, patch) {
-  const payload = JSON.parse(JSON.stringify({ ...source, ...patch }))
+  // saveRobot 会覆盖整份机器人草稿，保留已有草稿，避免切换模型时覆盖人设等设置。
+  const payload = JSON.parse(JSON.stringify({ ...resolveRobotDraft(source, true, useLocaleStoreWithOut().getCurrentLocale.lang), ...patch }))
   if (source.robot_avatar instanceof File) {
     payload.robot_avatar = new File([source.robot_avatar], source.robot_avatar.name)
     delete payload.robot_avatar_url
@@ -37,7 +40,7 @@ function buildSettingsPayload(source, patch) {
   return payload
 }
 
-// 管理机器人基础数据及正式模型/人设配置；URL标识、默认选择和router跳转由客服布局负责。
+// 管理机器人基础数据及模型/人设草稿配置；URL标识、默认选择和router跳转由客服布局负责。
 export const useCustomerServiceStore = defineStore('customer-service', () => {
   // robots为类型0/2的应用列表，robot为已校验详情；初始及重置时分别为空数组、null。
   // 列表状态为idle/loading/ready/error（空列表也ready）；详情为empty/loading/ready/error。
@@ -101,7 +104,7 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
 
     robotStatus.value = 'loading'
     try {
-      const response = await getRobotInfo({ id: targetId })
+      const response = await getRobotInfo({ id: targetId, with_draft: 1 })
       if (requestId !== detailRequestSequence) return null
 
       const robotInfo = response?.data
@@ -116,7 +119,7 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
         return null
       }
 
-      robot.value = robotInfo
+      robot.value = resolveRobotDraft(robotInfo, true, useLocaleStoreWithOut().getCurrentLocale.lang)
       robotStatus.value = 'ready'
       return robot.value
     } catch {
@@ -168,7 +171,7 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
     robot.value = { ...expectedIdentity }
     const refreshSnapshot = robot.value
     try {
-      const response = await getRobotInfo({ id: normalizeCustomerServiceQueryValue(expectedIdentity.id) })
+      const response = await getRobotInfo({ id: normalizeCustomerServiceQueryValue(expectedIdentity.id), with_draft: 1 })
       if (detailSequence !== detailRequestSequence || requestId !== configRequestSequence ||
         !isCurrentRobot(refreshSnapshot)) return null
       const nextRobot = response?.data
@@ -176,7 +179,7 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
         normalizeCustomerServiceQueryValue(nextRobot.id) !== normalizeCustomerServiceQueryValue(expectedIdentity.id) ||
         Number(nextRobot.application_type) !== Number(expectedIdentity.application_type) ||
         !nextRobot.robot_key || nextRobot.robot_key !== expectedIdentity.robot_key) return null
-      robot.value = nextRobot
+      robot.value = resolveRobotDraft(nextRobot, true, useLocaleStoreWithOut().getCurrentLocale.lang)
       return robot.value
     } catch {
       return null
@@ -194,9 +197,12 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
     const isPromptPatch = keys.includes('prompt') && typeof patch.prompt === 'string' &&
       keys.every(key => key === 'prompt' || key === 'prompt_type') &&
       (!('prompt_type' in patch) || patch.prompt_type === 0)
+    const isPromptConfigPatch = keys.length === 3 && typeof patch.prompt === 'string' &&
+      (patch.prompt_type === 0 || patch.prompt_type === 1) &&
+      patch.prompt_struct && typeof patch.prompt_struct === 'object' && !Array.isArray(patch.prompt_struct)
     const isModelPatch = keys.length === 2 && keys.includes('model_config_id') && keys.includes('use_model') &&
       patch.model_config_id !== undefined && patch.model_config_id !== null && typeof patch.use_model === 'string'
-    if (!isPromptPatch && !isModelPatch) throw new Error('invalid_settings_patch')
+    if (!isPromptPatch && !isPromptConfigPatch && !isModelPatch) throw new Error('invalid_settings_patch')
 
     const detailSequence = detailRequestSequence
     const payload = buildSettingsPayload(source, patch)
@@ -214,7 +220,7 @@ export const useCustomerServiceStore = defineStore('customer-service', () => {
       const refreshed = await refreshCurrentRobot(robot.value)
       return { saved: true, refreshed: !!refreshed }
     } finally {
-      // reset不提前解此锁：离开前已到服务端的保存无法撤销，不能并发覆盖同一正式配置。
+      // reset不提前解此锁：离开前已到服务端的保存无法撤销，不能并发覆盖同一草稿配置。
       savingSettings = false
     }
   }

@@ -398,17 +398,25 @@
                   <img v-if="item.cover_src" :src="item.cover_src" alt="" class="thumb-img" />
                   <img class="thumb-img" v-else src="@/assets/img/default-bg.png">
                   <div class="status-badge" v-if="item.status_label && item.cover_status !== 'success'">
-                    <a-tooltip v-if="item.cover_status === 'error' && item.origin.errmsg && item.origin.errmsg != 'success'">
-                      <template #title>
-                        <span>{{ item.origin.errmsg }}</span>
-                      </template>
-                      <svg-icon style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
-                      {{ item.status_label }}
-                    </a-tooltip>
-                    <svg-icon v-if="item.cover_status === 'error' && !item.origin.errmsg" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
-                    <svg-icon v-if="item.cover_status === 'wait'" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="time-default-icon"></svg-icon>
-                    <span v-if="item.origin.errmsg == 'success' && item.cover_status === 'loading' && getLearnPercent(item.origin) !== null" class="learn-percent">{{ getLearnPercent(item.origin) }}%</span>
-                    <span v-if="!item.origin.errmsg || item.origin.errmsg == 'success'" style="margin-left: 2px;">{{ item.status_label }}</span>
+                    <document-failure-tooltip v-if="item.origin.status == 3 || item.origin.status == 8" :record="item.origin">
+                      <span tabindex="0">
+                        <svg-icon style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
+                        {{ item.status_label }}
+                      </span>
+                    </document-failure-tooltip>
+                    <template v-else>
+                      <a-tooltip v-if="item.cover_status === 'error' && item.origin.errmsg && item.origin.errmsg != 'success'">
+                        <template #title>
+                          <span>{{ item.origin.errmsg }}</span>
+                        </template>
+                        <svg-icon style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
+                        {{ item.status_label }}
+                      </a-tooltip>
+                      <svg-icon v-if="item.cover_status === 'error' && !item.origin.errmsg" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="tip-icon-two"></svg-icon>
+                      <svg-icon v-if="item.cover_status === 'wait'" style="color: rgba(0, 0, 0, 0.4); font-size: 16px; vertical-align: sub;" name="time-default-icon"></svg-icon>
+                      <span v-if="item.origin.errmsg == 'success' && item.cover_status === 'loading' && getLearnPercent(item.origin) !== null" class="learn-percent">{{ getLearnPercent(item.origin) }}%</span>
+                      <span v-if="!item.origin.errmsg || item.origin.errmsg == 'success'" style="margin-left: 2px;">{{ item.status_label }}</span>
+                    </template>
                   </div>
                 </template>
               </div>
@@ -621,25 +629,14 @@
                     ><CheckCircleFilled /> {{ t('status_learn_complete') }}</span
                   >
 
-                  <a-tooltip placement="top" v-if="record.status == 3">
-                    <template #title>
-                      <span>{{ record.errmsg }}</span>
-                    </template>
-                    <span>
-                      <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_failed') }}</span>
-                      <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
+                  <document-failure-tooltip v-if="record.status == 3 || record.status == 8" :record="record">
+                    <span tabindex="0">
+                      <span class="status-tag status-error"><CloseCircleFilled /> {{ t(record.status == 3 ? 'status_convert_failed' : 'status_convert_error') }}</span>
+                      <a class="ml8" v-if="record.status == 3 && libraryInfo.type == 2" @click="handlePreview(record)"
                         >{{ t('btn_learn') }}</a
                       >
                     </span>
-                  </a-tooltip>
-                  <a-tooltip placement="top" v-if="record.status == 8">
-                    <template #title>
-                      <span>{{ record.errmsg }}</span>
-                    </template>
-                    <span>
-                      <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_convert_error') }}</span>
-                    </span>
-                  </a-tooltip>
+                  </document-failure-tooltip>
                   <template v-if="record.status == 4">
                     <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learn') }}</span>
                     <!-- 产品说去掉这个学习，因为和重新分段走的一样的逻辑 -->
@@ -893,6 +890,7 @@
 
 <script setup>
 import { useI18n } from '@/hooks/web/useI18n'
+import DocumentFailureTooltip from './components/document-failure-tooltip.vue'
 import { reactive, ref, toRaw, onUnmounted, onMounted, computed, createVNode, nextTick } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'

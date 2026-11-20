@@ -1,6 +1,7 @@
 <template>
   <div class="team-members-pages">
-    <a-flex justify="flex-start">
+    <a-alert v-if="exportState.error.value" type="error" :message="exportState.error.value" show-icon class="export-error" />
+    <a-flex justify="flex-start" align="center" wrap="wrap" :gap="16">
       <div class="set-model">
         <div class="label set-model-label">{{ t('label_channel') }}</div>
         <div class="set-model-body">
@@ -32,6 +33,7 @@
       <div class="set-reset">
         <a-button @click="onReset">{{ t('btn_reset') }}</a-button>
       </div>
+      <a-button :loading="exportState.loading.value" :disabled="!robotId || !requestParams.start_date || !requestParams.end_date" @click="onExport">{{ t('btn_export') }}</a-button>
     </a-flex>
     <div class="list-box">
       <div class="list-item">
@@ -91,8 +93,11 @@
 </template>
 <script setup>
 import * as echarts from 'echarts'
-import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { getAnalyse } from '@/api/manage/index.js'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { getAnalyse, statAiTipAnalyse } from '@/api/manage/index.js'
+import { useRequestState } from '@/composables/useRequestState'
+import { exportAoAToXlsx } from '@/utils/export/xlsx'
+import dayjs from 'dayjs'
 import DateSelect from './components/date.vue'
 import Echarts from './components/echarts.vue'
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
@@ -154,6 +159,65 @@ const requestParams = reactive({
   start_date: '',
   end_date: ''
 })
+
+const exportState = useRequestState()
+let exportController
+
+const onExport = async () => {
+  if (exportState.loading.value) return
+  const { start_date, end_date, channel } = requestParams
+  const params = { robot_id: robotId.value, start_date, end_date }
+  if (!params.robot_id || !start_date || !end_date) return
+  const controller = new AbortController()
+  exportController = controller
+
+  await exportState.run(async () => {
+    let responses
+    try {
+      responses = await Promise.all([
+        ...echartItem.map(type => getAnalyse({ ...params, type, ...(channel !== 'all' ? { channel } : {}) })),
+        statAiTipAnalyse({ ...params, ...(channel !== 'all' ? { app_type: channel } : {}) })
+      ])
+    } catch (error) {
+      if (controller.signal.aborted) return
+      throw error
+    }
+    if (controller.signal.aborted) return
+
+    const incomplete = () => new Error(t('export_incomplete'))
+    const data = responses.map((res, index) => {
+      const list = index === 4 ? res.data?.chart_list : res.data
+      if (!Array.isArray(list)) throw incomplete()
+      return new Map(list.map(item => [item.date, item]))
+    })
+    const headers = [
+      t('export_date'), t('title_daily_active_users'), t('title_daily_new_users'),
+      t('title_total_messages'), t('title_token_consumption'), t('export_message_total'),
+      t('export_hit_messages'), t('export_miss_messages'), t('export_hit_rate')
+    ]
+    const rows = [headers]
+    for (let date = dayjs(start_date); !date.isAfter(dayjs(end_date), 'day'); date = date.add(1, 'day')) {
+      const key = date.format('YYYY-MM-DD')
+      const metrics = data.map(items => items.get(key))
+      if (metrics.some(item => !item) || metrics.slice(0, 4).some(item => item.amount == null)) throw incomplete()
+      const hit = metrics[4]
+      if (['message_total', 'library_hit_total', 'library_miss_total', 'library_hit_rate'].some(field => hit[field] == null)) throw incomplete()
+      rows.push([
+        key, ...metrics.slice(0, 4).map(item => Number(item.amount)),
+        hit.message_total, hit.library_hit_total, hit.library_miss_total, `${hit.library_hit_rate}%`
+      ])
+    }
+    await exportAoAToXlsx({
+      sheetName: t('export_filename'),
+      fileName: `${t('export_filename')}_${params.robot_id}_${start_date}_${end_date}.xlsx`,
+      rows,
+      cols: headers.map(() => ({ wch: 20 })),
+      signal: controller.signal
+    })
+  })
+}
+
+onBeforeUnmount(() => exportController?.abort())
 
 const onDateChange = (date) => {
   requestParams.start_date = date.start_date
@@ -285,6 +349,8 @@ const handleChangeModel = (val) => {
 
 // clawbot 切换助手时重拉图表数据
 watch(robotId, (val, oldVal) => {
+  exportController?.abort()
+  exportState.error.value = ''
   if (val && oldVal !== undefined && val !== oldVal) {
     onSearch()
   }
@@ -299,6 +365,7 @@ onMounted(() => {
   background: #fff;
   padding: 0 24px 24px;
   height: 100%;
+  .export-error { margin-bottom: 16px; }
   .list-box {
     margin-top: 16px;
     display: flex;
@@ -379,6 +446,5 @@ onMounted(() => {
 .set-date {
   display: flex;
   align-items: center;
-  margin: 0 24px;
 }
 </style>

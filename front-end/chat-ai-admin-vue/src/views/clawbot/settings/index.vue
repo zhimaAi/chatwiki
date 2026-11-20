@@ -18,14 +18,17 @@
     </aside>
 
     <section class="settings-content">
-      <div class="settings-content-title">{{ activeMenu?.title }}</div>
-      <div class="settings-content-body">
+      <div class="settings-content-title">
+        <span>{{ activeMenu?.title }}</span>
+        <DraftActions v-if="activeMenuKey === 'basic' && isContextReady" :robot-info="robotInfo" :saving="pendingSaves > 0" v-model:busy="draftBusy" :refresh="refreshAfterDraftAction" />
+      </div>
+      <div class="settings-content-body" :inert="draftBusy ? '' : null">
         <div v-if="!isContextReady" class="settings-loading">
           <a-spin />
         </div>
 
         <template v-else>
-          <div v-if="activeMenuKey === 'basic'" ref="scrollBox" class="basic-config-scroll">
+          <div v-if="activeMenuKey === 'basic'" :key="configRevision" ref="scrollBox" class="basic-config-scroll">
             <div class="setting-box">
               <BasicConfig />
             </div>
@@ -64,7 +67,7 @@
 </template>
 
 <script setup>
-import { computed, inject, markRaw, nextTick, onMounted, provide, ref, toRaw, watch } from 'vue'
+import { computed, inject, markRaw, nextTick, onMounted, onBeforeUnmount, provide, ref, toRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
@@ -78,11 +81,15 @@ import {
   SettingOutlined
 } from '@ant-design/icons-vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import { saveRobot, getRobotList } from '@/api/robot/index'
+import { saveRobot, getRobotList, getRobotInfo } from '@/api/robot/index'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useRobotStore } from '@/stores/modules/robot'
 import { useModelStore } from '@/stores/modules/model'
 import BasicConfig from '@/views/robot/robot-config/basic-config/components/basic-config.vue'
+import DraftActions from '@/views/robot/robot-config/basic-config/components/draft-actions.vue'
+import { createSaveQueue } from '@/views/customer-service/config-session'
+import { resolveRobotDraft } from '@/utils/robot-draft'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
 import ModelSettings from '@/views/robot/robot-config/basic-config/components/model-settings.vue'
 import DisplayAitations from '@/views/robot/robot-config/basic-config/components/display-aitations.vue'
 import ShowLike from '@/views/robot/robot-config/basic-config/components/show-like.vue'
@@ -109,6 +116,14 @@ const { robotInfo } = storeToRefs(robotStore)
 const scrollBox = ref(null)
 const isRobotReady = ref(false)
 const workFlowRobotList = ref([])
+const draftBusy = ref(false)
+const pendingSaves = ref(0)
+const configRevision = ref(0)
+const saveQueue = createSaveQueue()
+let submitted = 0
+let robotRequestVersion = 0
+let alive = true
+onBeforeUnmount(() => { alive = false })
 
 const menuItems = computed(() => ([
   { key: 'basic', label: t('menu_basic_config'), title: t('menu_basic_config'), icon: SettingOutlined },
@@ -214,11 +229,27 @@ const getWorkFlowRobotList = () => {
   })
 }
 
-const refreshRobot = async (id = robotId.value) => {
-  if (!id) return false
-  const res = agentContext ? await agentContext.getRobot(id) : await robotStore.getRobot(id)
-  if (!agentContext || res) robotStore.fetchChatVariables()
-  return res
+const isCurrent = (id, key) => alive && String(id) === robotId.value && key === robotKey.value &&
+  String(route.query.id || '') === String(id) && String(route.query.robot_key || '') === key
+const refreshRobot = async (id = robotId.value, { updateForm = true } = {}) => {
+  const key = robotKey.value
+  if (!id || !isCurrent(id, key)) return false
+  const version = ++robotRequestVersion
+  const canApply = () => isCurrent(id, key) && version === robotRequestVersion
+  if (agentContext) {
+    const response = await agentContext.getRobot(id, { useDraft: true, updateForm })
+    if (!response || !canApply()) return false
+    robotStore.fetchChatVariables()
+    return response
+  }
+  const response = await getRobotInfo({ id, with_draft: 1 })
+  if (!canApply()) return false
+  if (String(response?.data?.id) !== String(id) || response.data.robot_key !== key || Number(response.data.application_type) !== 2) return false
+  const data = resolveRobotDraft(response.data, true, useLocaleStoreWithOut().getCurrentLocale.lang)
+  if (data.library_ids) data.library_ids = data.library_ids.split(',').filter(Boolean).join(',')
+  if (updateForm) robotStore.setRobotInfo(data)
+  robotStore.fetchChatVariables()
+  return { ...response, data }
 }
 
 const normalizeQuestion = (item) => {
@@ -234,6 +265,7 @@ const stringifyQuestionConfig = (data = {}) => {
 }
 
 const updateRobotInfo = (val = {}) => {
+  if (draftBusy.value || !isContextReady.value) return Promise.resolve(false)
   const newState = JSON.parse(JSON.stringify(val))
   if (val.robot_avatar && val.robot_avatar instanceof File) {
     newState.robot_avatar = new File([val.robot_avatar], val.robot_avatar.name)
@@ -244,15 +276,40 @@ const updateRobotInfo = (val = {}) => {
   }
 
   Object.assign(robotInfo.value, newState)
-  saveForm()
+  return saveForm()
 }
 
-const refreshSavedRobot = async (id) => {
-  const refreshed = await refreshRobot(id)
-  if (agentContext && !refreshed) return
+const refreshSavedRobot = async (id, key, updateForm = true) => {
+  if (!isCurrent(id, key)) return false
+  const refreshed = await refreshRobot(id, { updateForm })
+  if (!refreshed || !isCurrent(id, key)) return false
   await clawbotStore.fetchRobotInfo(id)
-  await robotStore.getRobotLists()
+  if (!isCurrent(id, key)) return false
+  robotStore.getRobotLists()
+  return true
 }
+
+const refreshAfterDraftAction = async (id, key) => {
+  const refreshed = await refreshSavedRobot(id, key)
+  if (refreshed) configRevision.value++
+  return refreshed
+}
+const saveAction = (task) => {
+  const id = robotId.value
+  const key = robotKey.value
+  if (draftBusy.value || !isContextReady.value || !isCurrent(id, key)) return Promise.resolve(false)
+  const revision = ++submitted
+  pendingSaves.value++
+  return saveQueue.enqueue(async () => {
+    if (!isCurrent(id, key)) return false
+    const response = await task()
+    if (response?.res !== undefined && response.res !== 0) throw new Error(response.msg)
+    const refreshed = await refreshSavedRobot(id, key, revision === submitted)
+    if (refreshed) message.success(t('msg_save_success'))
+    return refreshed
+  }).catch(() => false).finally(() => { pendingSaves.value-- })
+}
+provide('robotDraftContext', { busy: draftBusy, saveAction })
 
 const saveForm = () => {
   const rawState = toRaw(robotInfo.value)
@@ -276,16 +333,7 @@ const saveForm = () => {
 
   const applicationType = Number(rawState.application_type || 2)
 
-  saveRobot(formData, applicationType)
-    .then(async (res) => {
-      if (res.res != 0) {
-        return message.error(res.msg)
-      }
-
-      message.success(t('msg_save_success'))
-      await refreshSavedRobot(rawState.id)
-    })
-    .catch(() => {})
+  return saveAction(() => saveRobot(formData, applicationType))
 }
 
 let loadVersion = 0
@@ -299,7 +347,7 @@ const loadRobotContext = async (id) => {
   isRobotReady.value = false
 
   const refreshed = await refreshRobot(id)
-  if (agentContext && !refreshed) return
+  if (!refreshed) return
   if (currentVersion !== loadVersion) return
 
   robotStore.getRobotLists()
@@ -428,9 +476,12 @@ onMounted(() => {
 }
 
 .settings-content-title {
-  height: 56px;
+  min-height: 56px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   padding: 0 24px;
   flex-shrink: 0;
   background: #fff;

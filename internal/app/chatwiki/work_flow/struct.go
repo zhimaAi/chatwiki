@@ -1830,8 +1830,8 @@ func (params *CurlNodeParams) Verify(lang string) error {
 	if !tool.InArrayString(params.Method, []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}) {
 		return errors.New(i18n.Show(lang, `request_method_param_error`))
 	}
-	if _, err := url.Parse(params.Rawurl); err != nil || len(params.Rawurl) == 0 {
-		return errors.New(i18n.Show(lang, `request_link_empty_or_error`))
+	if err := common.ValidatePublicDomainURL(lang, params.Rawurl); err != nil {
+		return err
 	}
 	for _, header := range params.Headers {
 		if len(header.Key) == 0 || len(header.Value) == 0 {

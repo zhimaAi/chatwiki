@@ -19,5 +19,13 @@
   "label_daily_active_users": "日活用户数（人）",
   "label_daily_new_users": "日新增用户数（人）",
   "label_total_messages": "总消息数（条）",
-  "label_token_consumption": "token消耗数（千）"
+  "label_token_consumption": "token消耗数（千）",
+  "btn_export": "导出",
+  "export_filename": "统计分析",
+  "export_date": "日期",
+  "export_message_total": "消息总数",
+  "export_hit_messages": "命中消息",
+  "export_miss_messages": "未命中消息",
+  "export_hit_rate": "命中率",
+  "export_incomplete": "统计数据不完整，请重试导出"
 }

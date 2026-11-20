@@ -30,7 +30,7 @@ import SettingsDialog from './settings-dialog.vue'
 
 const { t } = useI18n('views.robot.robot-config.basic-config.components.ai-create-prompt')
 const { t: commonT } = useI18n('views.customer-service.index')
-const context = inject('customerRobotContext')
+const { robotInfo } = inject('robotInfo')
 const robotStore = useRobotStore()
 const miniCardStore = useMiniCardStore()
 const emit = defineEmits(['handleAiSave'])
@@ -62,7 +62,7 @@ async function generate() {
   error.value = ''
   result.value = null
   try {
-    const response = await createPromptByAi({ id: context.robotInfo.id, demand: demand.value })
+    const response = await createPromptByAi({ id: robotInfo.id, demand: demand.value })
     if (!alive || !open.value || version !== requestVersion) return
     if (response.res !== undefined && response.res !== 0) throw new Error(response.msg || commonT('prompt_ai_failed'))
     const raw = response.data?.promptStruct
