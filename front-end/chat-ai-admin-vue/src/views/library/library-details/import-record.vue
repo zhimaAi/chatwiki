@@ -95,25 +95,14 @@
                 ><CheckCircleFilled /> {{ t('status_learning_complete') }}</span
               >
 
-              <a-tooltip placement="top" v-if="record.status == 3">
-                <template #title>
-                  <span>{{ record.errmsg }}</span>
-                </template>
-                <span>
-                  <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_conversion_failed') }}</span>
-                  <a class="ml8" v-if="libraryInfo.type == 2" @click="handlePreview(record)"
+              <document-failure-tooltip v-if="record.status == 3 || record.status == 8" :record="record">
+                <span tabindex="0">
+                  <span class="status-tag status-error"><CloseCircleFilled /> {{ t(record.status == 3 ? 'status_conversion_failed' : 'status_conversion_error') }}</span>
+                  <a class="ml8" v-if="record.status == 3 && libraryInfo.type == 2" @click="handlePreview(record)"
                     >{{ t('status_learn') }}</a
                   >
                 </span>
-              </a-tooltip>
-              <a-tooltip placement="top" v-if="record.status == 8">
-                <template #title>
-                  <span>{{ record.errmsg }}</span>
-                </template>
-                <span>
-                  <span class="status-tag status-error"><CloseCircleFilled /> {{ t('status_conversion_error') }}</span>
-                </span>
-              </a-tooltip>
+              </document-failure-tooltip>
               <template v-if="record.status == 4">
                 <span class="status-tag"><ClockCircleFilled /> {{ t('status_wait_learning') }}</span>
                 <a class="ml8" @click="handlePreview(record)">{{ t('status_learn') }}</a>
@@ -195,6 +184,7 @@ import {
 import { formatFileSize } from '@/utils/index'
 import { useUserStore } from '@/stores/modules/user'
 import { useI18n } from '@/hooks/web/useI18n'
+import DocumentFailureTooltip from './components/document-failure-tooltip.vue'
 
 const { t } = useI18n('views.library.library-details.import-record')
 const userStore = useUserStore()

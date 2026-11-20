@@ -48,7 +48,7 @@ const libraryInfo = ref(null)
 let version = 0
 let alive = true
 let configurationRevision = 0
-const welcomeParams = { robot_key: context.robotInfo.robot_key, openid: user.user_id, name: user.user_name, nickname: user.user_name, avatar: user.avatar, is_background: 1 }
+const welcomeParams = { robot_key: context.robotInfo.robot_key, openid: user.user_id, name: user.user_name, nickname: user.user_name, avatar: user.avatar, is_background: 1, is_draft: 1 }
 
 function stop() { version++; busy.value = false; initializing.value = false; session.stopMessage() }
 async function reset() {
@@ -98,7 +98,7 @@ async function send() {
     session.robot.robot_avatar = context.robotInfo.robot_avatar_url || session.robot.robot_avatar
     session.robot.enable_question_guide = String(context.robotInfo.enable_question_guide) === 'true'
     session.robot.enable_common_question = String(context.robotInfo.enable_common_question) === 'true'
-    const checked = await checkChatRequestPermission({ robot_key: session.robot.robot_key, openid: session.robot.openid, question: value.value, form_ids: session.robot.form_ids, dialogue_id: session.dialogue_id })
+    const checked = await checkChatRequestPermission({ robot_key: session.robot.robot_key, openid: session.robot.openid, question: value.value, form_ids: session.robot.form_ids, dialogue_id: session.dialogue_id, is_draft: 1 })
     if (!alive || current !== version) return
     if (checked.data?.words?.length) { message.error(chatTestT('msg_sensitive_words', { words: checked.data.words.join(';') })); return }
     let content = value.value.trim()

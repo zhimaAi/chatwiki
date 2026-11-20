@@ -118,6 +118,11 @@ export default defineConfig((opt) => {
           },
           // 该选项允许你创建自定义的公共 chunk
           manualChunks(id) {
+            // 公共运行时单独分包，避免首屏通过它加载编辑器、流程布局或表情库。
+            if (id === '\0commonjsHelpers.js' || id === '\0commonjs-dynamic-modules' || id === '\0plugin-vue:export-helper') {
+              return 'runtime-helpers'
+            }
+
             // 语言文件按语言自动分离
             if (id.includes('/src/locales/lang/')) {
               const langMatch = id.match(/\/src\/locales\/lang\/([a-zA-Z0-9-]+)\//)

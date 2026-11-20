@@ -313,12 +313,22 @@
   min-width: 0;
 }
 .web-app-box.is-workspace .demo-box {
+  position: relative;
   flex-shrink: 0;
   box-sizing: content-box;
   border: 8px solid #fff;
   border-radius: 30px;
   background: #f0f2f5;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+.preview-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.demo-box[aria-busy='true'] iframe {
+  visibility: hidden;
 }
 .web-app-box.is-workspace .box-right iframe {
   border-radius: 0;
@@ -686,9 +696,11 @@
       </div>
     </a-modal>
     <div class="box-right">
-      <div class="demo-box" :style="previewBoxStyle">
+      <div class="demo-box" :style="previewBoxStyle" :aria-busy="isWorkspace ? previewLoading : undefined">
+        <div v-if="isWorkspace && previewLoading" class="preview-loading" role="status"><a-spin /></div>
         <iframe
           id="web-preview"
+          ref="previewFrame"
           :src="previewIframeSrc"
           :style="previewIframeStyle"
           frameborder="0"
@@ -720,6 +732,10 @@ import FloatIconSetting from './float-icon-setting.vue'
 import { CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
+  active: {
+    type: Boolean,
+    default: true
+  },
   variant: {
     type: String,
     default: 'default'
@@ -781,6 +797,23 @@ const previewIframeSrc = computed(() => {
   let { pc_domain, robot_key } = robotInfo.value
   return toPageProtocol(`${pc_domain}/web/#/chat?robot_key=${robot_key}`)
 })
+
+const previewFrame = ref(null)
+const previewLoading = ref(isWorkspace.value)
+let previewTimeout
+
+const finishPreviewLoading = () => {
+  clearTimeout(previewTimeout)
+  previewLoading.value = false
+}
+
+const onPreviewMessage = (event) => {
+  if (!previewLoading.value || event.data?.action !== 'init') return
+  if (event.source !== previewFrame.value?.contentWindow) return
+  if (event.origin !== new URL(previewIframeSrc.value, window.location.href).origin) return
+  updatePreview(formState)
+  finishPreviewLoading()
+}
 
 const toIntegerInRange = (value, fallback, min, max) => {
   const number = Number(value)
@@ -859,18 +892,31 @@ const flushAutoSave = () => {
   autoSaveForm()
 }
 
+watch(() => props.active, (active) => {
+  if (!active) flushAutoSave()
+})
+
 watch(formState, (val) => {
   updatePreview(val)
   scheduleAutoSave()
 })
 
 onMounted(() => {
+  if (isWorkspace.value) {
+    window.addEventListener('message', onPreviewMessage)
+    // A failed or older preview must not leave the placeholder up indefinitely.
+    previewTimeout = setTimeout(finishPreviewLoading, 15000)
+  }
   nextTick(() => {
     autoSaveEnabled = true
   })
 })
 
 onBeforeUnmount(() => {
+  if (isWorkspace.value) {
+    window.removeEventListener('message', onPreviewMessage)
+    clearTimeout(previewTimeout)
+  }
   flushAutoSave()
   clearTimeout(leftScrollTimer)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -897,7 +943,7 @@ const handlePreviewLoad = () => {
 }
 
 const updatePreview = (data, type) => {
-  const iframe = document.getElementById('web-preview')
+  const iframe = previewFrame.value
   if (!iframe?.contentWindow) return
   iframe.contentWindow.postMessage(
     {

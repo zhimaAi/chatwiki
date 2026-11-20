@@ -548,6 +548,7 @@ const onSendMessage = async () => {
       question: message.value,
       form_ids: robot.value.form_ids,
       dialogue_id: dialogue_id.value,
+      is_draft: 1,
     })
 
     if (requestSeq !== sendRequestSeq) {

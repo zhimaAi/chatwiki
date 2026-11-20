@@ -49,7 +49,7 @@ import CustomerSidebar from './components/customer-sidebar.vue'
 import BusinessContext from './components/business-context.vue'
 import {
   getCustomerServiceAgentPage,
-  getCustomerServiceChatLocation,
+  getCustomerServiceLocation,
   getCustomerServicePage,
   normalizeCustomerServiceQueryValue,
   pickCustomerServiceRobotQuery
@@ -121,7 +121,7 @@ const switchRobot = async (selectedId) => {
 
   localError.value = ''
   try {
-    const failure = await router.push(getCustomerServiceChatLocation(option))
+    const failure = await router.push(getCustomerServiceLocation(option, route.meta.customerServiceMenuKey))
     if (failure && !isNavigationFailure(failure, NavigationFailureType.duplicated)) {
       localError.value = 'error_switch_robot'
     }
@@ -163,7 +163,7 @@ const handleRobotCreated = async (created) => {
       return
     }
     if (id !== robotId.value || key !== robotKey.value) {
-      const failure = await router.push(getCustomerServiceChatLocation(option))
+      const failure = await router.push(getCustomerServiceLocation(option))
       if (alive && route.fullPath === sourcePath && failure &&
         !isNavigationFailure(failure, NavigationFailureType.duplicated)) {
         localError.value = 'error_switch_robot'
@@ -192,7 +192,7 @@ const selectDefaultRobot = () => {
 
   const page = getCustomerServicePage(route.meta.customerServiceMenuKey)
   if (!page) return
-  if (Number(firstRobot.application_type) === 2) return router.replace(getCustomerServiceChatLocation(firstRobot))
+  if (Number(firstRobot.application_type) === 2) return router.replace(getCustomerServiceLocation(firstRobot))
   return router.replace({ name: page.routeName, query: { id, robot_key: key } })
 }
 
@@ -203,7 +203,7 @@ watch([robotStatus, robot], async ([status, info]) => {
   const sourcePath = route.fullPath
   try {
     const page = getCustomerServiceAgentPage(route.meta.customerServiceMenuKey)
-    const location = getCustomerServiceChatLocation(info)
+    const location = getCustomerServiceLocation(info)
     if (page) location.name = page.routeName
     const failure = await router.replace(location)
     if (alive && route.fullPath === sourcePath && failure &&

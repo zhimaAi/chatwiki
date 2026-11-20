@@ -28,6 +28,7 @@ export function createSaveQueue() {
   let tail = Promise.resolve()
   let lastError = null
   return {
+    clearError() { lastError = null },
     enqueue(task) {
       const result = tail.then(task).then(value => { lastError = null; return value }, error => { lastError = error; throw error })
       tail = result.catch(() => {})

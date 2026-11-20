@@ -10,6 +10,8 @@ import { computed, onBeforeUnmount, provide, ref, toRaw, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { useCustomerServiceStore } from '@/stores/modules/customer-service'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+import { resolveRobotDraft } from '@/utils/robot-draft'
 import { getRobotInfo, saveRobot } from '@/api/robot'
 import { useI18n } from '@/hooks/web/useI18n'
 import { cloneConfig, createSaveQueue, serializeRobotConfig } from '../config-session'
@@ -23,57 +25,77 @@ const ready = ref(false)
 const error = ref(false)
 const pending = ref(0)
 const savedRevision = ref(0)
+const draftBusy = ref(false)
 const queue = createSaveQueue()
 const id = String(props.robot.id)
 const robotKey = props.robot.robot_key
 const applicationType = Number(props.robot.application_type)
 let alive = true
 let submitted = 0
-let syncing = false
+let syncedRobot = null
+let readVersion = 0
 const isCurrent = () => alive && String(customer.robot?.id) === id && customer.robot?.robot_key === robotKey &&
   Number(customer.robot?.application_type) === applicationType
 
 function apply(data, updateForm = true) {
   if (!isCurrent()) return
-  syncing = true
-  try {
-    if (updateForm) robotStore.setRobotInfo(cloneConfig(data))
-    customer.syncRobot(data)
-    emit('refresh', data)
-  } finally { syncing = false }
+  if (updateForm) robotStore.setRobotInfo(resolveRobotDraft(cloneConfig(data), true, useLocaleStoreWithOut().getCurrentLocale.lang))
+  // Store 回写经父组件下一轮渲染才传回，按原始快照识别，避免再次初始化形成请求循环。
+  syncedRobot = toRaw(data)
+  customer.syncRobot(data)
+  emit('refresh', data)
 }
-function initialize() {
-  try {
-    robotStore.setRobotInfo(cloneConfig(props.robot))
-    error.value = false
-    ready.value = true
-  } catch { error.value = true }
-}
-async function refreshRobot() {
-  await queue.flush()
-  const response = await getRobotInfo({ id })
+function validate(response) {
   if (String(response?.data?.id) !== id || response.data.robot_key !== robotKey ||
     Number(response.data.application_type) !== applicationType) throw new Error(t('invalid_robot'))
+}
+async function initialize() {
+  ready.value = false
+  const version = ++readVersion
+  try {
+    const response = await getRobotInfo({ id, with_draft: 1 })
+    if (!isCurrent() || version !== readVersion) return
+    validate(response)
+    apply(response.data)
+    error.value = false
+    ready.value = true
+  } catch { if (isCurrent() && version === readVersion) error.value = true }
+}
+async function refreshRobot({ resetSaveError = false } = {}) {
+  try { await queue.flush() }
+  catch (err) { if (!resetSaveError) throw err }
+  if (!isCurrent()) return false
+  const version = ++readVersion
+  const response = await getRobotInfo({ id, with_draft: 1 })
+  if (!isCurrent() || version !== readVersion) return false
+  validate(response)
   apply(response.data, pending.value === 0)
+  if (resetSaveError) {
+    queue.clearError()
+    savedRevision.value++
+  }
   return response
 }
 function updateRobotInfo(patch) {
-  if (!isCurrent()) return Promise.resolve(false)
+  if (!isCurrent() || draftBusy.value) return Promise.resolve(false)
   // 同一配置上下文保留原应用类型，不能把智能体按聊天机器人保存。
   Object.assign(robotStore.robotInfo, cloneConfig(patch), { id, robot_key: robotKey, application_type: applicationType })
   const snapshot = serializeRobotConfig(toRaw(robotStore.robotInfo))
   return saveAction(() => saveRobot(snapshot, applicationType))
 }
 function saveAction(task) {
-  if (!isCurrent()) return Promise.resolve(false)
+  if (!isCurrent() || draftBusy.value) return Promise.resolve(false)
   const revision = ++submitted
   pending.value++
   return queue.enqueue(async () => {
+    if (!isCurrent()) return false
     const response = await task()
     if (response?.res !== undefined && response.res !== 0) throw new Error(response.msg || t('save_failed'))
-    const refreshed = await getRobotInfo({ id })
-    if (String(refreshed?.data?.id) !== id || refreshed.data.robot_key !== robotKey ||
-      Number(refreshed.data.application_type) !== applicationType) throw new Error(t('invalid_robot'))
+    if (!isCurrent()) return false
+    const version = ++readVersion
+    const refreshed = await getRobotInfo({ id, with_draft: 1 })
+    if (!isCurrent() || version !== readVersion) return false
+    validate(refreshed)
     if (isCurrent()) {
       apply(refreshed.data, revision === submitted)
       if (revision === submitted) savedRevision.value++
@@ -88,6 +110,7 @@ function saveAction(task) {
 provide('customerRobotContext', {
   robotInfo: robotStore.robotInfo,
   saving: computed(() => pending.value > 0),
+  draftBusy,
   savedRevision,
   updateRobotInfo,
   saveAction,
@@ -95,8 +118,9 @@ provide('customerRobotContext', {
   waitForSave: () => queue.flush()
 })
 watch(() => props.robot, data => {
-  if (!syncing && !pending.value && ready.value && isCurrent()) robotStore.setRobotInfo(cloneConfig(data))
-})
+  if (toRaw(data) === syncedRobot) return
+  if (!pending.value && !draftBusy.value && ready.value && isCurrent()) initialize()
+}, { flush: 'sync' })
 initialize()
 onBeforeUnmount(() => { alive = false })
 </script>

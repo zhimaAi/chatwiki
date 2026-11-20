@@ -12,11 +12,7 @@
       <a-spin size="large" />
     </div>
 
-    <div v-else-if="activeTab === 'embed'" class="embed-body">
-      <EmbedWebsite variant="workspace" />
-    </div>
-
-    <div v-else class="web-app-body">
+    <div v-else v-show="activeTab === 'webapp'" class="web-app-body">
       <div class="config-column" :class="{ 'is-scrolling': configScrolling }" @scroll="onConfigScroll">
         <section class="link-banner">
           <h2>
@@ -151,10 +147,21 @@
             :src="previewIframeSrc"
             class="phone-iframe"
             frameborder="0"
-            @load="syncPreview"
+            @load="onWebPreviewLoad"
           ></iframe>
         </div>
       </div>
+    </div>
+    <iframe
+      v-if="embedWarmupSrc"
+      :src="embedWarmupSrc"
+      title="ChatWiki"
+      sandbox="allow-same-origin"
+      aria-hidden="true"
+      hidden
+    ></iframe>
+    <div v-if="ready && !loadFailed && embedVisited" v-show="activeTab === 'embed'" class="embed-body">
+      <EmbedWebsite variant="workspace" :active="activeTab === 'embed'" />
     </div>
   </div>
 </template>
@@ -186,6 +193,9 @@ const { robotInfo: robotDetail } = storeToRefs(robotStore)
 const { getRobot } = robotStore
 
 const activeTab = ref('webapp')
+const embedVisited = ref(false)
+const embedWarmupSrc = ref('')
+let embedWarmupTimer
 const headerTabs = computed(() => [
   { key: 'webapp', label: 'webAPP' },
   { key: 'embed', label: t('embed_website') }
@@ -270,6 +280,17 @@ const postPreview = () => {
 const syncPreview = () => {
   if (previewTimer) clearTimeout(previewTimer)
   previewTimer = setTimeout(postPreview, 120)
+}
+
+const onWebPreviewLoad = () => {
+  syncPreview()
+  clearTimeout(embedWarmupTimer)
+  const domain = robotDetail.value?.pc_domain
+  if (!domain || embedVisited.value || embedWarmupSrc.value || navigator.connection?.saveData) return
+  // The H5 iframe load event can precede the chat's first render.
+  embedWarmupTimer = setTimeout(() => {
+    embedWarmupSrc.value = toPageProtocol(`${domain}/web/preview-warmup.html`)
+  }, 2500)
 }
 
 const onQuickCommandUpdated = (data) => {
@@ -358,6 +379,9 @@ const loadRobotConfig = async () => {
   const id = customerRobot.value?.id
   resetAutoSave()
   ready.value = false
+  clearTimeout(embedWarmupTimer)
+  embedWarmupSrc.value = ''
+  embedVisited.value = activeTab.value === 'embed'
   loadFailed.value = false
   if (!id) return
   try {
@@ -367,7 +391,6 @@ const loadRobotConfig = async () => {
       return
     }
     syncFormFromStore()
-    await generateQrcode()
     ready.value = true
     await nextTick()
     autoSaveEnabled = true
@@ -391,14 +414,19 @@ watch(
   },
   { deep: true }
 )
-watch(h5Link, generateQrcode)
+watch(h5Link, generateQrcode, { immediate: true })
 watch(activeTab, (tab, previous) => {
+  if (tab === 'embed') {
+    clearTimeout(embedWarmupTimer)
+    embedVisited.value = true
+  }
   if (previous === 'webapp' && tab === 'embed') flushAutoSave()
 })
 
 onUnmounted(() => {
   flushAutoSave()
   clearTimeout(configScrollTimer)
+  clearTimeout(embedWarmupTimer)
   if (previewTimer) clearTimeout(previewTimer)
 })
 </script>

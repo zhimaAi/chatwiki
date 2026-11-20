@@ -338,9 +338,14 @@ export const applyNormalizedChatEvent = (msg, event) => {
     msg.startLoading = false
     msg.quote_loading = false
     if (snapshot.debug_log !== undefined) msg.debug_log = snapshot.debug_log
-    if (snapshot.menu_json && snapshot.msg_type == 2) {
+    if (snapshot.msg_type == 2) {
       const menuJson = safeParseJson(snapshot.menu_json, {})
-      msg.question = menuJson.question || []
+      // 最终快照可能将流式文本切换为菜单消息，渲染前须同步完整菜单结构。
+      msg.menu_json = {
+        content: menuJson?.content ?? snapshot.content ?? '',
+        question: Array.isArray(menuJson?.question) ? menuJson.question : []
+      }
+      msg.question = msg.menu_json.question
     }
     msg.id = snapshot.id
     msg.message_id = snapshot.message_id || snapshot.id || msg.message_id

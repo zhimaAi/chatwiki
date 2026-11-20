@@ -68,9 +68,8 @@ func SaveCert(c *gin.Context) {
 }
 
 type SaveConfReq struct {
-	Url      string `form:"url" json:"url" binding:"required"`
-	Upstream string `form:"upstream" json:"upstream"`
-	Label    string `form:"label" json:"label"`
+	Url   string `form:"url" json:"url" binding:"required"`
+	Label string `form:"label" json:"label"`
 }
 
 func SaveConf(c *gin.Context) {
@@ -83,15 +82,12 @@ func SaveConf(c *gin.Context) {
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return
 	}
-	if req.Upstream == "" {
-		if cast.ToInt(req.Label) == define.RobotDomainLabel {
-			isRobot = true
-			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
-		} else {
-			req.Upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
-		}
+	upstream := define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port`]
+	if cast.ToInt(req.Label) == define.RobotDomainLabel {
+		isRobot = true
+		upstream = define.Config.ChatWiki[`host`] + `:` + define.Config.ChatWiki[`port_h5`]
 	}
-	if err = writeConf(req.Url, req.Upstream, false, isRobot); err != nil {
+	if err = writeConf(req.Url, upstream, false, isRobot); err != nil {
 		logs.Error(err.Error())
 		c.String(http.StatusOK, lib_web.FmtJson(nil, err))
 		return

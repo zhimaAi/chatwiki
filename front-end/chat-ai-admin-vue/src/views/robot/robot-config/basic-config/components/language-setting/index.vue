@@ -112,6 +112,7 @@ import { useRobotStore } from '@/stores/modules/robot'
 import { saveRobotLangConfigs } from '@/api/robot/index'
 import SystemLanguageDialog from '@/views/customer-service/basic-settings/components/system-language-dialog.vue'
 const customerContext = inject('customerRobotContext', null)
+const draftContext = inject('robotDraftContext', null)
 const props = defineProps({ variant: { type: String, default: 'legacy' } })
 const isWorkspace = computed(() => props.variant === 'workspace')
 const systemLanguageDialog = ref(null)
@@ -233,13 +234,12 @@ const handleSave = () => {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
-  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) isEdit.value = false })
-  saveRobotLangConfigs(parmas).then(() => {
+  const context = customerContext || draftContext
+  if (context) return context.saveAction(() => saveRobotLangConfigs(parmas)).then(success => { if (success) isEdit.value = false })
+  saveRobotLangConfigs(parmas).then(async () => {
+    await robotStore.getRobot(robotStore.robotInfo.id)
     message.success('保存成功')
     isEdit.value = false
-    setTimeout(() => {
-      robotStore.getRobot(robotStore.robotInfo.id)
-    }, 600)
   })
 }
 
@@ -256,7 +256,8 @@ const handleEdit = (val) => {
 
 async function saveWorkspaceConfig(configs) {
   const params = { id: robotStore.robotInfo.id, multi_lang_configs: JSON.stringify(configs) }
-  if (customerContext) return customerContext.saveAction(() => saveRobotLangConfigs(params))
+  const context = customerContext || draftContext
+  if (context) return context.saveAction(() => saveRobotLangConfigs(params))
   await saveRobotLangConfigs(params)
   await robotStore.getRobot(params.id)
   message.success('保存成功')

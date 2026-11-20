@@ -20,7 +20,7 @@
       <div v-else-if="!contextReady" class="agent-loading"><a-spin /></div>
       <router-view v-else v-slot="{ Component }">
         <component v-if="selectedMenuKey === 'session-record'" :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" :robot="robot" robot-status="ready" />
-        <BusinessContext v-else-if="isBusinessPage" :key="robotId + ':' + robotKey" :robot="robot" @refresh="clawbotStore.updateRobotInfo">
+        <BusinessContext v-else-if="isBusinessPage" :key="robotId + ':' + robotKey" :robot="robot" @refresh="syncBusinessRobot">
           <component :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" />
         </BusinessContext>
         <component v-else :is="Component" :key="String(route.name) + ':' + robotId + ':' + robotKey" />
@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, toRaw, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { isNavigationFailure, NavigationFailureType, useRoute, useRouter } from 'vue-router'
 import { getRobotInfo } from '@/api/robot'
@@ -38,13 +38,15 @@ import { useI18n } from '@/hooks/web/useI18n'
 import { useClawbotStore } from '@/stores/modules/clawbot'
 import { useCustomerServiceStore } from '@/stores/modules/customer-service'
 import { useRobotStore } from '@/stores/modules/robot'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+import { resolveRobotDraft } from '@/utils/robot-draft'
 import { getRobotPermission } from '@/utils/permission'
 import { CUSTOMER_SERVICE_LAYOUT, isCustomerServiceClawbotRoute } from '@/utils/clawbot-layout'
 import CustomerSidebar from '@/views/customer-service/components/customer-sidebar.vue'
 import BusinessContext from '@/views/customer-service/components/business-context.vue'
 import {
   getCustomerServiceAgentPage,
-  getCustomerServiceChatLocation,
+  getCustomerServiceLocation,
   normalizeCustomerServiceQueryValue
 } from '@/views/customer-service/navigation'
 import { getClawbotLocation } from '../navigation'
@@ -65,6 +67,7 @@ let alive = true
 let initializationVersion = 0
 let selectionVersion = 0
 let robotRequestVersion = 0
+let syncedBusinessRobot = null
 
 const isCurrentIdentity = (identity, version = initializationVersion) => alive &&
   isCustomerServiceClawbotRoute(route) && version === initializationVersion &&
@@ -142,14 +145,14 @@ async function initialize() {
         const list = await customerStore.loadRobots()
         if (!isCurrent()) return
         const firstAgent = list?.find((item) => Number(item.application_type) === 2 && item.id && item.robot_key)
-        if (firstAgent) await navigate(getCustomerServiceChatLocation(firstAgent), true)
+        if (firstAgent) await navigate(getCustomerServiceLocation(firstAgent), true)
         return
       }
       error.value = customerStore.robotError || 'invalid_robot'
       return
     }
     if (Number(info.application_type) !== 2) {
-      await navigate(getCustomerServiceChatLocation(info), true)
+      await navigate(getCustomerServiceLocation(info), true)
       return
     }
     if (getRobotPermission(identity.id) === 0) {
@@ -186,7 +189,7 @@ function switchRobot(selectedId) {
     return
   }
   error.value = ''
-  return navigate(getCustomerServiceChatLocation(option))
+  return navigate(getCustomerServiceLocation(option, selectedMenuKey.value))
 }
 
 async function handleRobotCreated(created) {
@@ -199,7 +202,7 @@ async function handleRobotCreated(created) {
     error.value = list ? 'invalid_robot' : 'error_robots'
     return
   }
-  await navigate(getCustomerServiceChatLocation(option))
+  await navigate(getCustomerServiceLocation(option))
 }
 
 async function handleRobotRemoved(removedId) {
@@ -217,7 +220,7 @@ async function handleRobotRemoved(removedId) {
     return
   }
   if (wasCurrent) {
-    const location = list.length ? getCustomerServiceChatLocation(list[0])
+    const location = list.length ? getCustomerServiceLocation(list[0])
       : { name: 'clawbotChat', query: { layout: CUSTOMER_SERVICE_LAYOUT } }
     await navigate(location, true)
   } else {
@@ -226,7 +229,7 @@ async function handleRobotRemoved(removedId) {
 }
 
 // 设置和对外服务复用 robot store；身份变化后，旧请求不能回填这个共享对象。
-async function getRobot(targetId = robotId.value) {
+async function getRobot(targetId = robotId.value, { useDraft = false, updateForm = true } = {}) {
   const identity = readyIdentity.value
   if (!identity || !isCurrentIdentity(identity) || String(targetId) !== identity.id) return false
   const version = ++robotRequestVersion
@@ -234,22 +237,29 @@ async function getRobot(targetId = robotId.value) {
   const canApply = () => isCurrentIdentity(identity, initialization) &&
     version === robotRequestVersion && clawbotStore.currentAssistantId === identity.id
   try {
-    const response = await getRobotInfo({ id: identity.id })
+    const response = await getRobotInfo({ id: identity.id, ...(useDraft ? { with_draft: 1 } : {}) })
     if (!canApply()) return false
-    const info = response?.data
+    let info = response?.data
     if (String(info?.id || '') !== identity.id || info?.robot_key !== identity.robotKey || Number(info?.application_type) !== 2) {
-      error.value = 'invalid_robot'
+      if (!useDraft) error.value = 'invalid_robot'
       return false
     }
+    if (useDraft) info = resolveRobotDraft(info, true, useLocaleStoreWithOut().getCurrentLocale.lang)
     if (info.library_ids) info.library_ids = info.library_ids.split(',').filter(Boolean).join(',')
-    robotStore.setRobotInfo(info)
-    return response
+    if (updateForm) robotStore.setRobotInfo(info)
+    return { ...response, data: info }
   } catch {
-    if (canApply()) error.value = 'error_robot'
+    if (canApply() && !useDraft) error.value = 'error_robot'
     return false
   }
 }
 provide('customerAgentContext', { getRobot })
+
+function syncBusinessRobot(data) {
+  clawbotStore.updateRobotInfo(data)
+  // Agent Store 会浅拷贝详情，记录回写后的快照，避免反向同步再次触发业务页初始化。
+  syncedBusinessRobot = toRaw(clawbotStore.robotInfo)
+}
 
 // Agent 页面内部的创建和删除会先修改 store，初始化完成后才允许反向同步 URL。
 watch(() => clawbotStore.currentAssistantId, async () => {
@@ -266,7 +276,7 @@ watch(() => clawbotStore.currentAssistantId, async () => {
     return
   }
   const option = assistant || list[0]
-  await navigate(option ? getCustomerServiceChatLocation(option)
+  await navigate(option ? getCustomerServiceLocation(option)
     : { name: 'clawbotChat', query: { layout: CUSTOMER_SERVICE_LAYOUT } }, true)
 })
 
@@ -275,6 +285,7 @@ watch(() => clawbotStore.assistantList, () => {
     clawbotStore.currentAssistantId === robotId.value) void customerStore.loadRobots()
 })
 watch(() => clawbotStore.robotInfo, (info) => {
+  if (toRaw(info) === syncedBusinessRobot) return
   if (contextReady.value) customerStore.syncRobot(info)
 })
 watch([readyIdentity, pageAllowed], ([identity, allowed]) => {

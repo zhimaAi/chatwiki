@@ -105,11 +105,13 @@ export function getCustomerServicePage(menuKey) {
   return null
 }
 
-/** 新版框架选择应用时，按类型使用原有业务路由。 */
-export function getCustomerServiceChatLocation(application) {
+/** 按应用类型和菜单定位页面；新建等默认入口仍进入对话。 */
+export function getCustomerServiceLocation(application, menuKey = 'chat') {
   const isAgent = Number(application.application_type) === 2
+  const page = isAgent ? getCustomerServiceAgentPage(menuKey)
+    : getCustomerServicePage(menuKey === 'skills' ? 'skill' : menuKey)
   return {
-    name: isAgent ? 'clawbotChat' : 'customerServiceChat',
+    name: page?.routeName || (isAgent ? 'clawbotChat' : 'customerServiceChat'),
     query: {
       id: normalizeCustomerServiceQueryValue(application.id),
       robot_key: normalizeCustomerServiceQueryValue(application.robot_key),

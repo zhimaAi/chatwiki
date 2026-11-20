@@ -3,8 +3,11 @@
     <a-tab-pane :key="1" :tab="t('tab_basic_config')"></a-tab-pane>
     <a-tab-pane v-if="false" :key="3" :tab="t('tab_permission_management')"></a-tab-pane>
     <a-tab-pane :key="2" :tab="t('tab_common_questions')"></a-tab-pane>
+    <template #rightExtra>
+      <DraftActions class="legacy-draft-actions" :robot-info="robotInfo" :saving="saveLoading" v-model:busy="draftBusy" :refresh="refreshAfterDraftAction" />
+    </template>
   </a-tabs>
-  <div class="robot-config-page" :class="{ 'workspace-config': isWorkspace }" v-if="isWorkspace || activeKey == 1">
+  <div class="robot-config-page" :inert="draftBusy ? '' : null" :class="{ 'workspace-config': isWorkspace }" v-if="isWorkspace || activeKey == 1" :key="`basic-${configRevision}`">
     <div class="scroll-box" :class="{ 'is-scrolling': isWorkspace && isConfigScrolling }" ref="scrollBox" @scroll="handleConfigScroll">
       <div class="setting-box">
         <BasicConfig :inline-summary="isWorkspace" />
@@ -80,12 +83,13 @@
       </div>
     </div>
   </div>
-  <div class="robot-config-page" v-if="!isWorkspace && activeKey == 2">
+  <div class="robot-config-page" :inert="draftBusy ? '' : null" v-if="!isWorkspace && activeKey == 2" :key="`questions-${configRevision}`">
     <CommonProblem />
   </div>
-  <div class="robot-config-page" v-if="!isWorkspace && activeKey == 3">
+  <div class="robot-config-page" :inert="draftBusy ? '' : null" v-if="!isWorkspace && activeKey == 3">
     <rolePermission />
   </div>
+
 </template>
 
 <script setup>
@@ -94,6 +98,8 @@ import { storeToRefs } from 'pinia'
 import { message } from 'ant-design-vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import BasicConfig from './components/basic-config.vue'
+import DraftActions from './components/draft-actions.vue'
+import { createSaveQueue } from '@/views/customer-service/config-session'
 import SystemPromptWords from './components/system-prompt-words.vue'
 import ModelSettings from './components/model-settings.vue'
 import AssociatedKnowledgeBase from './components/associated-knowledge-base/index.vue'
@@ -148,12 +154,44 @@ const scrollBoxToBottom = () => {
   scrollBox.value.scrollTop = scrollBox.value.scrollHeight
 }
 const activeKey = ref(isWorkspace.value ? 1 : +localStorage.getItem(activeLocalKey) || 1)
-const saveLoading = ref(false)
+const pendingSaves = ref(0)
+const saveLoading = computed(() => pendingSaves.value > 0)
+const draftBusy = customerContext?.draftBusy || ref(false)
+const saveQueue = createSaveQueue()
+const configRevision = ref(0)
+let alive = true
+onBeforeUnmount(() => { alive = false })
+const isCurrent = (id, key) => alive && String(robotInfo.value.id) === String(id) && robotInfo.value.robot_key === key
+const refreshAfterDraftAction = async (id, key) => {
+  if (!isCurrent(id, key)) return false
+  const response = await getRobot(id)
+  if (!response || !isCurrent(id, key)) return false
+  configRevision.value++
+  robotStore.getRobotLists()
+  return true
+}
+const saveAction = (task) => {
+  if (draftBusy.value) return Promise.resolve(false)
+  const { id, robot_key: key } = robotInfo.value
+  pendingSaves.value++
+  return saveQueue.enqueue(async () => {
+    if (!isCurrent(id, key)) return false
+    await task()
+    if (!isCurrent(id, key)) return false
+    const response = await getRobot(id)
+    if (!response || !isCurrent(id, key)) return false
+    robotStore.getRobotLists()
+    message.success(t('msg_save_success'))
+    return true
+  }).catch(() => false).finally(() => { pendingSaves.value-- })
+}
+provide('robotDraftContext', { busy: draftBusy, saveAction: customerContext ? customerContext.saveAction : saveAction })
 
 // 基本配置
 const formState = reactive(robotInfo.value)
 
 const updateRobotInfo = (val) => {
+  if (draftBusy.value) return Promise.resolve(false)
   if (customerContext) return customerContext.updateRobotInfo(val)
   let newState = JSON.parse(JSON.stringify(val))
   // 对机器人头像特殊处理
@@ -212,25 +250,7 @@ const saveForm = () => {
 
   formData.cache_config = JSON.stringify(formData.cache_config)
 
-  saveLoading.value = true
-
-  return saveRobot(formData)
-    .then((res) => {
-      if (res.res != 0) {
-        message.error(res.msg)
-        return false
-      }
-
-      message.success(t('msg_save_success'))
-
-      getRobot(formState.id)
-      robotStore.getRobotLists()
-      return true
-    })
-    .catch(() => false)
-    .finally(() => {
-      saveLoading.value = false
-    })
+  return saveAction(() => saveRobot(formData))
 }
 
 const handleTabChange = () => {
@@ -249,10 +269,14 @@ onMounted(()=>{
 </script>
 
 <style lang="less" scoped>
+:deep(.legacy-draft-actions) {
+  padding-right: 24px;
+}
+
 .robot-config-page {
-  height: calc(100% - 46px);
+  height: calc(100% - 50px);
   width: 100%;
-  padding: 8px 10px 24px 24px;
+  padding: 8px 24px 24px;
   padding-bottom: 0;
   overflow: hidden;
   background-color: #fff;
@@ -409,6 +433,7 @@ onMounted(()=>{
   padding-left: 24px;
 }
 .tab-wrapper ::v-deep(.ant-tabs-nav){
+  min-height: 50px;
   margin-bottom: 0;
 }
 </style>

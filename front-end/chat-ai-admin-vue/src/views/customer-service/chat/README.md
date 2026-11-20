@@ -2,7 +2,7 @@
 
 入口为 `/customer-service/chat`。页面使用客服公共布局当前选中的应用，支持聊天机器人（类型0）和智能体（类型2），两者均留在客服模块。交互参考 `src/views/clawbot/chat/index.vue`，输入区不提供 Skill 入口。新建会话显示 Hero，不插入欢迎消息；服务端实际返回的工具或 Skill 过程仍可在消息中展示。
 
-当前实现包含会话列表与历史分页、文本/图片发送、流式消息与停止、模型和人设正式保存、会话变量及知识库入口。未新增会话搜索、重命名、删除、消息赞踩或重新生成。旧 `/robot/test` 不作为本页实现依据。
+当前实现包含会话列表与历史分页、文本/图片发送、流式消息与停止、模型和人设草稿保存、会话变量及知识库入口。未新增会话搜索、重命名、删除、消息赞踩或重新生成。旧 `/robot/test` 不作为本页实现依据。
 
 ## 文件与状态归属
 
@@ -10,11 +10,11 @@
 
 | 文件 | 职责与维护边界 |
 | --- | --- |
-| `src/stores/modules/customer-service.js` | `useCustomerServiceStore` 持有已校验的当前应用和正式配置；列表与详情只接受类型0/2。URL身份、默认选择和应用切换由客服公共布局负责。 |
+| `src/stores/modules/customer-service.js` | `useCustomerServiceStore` 持有已校验的当前应用和草稿配置；列表与详情只接受类型0/2。URL身份、默认选择和应用切换由客服公共布局负责。 |
 | `src/stores/modules/customer-service-chat.js` | `useCustomerServiceChatStore` 持有会话身份、消息、列表、分页、变量、发送状态及自己的 SSE 连接；只读基础 Store 身份，不选择或创建机器人。 |
 | `src/views/customer-service/chat/index.vue` | 编排页面、草稿/附件、弹层、滚动、跳转、配置保存反馈与异步结果接纳。 |
 | `src/views/customer-service/chat/components/message-input.vue` | 受控输入、图片上传、模型选择与快捷入口；通过事件请求保存或跳转。 |
-| `src/views/customer-service/chat/components/prompt-drawer.vue` | 人设查看/编辑、变量与卡片辅助操作；保存通过事件交给页面。 |
+| `src/views/customer-service/chat/components/prompt-dialog.vue` | 复用设置页提示词弹窗、准备编辑副本和变量/工作流候选；完整提示词草稿通过事件交给页面保存。 |
 | `src/views/customer-service/chat/components/variable-modal.vue` | 会话变量本地副本及必填校验；提交通过事件交给页面。 |
 | `src/locales/lang/{zh-CN,en-US}/views/customer-service/chat.json` | 客服局部提示与错误文案；共用组件继续使用其既有文案。 |
 
@@ -30,7 +30,7 @@
 | `src/views/clawbot/chat/components/message-list.vue` 及其消息展示叶子组件 | 消息、过程步骤、引用、菜单及滚动定位。 |
 | `src/views/clawbot/chat/components/conversation-bar.vue` | 当前会话与知识库展示。 |
 | `src/views/clawbot/chat/components/scroll-bottom-btn.vue` | 滚动到底按钮。 |
-| `src/views/clawbot/chat/components/chat-model-select.vue` | 由局部输入区传正式配置，保留既有模型选项交互。 |
+| `src/views/clawbot/chat/components/chat-model-select.vue` | 由局部输入区传草稿配置，保留既有模型选项交互。 |
 | `src/views/clawbot/chat/components/file-toolbar.vue` | 由局部输入区传附件展示。 |
 | `src/utils/agent-process.js` | 纯事件归一化、过程步骤更新与历史步骤恢复。 |
 
@@ -70,30 +70,30 @@
 
 共用 `robot-message-item.vue` 在当前回复底部展示非空 `item.error`：浅红背景与边框、错误图标及“异常信息”标题，正文按纯文本保留换行、自动换行并可选中复制。无正文时也展示，后续回复不会覆盖错误提示；空错误不显示。客服Store只将业务 `error` 写入该字段，连接异常通过 `sendError` 交页面toast提示。
 
-页面及人设抽屉的操作错误、输入检查、列表/历史/辅助选项加载错误统一使用toast，不显示常驻错误条、不提供错误重试入口。会话建立失败仅保留“会话暂不可用”状态占位，具体错误通过toast提示；会话变量保存失败保留弹窗中的编辑内容。
+页面及人设弹窗的操作错误、输入检查、列表/历史/辅助选项加载错误统一使用toast，不显示常驻错误条、不提供错误重试入口。会话建立失败仅保留“会话暂不可用”状态占位，具体错误通过toast提示；会话变量保存失败保留弹窗中的编辑内容。
 
 **`finish` 只结束过程步骤，不能直接 abort 整个连接。** 其后合法的最终内容、引用、耗时和变量仍需接收；`onClose/onError/stop` 才幂等收尾本次连接和锁。旧回调不能解锁新流。分页失败不推进游标；页面前插历史前后校验会话代次，并按可见消息 uid 恢复滚动锚点。
 
-## 正式模型、人设与变量
+## 模型、人设草稿与变量
 
-模型和人设修改会保存**正式机器人配置**，不是本地临时聊天参数。基础 Store 的三个窄动作如下：
+模型和人设修改通过 `saveRobot` 保存**机器人草稿配置**，用于对话调试；正式配置需在基础设置中发布后生效。基础 Store 的三个窄动作如下：
 
 | 动作 | 约束 |
 | --- | --- |
 | `mergeCurrentRobotInfo(expectedIdentity, partialRobot)` | 返回是否接纳 welcome 配置；核对原对象、身份和类型，缺类型可沿用当前值，显式类型必须与当前应用一致。 |
 | `refreshCurrentRobot(expectedIdentity)` | 返回详情或 `null`；校验ID、key和应用类型不变，保持现有 robot/ready，不走清空详情的初始化路径。 |
-| `saveRobotSettings(patch)` | 只接 `{ prompt }` 或 `{ model_config_id, use_model }`，单保存；失败抛错，成功返回 `{ saved: true, refreshed: boolean }`。 |
+| `saveRobotSettings(patch)` | 接收完整的 `{ prompt, prompt_struct, prompt_type }`、原文本提示词补丁或 `{ model_config_id, use_model }`，单保存；失败抛错，成功返回 `{ saved: true, refreshed: boolean }`。 |
 
 `expectedIdentity` 必须是**本次操作前基础 Store 的原 `robot` 对象引用**，每次 welcome/刷新重新捕获，不能克隆、重造 `{id, robot_key}` 或长期复用初始快照。配置写入统一替换对象，结合私有序号拒绝旧配置回填；快照过期仅拒绝配置，不丢弃同身份/会话代次仍有效的 customer、会话或变量结果。
 
-保存沿既有 `saveRobot`，从完整配置构建请求，处理欢迎语、未知问题、结构化人设、缓存及头像序列化，显式传当前应用真实的 `application_type`（0或2），不以逻辑或将有效的0默认成类型2。页面不乐观改正式值；输入区在保存结束后按正式 props 重建模型选择器。人设取消不保存，保存失败保留编辑。
+初始化和保存后刷新均以 `with_draft=1` 获取详情，复用 `resolveRobotDraft` 按当前语言合并草稿。保存沿既有 `saveRobot`，从包含已有草稿的完整配置构建请求，处理欢迎语、未知问题、结构化人设、缓存及头像序列化，显式传当前应用真实的 `application_type`（0或2），不以逻辑或将有效的0默认成类型2。页面不乐观改配置值；输入区保留模型选择器实例及模型列表，保存中显示当前选择，结束后同步回读的草稿 props；保存失败时恢复原模型，避免重建期间闪现“请选择模型”。欢迎信息、发送前权限检查及消息发送均携带 `is_draft=1`，保证调试使用草稿。人设取消不保存，保存失败保留编辑。
 
-若结果为 `{ saved: true, refreshed: false }`，表示服务端保存已成功、配置刷新失败或身份已变，**不能再次保存来重试**。当前页面仅在身份仍有效时通过warning toast提示“配置已保存，但页面配置未能同步”，不提供刷新重试入口；不清消息、不重建当前会话。离页或切机器人无法撤销已到服务端的正式保存，旧结果不能回填新身份。
+若结果为 `{ saved: true, refreshed: false }`，表示服务端保存已成功、配置刷新失败或身份已变，**不能再次保存来重试**。当前页面仅在身份仍有效时通过warning toast提示“配置已保存，但页面配置未能同步”，不提供刷新重试入口；不清消息、不重建当前会话。离页或切机器人无法撤销已到服务端的草稿保存，旧结果不能回填新身份。
 
 局部表单接口：
 
 - `MessageInput`：props 为 `value/fileList/loading/modelLoading/modeId/modeName/showUpload/emptyMode`；事件为 `update:value/update:fileList/send/stop/changeModel/openPrompt/openKnowledge`。输入法组合期间不发送，Enter发送、Shift+Enter换行。
-- `PromptDrawer`：props 为 `open/prompt/robotKey/loading`；事件为 `close/save(prompt)/variablesLoaded(list)`。变量及小程序卡片辅助查询保留，身份/查询序号保护旧结果；不直接保存配置或改业务 Store。
+- 对话页 `PromptDialog`：props 为 `open/robot/robotKey/loading`；事件为 `close/save({ prompt, prompt_struct, prompt_type })/variablesLoaded(list)`。复用设置页 `basic-settings/components/prompt-dialog.vue`，直接进入结构化/自定义提示词编辑；只交给页面保存草稿。编辑器复用 `useRobotStore` 的配置规范化与辅助变量，不使用它管理会话业务状态。
 - `VariableModal`：props 为 `open/variables/loading`，`variables` 是完整 `chat_variables` 对象；事件为 `submit(values)/close`。表单编辑本地副本，页面交 Store 提交/缓存；失败保留表单。发送中先停止再修改会话变量。
 
 ## 身份切换与知识库边界
@@ -107,6 +107,6 @@
 
 ## 交付与运行边界
 
-已对照当前源码进行人工范围、契约和可接管性阅读；**未执行验证**。没有运行开发服务、浏览器、业务接口试请求、lint、静态/类型检查、测试或构建，不能将人工阅读视为真实链路通过。
+本次草稿保存修复已通过12项前端回归检查，覆盖类型0/2的草稿初始化、模型及人设保存、其他草稿参数保留、多语言回显、无草稿回退、失败重试、刷新失败、身份切换及调试请求的草稿标记。模型选择器另通过6项组件回归检查，覆盖保存期间连续显示、成功后不重建、失败及刷新失败恢复、人设保存、外部配置同步和保存期间禁选。临时测试文件已清理。未启动开发服务或进行浏览器、真实业务接口联调。
 
-建议用户手动检查类型0/2的切换、刷新恢复、普通消息及已有工具任务的实际过程展示，确认生成中切应用不串消息、配置保存保持原类型，并检查正式保存成功但刷新失败的恢复。这些是后续检查建议，尚未执行。发现需改 API、后端或共享组件契约时先协调范围，不能在本页静默扩展。
+建议用户手动检查类型0/2的切换、刷新恢复、普通消息及已有工具任务的实际过程展示，确认生成中切应用不串消息、配置保存保持原类型，并检查草稿保存成功但刷新失败的恢复。这些是后续检查建议，尚未执行。发现需改 API、后端或共享组件契约时先协调范围，不能在本页静默扩展。

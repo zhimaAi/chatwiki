@@ -19,5 +19,13 @@
   "label_daily_active_users": "Daily Active Users (people)",
   "label_daily_new_users": "Daily New Users (people)",
   "label_total_messages": "Total Messages (messages)",
-  "label_token_consumption": "Token Consumption (thousands)"
+  "label_token_consumption": "Token Consumption (thousands)",
+  "btn_export": "Export",
+  "export_filename": "Statistics",
+  "export_date": "Date",
+  "export_message_total": "AI Messages",
+  "export_hit_messages": "Hit Messages",
+  "export_miss_messages": "Missed Messages",
+  "export_hit_rate": "Hit Rate",
+  "export_incomplete": "Statistics are incomplete. Please export again."
 }

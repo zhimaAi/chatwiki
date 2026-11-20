@@ -455,7 +455,23 @@ func (n *CurlNode) Running(flow *WorkFlow) (output common.SimpleFields, nextNode
 			rawurl += "?" + strings.Join(params, `&`)
 		}
 	}
+	if urlErr := common.ValidatePublicDomainURL(flow.params.Lang, rawurl); urlErr != nil {
+		err = urlErr
+		output = buildNodeErrorOutput(urlErr)
+		if len(n.params.Exception) > 0 {
+			nextNodeKey = n.params.Exception
+			err = nil
+		}
+		return
+	}
 	request := curl.NewRequest(rawurl, n.params.Method)
+	request.SetTransport(common.NewPublicDomainTransport(flow.params.Lang, time.Duration(n.params.Timeout)*time.Second, define.Config.WebService[`workflow_http_proxy`]))
+	request.SetCheckRedirect(func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New(`stopped after 10 redirects`)
+		}
+		return common.ValidatePublicDomainURL(flow.params.Lang, req.URL.String())
+	})
 	for _, header := range n.params.Headers {
 		request.Header(header.Key, flow.VariableReplace(header.Value))
 	}

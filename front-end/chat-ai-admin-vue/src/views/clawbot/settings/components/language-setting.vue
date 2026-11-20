@@ -14,8 +14,8 @@
         <div class="actions-box">
           <template v-if="isEdit">
             <a-flex :gap="8">
-              <a-button @click="handleSave" size="small" type="primary">保存</a-button>
-              <a-button @click="handleEdit(false)" size="small">取消</a-button>
+              <a-button @click="handleSave" size="small" type="primary" :loading="saving" :disabled="saving">保存</a-button>
+              <a-button @click="handleEdit(false)" size="small" :disabled="saving">取消</a-button>
             </a-flex>
           </template>
           <template v-else>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, watchEffect, inject } from 'vue'
 import { message } from 'ant-design-vue'
 import { saveRobotLangConfigs } from '@/api/robot/index'
 import { useClawbotStore } from '@/stores/modules/clawbot'
@@ -71,6 +71,8 @@ const multiLangConfigs = computed(() => {
 
 const multi_lang_configs = ref([])
 const isEdit = ref(false)
+const saving = ref(false)
+const draftContext = inject('robotDraftContext', null)
 
 watchEffect(() => {
   setMultiLangConfigs()
@@ -108,16 +110,29 @@ const handleUpdataConfig = (data) => {
 }
 
 const handleSave = async () => {
+  if (saving.value || draftContext?.busy.value) return
   const params = {
     id: robotStore.robotInfo.id,
     multi_lang_configs: JSON.stringify(multi_lang_configs.value)
   }
 
-  await saveRobotLangConfigs(params)
-  message.success('保存成功')
-  isEdit.value = false
-  await robotStore.getRobot(robotStore.robotInfo.id)
-  await clawbotStore.fetchRobotInfo(String(robotStore.robotInfo.id))
+  saving.value = true
+  try {
+    if (draftContext) {
+      const success = await draftContext.saveAction(() => saveRobotLangConfigs(params))
+      if (success) isEdit.value = false
+      return
+    }
+    await saveRobotLangConfigs(params)
+    message.success('保存成功')
+    isEdit.value = false
+    await robotStore.getRobot(params.id)
+    await clawbotStore.fetchRobotInfo(String(params.id))
+  } catch {
+    // 保存失败保留当前语言编辑内容，错误由 axios 统一提示。
+  } finally {
+    saving.value = false
+  }
 }
 
 const handleEdit = (val) => {

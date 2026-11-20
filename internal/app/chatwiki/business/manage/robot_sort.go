@@ -22,6 +22,13 @@ func GetMaxRobotNum(adminUserId int) (int, error) {
 	return cast.ToInt(maxSortNum), err
 }
 
+// GetMinRobotNum gets min sort number for appending new applications.
+func GetMinRobotNum(adminUserId int) (int, error) {
+	minSortNum, err := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`admin_user_id`, cast.ToString(adminUserId)).Min(`sort_num`)
+	return cast.ToInt(minSortNum), err
+}
+
 // MoveRobotSort moves robot sort order
 func MoveRobotSort(c *gin.Context) {
 	var adminUserId int

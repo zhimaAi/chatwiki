@@ -107,11 +107,10 @@
         </template>
       </template>
     </section>
-    <PromptDrawer
+    <PromptDialog
       :key="identityVersion"
-      :robot="robot"
+      :robot="customerServiceStore.robot"
       :open="promptOpen"
-      :prompt="robot.prompt || ''"
       :robotKey="readyRobotKey"
       :loading="settingsPending"
       @close="promptOpen = false"
@@ -149,7 +148,7 @@ import MessageList from '@/views/clawbot/chat/components/message-list.vue'
 import ConversationBar from '@/views/clawbot/chat/components/conversation-bar.vue'
 import ScrollBottomBtn from '@/views/clawbot/chat/components/scroll-bottom-btn.vue'
 import MessageInput from './components/message-input.vue'
-import PromptDrawer from './components/prompt-drawer.vue'
+import PromptDialog from './components/prompt-dialog.vue'
 import VariableModal from './components/variable-modal.vue'
 
 // 页面只编排UI/滚动/正式配置与知识导航；机器人身份归基础Store，会话协议归客服聊天Store。
@@ -340,7 +339,7 @@ const sendQuestion = async (text, files, consumeDraft) => {
   const submittedDraftVersion = draftVersion
   const requestId = ++sendRequestSequence
   try {
-    const accepted = await chatStore.sendMessage({ message: content, checkQuestion: text, global: JSON.stringify({}) })
+    const accepted = await chatStore.sendMessage({ message: content, checkQuestion: text, global: JSON.stringify({}), is_draft: 1 })
     if (!isCurrentSession(version) || requestId !== sendRequestSequence) return
     // 业务接纳才消费提交时草稿；用户在等待期间编辑/改附件则保留后来内容。
     if (accepted && consumeDraft && submittedDraftVersion === draftVersion) {
@@ -384,8 +383,8 @@ const onChangeChatModel = (model) => {
   if (String(model.model_config_id) === String(robot.value.model_config_id) && model.name === robot.value.use_model) return
   void saveSettings({ model_config_id: model.model_config_id, use_model: model.name || '' }, 'model')
 }
-const onSavePrompt = (prompt, promptType) => {
-  void saveSettings({ prompt, ...(promptType === 0 ? { prompt_type: 0 } : {}) }, 'prompt')
+const onSavePrompt = (patch) => {
+  void saveSettings(patch, 'prompt')
 }
 
 const onVariablesLoaded = (list) => {

@@ -29,10 +29,24 @@ export const saveRobot = (data = {}, application_type = 0) => {
   })
 }
 
-export const getRobotInfo = ({ id }) => {
+export const getRobotInfo = (params) => {
   return request.get({
     url: '/manage/getRobotInfo',
-    params: { id }
+    params
+  })
+}
+
+export const publishRobot = (data) => {
+  return request.post({
+    url: '/manage/publishRobot',
+    data
+  })
+}
+
+export const undoRobotDraft = (data) => {
+  return request.post({
+    url: '/manage/undoRobotDraft',
+    data
   })
 }
 

@@ -42,5 +42,9 @@
   "message_learning_preview": "学习中,不可预览",
   "message_fetching": "获取中,不可预览",
   "message_fetch_failed": "获取失败,不可预览",
-  "message_segmenting": "正在分段,不可预览"
+  "message_segmenting": "正在分段,不可预览",
+  "failure_reason": "失败原因：",
+  "failure_suggestion": "处理建议：",
+  "failure_unknown": "未知原因报错",
+  "failure_unknown_suggestion": "若问题持续，请联系管理员，并提供文档名称和导入时间。"
 }

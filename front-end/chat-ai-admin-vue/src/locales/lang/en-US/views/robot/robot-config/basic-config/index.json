@@ -1,1 +1,16 @@
-{"tab_basic_config": "Basic Config", "tab_permission_management": "Permission Management", "tab_common_questions": "Common Questions", "msg_save_success": "Saved successfully"}
+{
+  "tab_basic_config": "Basic Config",
+  "tab_permission_management": "Permission Management",
+  "tab_common_questions": "Common Questions",
+  "msg_save_success": "Saved successfully",
+  "label_published_time": "Last published: {time}",
+  "msg_unpublished_changes": "Unpublished changes. Publish to apply them.",
+  "btn_undo_changes": "Undo changes",
+  "btn_publish": "Publish",
+  "btn_confirm": "Confirm",
+  "btn_cancel": "Cancel",
+  "confirm_undo_changes": "Undo these changes?",
+  "confirm_undo_description": "The robot settings will return to the last published version.",
+  "msg_publish_success": "Published successfully",
+  "msg_undo_success": "Changes undone"
+}

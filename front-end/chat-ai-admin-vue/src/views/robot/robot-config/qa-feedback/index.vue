@@ -77,7 +77,7 @@
 
 <template>
   <div class="user-model-page"><a-alert v-if="error" type="error" :message="error" show-icon><template #action><a @click="getData">{{ commonT('retry') }}</a></template></a-alert>
-    <div class="page-title">{{ t('title_data_overview') }}</div>
+    <div v-if="!props.embedded" class="page-title">{{ t('title_data_overview') }}</div>
     <div class="overview-box">
       <div class="item-box" v-for="item in overviewData" :key="item.titleObj.id">
         <div class="item-info">{{ t(item.titleObj.title) }}</div>
@@ -104,7 +104,10 @@ const { t } = useI18n('views.robot.robot-config.qa-feedback.index')
 const { t: commonT } = useI18n('views.customer-service.index')
 const route = useRoute()
 
-const props = defineProps({ robotId: { type: [String, Number], default: '' } })
+const props = defineProps({
+  robotId: { type: [String, Number], default: '' },
+  embedded: { type: Boolean, default: false }
+})
 const { error, run } = useRequestState()
 
 const overviewData = ref([])

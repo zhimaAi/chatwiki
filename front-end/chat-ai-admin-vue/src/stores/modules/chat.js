@@ -23,6 +23,8 @@ export function createRobotChatSession(options = {}) {
   const im = useIM(options.isolatedIM)
 
   let mySSE = null
+  let chatRequestSeq = 0
+  const isDraft = ref(false)
   let sessionVersion = 0
   let streamVersion = 0
   let pendingVariables = null
@@ -70,6 +72,10 @@ export function createRobotChatSession(options = {}) {
 
   // 存储聊天记录必备的数据
   const createMsg = async (data) => {
+    chatRequestSeq += 1
+    sessionVersion++
+    stopMessage()
+    isDraft.value = false
     messageList.value = []
     // 重置聊天记录是否加载完成的状态
     chatMessageLoadCompleted.value = false
@@ -97,6 +103,8 @@ export function createRobotChatSession(options = {}) {
   // 创建对话
   const isNewChat = ref(false)
   const createChat = async (data) => {
+    const currentChatRequestSeq = ++chatRequestSeq
+    isDraft.value = Number(data.is_draft) === 1
     // 配置预览保存后重新读取变量规则，保留已有消息和会话连接。
     const refreshOnly = Boolean(data.refreshOnly)
     const version = refreshOnly ? sessionVersion : ++sessionVersion
@@ -139,9 +147,10 @@ export function createRobotChatSession(options = {}) {
       // avatar: user.avatar || DEFAULT_USER_AVATAR, // lion要求把请求的avatar 干掉
       is_background: data.is_background || undefined,
       dialogue_id: dialogue_id.value,
+      ...(isDraft.value ? { is_draft: 1 } : {})
     }, options.isolatedIM ? { cancelToken: false } : {})
 
-    if (version !== sessionVersion) return null
+    if (version !== sessionVersion || currentChatRequestSeq !== chatRequestSeq) return null
     try {
       let userInfo = res.data.customer
       let robotInfo = res.data.robot
@@ -167,15 +176,21 @@ export function createRobotChatSession(options = {}) {
         robot.welcomes = JSON.parse(robotInfo.welcomes)
       }
 
-      const chatVariable = res.data.chat_variable || {}
-      chat_variables.value = {
-        ...getDefaultChatVariables(),
-        ...chatVariable,
-        session_id: Number(chatVariable.session_id || res.data.session_id || 0),
-        dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
-        fill_variables: chatVariable.fill_variables || [],
-        wait_variables: chatVariable.wait_variables || [],
+      const updateChatVariables = () => {
+        if (currentChatRequestSeq !== chatRequestSeq) return
+        const chatVariable = res.data.chat_variable || {}
+        chat_variables.value = {
+          ...getDefaultChatVariables(),
+          ...chatVariable,
+          session_id: Number(chatVariable.session_id || res.data.session_id || 0),
+          dialogue_id: Number(chatVariable.dialogue_id || res.data.dialog_id || dialogue_id.value || 0),
+          fill_variables: chatVariable.fill_variables || [],
+          wait_variables: chatVariable.wait_variables || [],
+        }
       }
+      // 独立预览发送前立即检查变量，需在 createChat 返回前完成更新。
+      if (options.isolatedIM) updateChatVariables()
+      else setTimeout(updateChatVariables)
 
       // 插入欢迎语
       if (!refreshOnly) {
@@ -433,7 +448,6 @@ export function createRobotChatSession(options = {}) {
     if (sendLock.value) {
       return
     }
-
     const version = ++streamVersion
     let aiMsg = {
       startLoading: true, // 对话开始状态
@@ -464,7 +478,8 @@ export function createRobotChatSession(options = {}) {
       // library_ids: robot.library_ids,
       form_ids: robot.form_ids,
       dialogue_id: dialogue_id.value,
-      global: data.global
+      global: data.global,
+      ...(isDraft.value ? { is_draft: 1 } : {})
     }
 
     let variables_key = `chat_prompt_variables_${robot.robot_key}`
@@ -486,7 +501,7 @@ export function createRobotChatSession(options = {}) {
     mySSE = sendAiMessage(params)
 
     mySSE.onMessage = (res) => {
-      if (version !== streamVersion) return
+      if (version !== streamVersion || aiMsg.is_stopped) return
       if (res.event !== 'sending') {
         devLog(res)
       }
@@ -591,7 +606,8 @@ export function createRobotChatSession(options = {}) {
           questionGuide({
             robot_key: robot.robot_key,
             openid: robot.openid,
-            dialogue_id: dialogue_id.value
+            dialogue_id: dialogue_id.value,
+            ...(isDraft.value ? { is_draft: 1 } : {})
           }).then((res) => {
             if (version === streamVersion) updateAiMessage('guess_you_want', res.data || [], aiMsg.uid)
           })
@@ -819,10 +835,11 @@ export function createRobotChatSession(options = {}) {
   }
 
   function $reset() {
+    chatRequestSeq += 1
+    isDraft.value = false
     pendingVariables = null
     sessionVersion++
-    streamVersion++
-    if (mySSE) { mySSE.abort(); mySSE = null }
+    stopMessage()
     // 关闭im
     im.close()
 

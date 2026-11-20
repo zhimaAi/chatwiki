@@ -25,7 +25,7 @@
       <div class="modal-box">
         <div class="title-block">{{ baseParmas.file_name }}</div>
         <div class="content-block">
-          <VuePdfEmbed :source="sourceUrl"  />
+          <VuePdfEmbed v-if="viewOpen" :source="sourceUrl" />
         </div>
       </div>
     </van-popup>
@@ -33,11 +33,12 @@
 </template>
 
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { defineAsyncComponent, ref, watch, onBeforeUnmount } from 'vue'
 import { getAnswerSource } from '@/api/chat/index.js'
-import VuePdfEmbed from 'vue-pdf-embed'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useAnswerSourcePreview } from '@/composables/useAnswerSourcePreview'
+
+const VuePdfEmbed = defineAsyncComponent(() => import('vue-pdf-embed'))
 
 const { t } = useI18n('views.chat.components.quote-modal.index')
 const show = ref(false)

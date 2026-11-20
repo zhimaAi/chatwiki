@@ -5,10 +5,10 @@
   flex-flow: column nowrap;
   border-radius: 2px;
   overflow: hidden;
-  background-color: #f5f9ff;
+  background-color: #f2f4f7;
 }
 .chat-page-header {
-  padding: 0 24px;
+  padding: 0 16px;
   .breadcrumb-box {
     display: flex;
     align-items: center;
@@ -19,14 +19,17 @@
   display: flex;
   justify-content: space-between;
   flex: 1;
-  padding: 24px;
+  gap: 24px;
+  padding: 0 16px 16px;
   overflow: hidden;
 
   .page-body {
     flex: 1;
     display: flex;
     flex-flow: column nowrap;
-    max-width: 46.6%;
+    min-width: 0;
+    max-width: 800px;
+    margin: 0 auto;
     height: 100%;
     overflow: hidden;
 
@@ -48,15 +51,64 @@
   .page-left {
     display: flex;
     flex-flow: column nowrap;
-    padding: 24px 0;
+    flex-shrink: 0;
+    padding: 16px 0;
+    background-color: #fff;
+    box-shadow: none;
+
+    .version-tabs {
+      display: flex;
+      width: 100%;
+      height: 36px;
+      margin-bottom: 8px;
+      padding: 2px;
+      border-radius: 6px;
+      background-color: #edeff2;
+
+      :deep(.ant-radio-button-wrapper) {
+        flex: 1;
+        height: 32px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        box-shadow: none;
+        line-height: 32px;
+        text-align: center;
+        color: #595959;
+
+        &::before {
+          display: none;
+        }
+
+        &.ant-radio-button-wrapper-checked {
+          background-color: #fff;
+          color: #2475fc;
+        }
+
+        &:focus-within {
+          outline: 2px solid #91caff;
+          outline-offset: -2px;
+        }
+
+        &.ant-radio-button-wrapper-disabled {
+          cursor: not-allowed;
+          color: #bfbfbf;
+        }
+      }
+    }
 
     .page-left-top,
     .page-left-footer {
-      padding: 0 24px;
+      padding: 0 16px;
     }
 
     .page-left-top {
-      margin-bottom: 15px;
+      margin-bottom: 8px;
+
+      :deep(.ant-btn) {
+        border-radius: 6px;
+      }
     }
 
     .page-left-body {
@@ -80,6 +132,50 @@
     border-radius: 4px;
     color: #3a4559;
     background: #f2f4f7;
+  }
+}
+
+.chat-page .test-chat-list {
+  :deep(.chat-list-item) {
+    height: 32px;
+    margin: 0 16px 4px;
+    padding: 0 16px;
+    border-radius: 6px;
+    line-height: 32px;
+
+    &:hover {
+      background-color: #f2f4f7;
+    }
+
+    &.active {
+      border: 0;
+      background-color: #e4efff;
+    }
+  }
+
+  :deep(.chat-item-icon) {
+    margin-right: 4px;
+    font-size: 14px;
+    color: #8c8c8c;
+  }
+
+  :deep(.chat-item-title) {
+    color: #595959;
+  }
+
+  :deep(.chat-list-item.active .chat-item-icon),
+  :deep(.chat-list-item.active .chat-item-title) {
+    color: #2475fc;
+  }
+}
+
+.chat-box-footer {
+  padding-top: 24px;
+
+  :deep(.message-input-wrapper) {
+    border-color: #d8dde5;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px 0 #00000014;
   }
 }
 
@@ -139,12 +235,22 @@
       <!-- left -->
       <div class="page-left">
         <div class="page-left-top">
-          <a-button type="primary" block ghost @click="openNewChat"
+          <a-radio-group
+            class="version-tabs"
+            :value="chatVersion"
+            :disabled="chatVersionLoading"
+            @change="handleVersionChange"
+          >
+            <a-radio-button value="published">{{ t('tab_published_version') }}</a-radio-button>
+            <a-radio-button value="draft">{{ t('tab_draft_version') }}</a-radio-button>
+          </a-radio-group>
+          <a-button type="primary" block ghost :disabled="chatVersionLoading" @click="openNewChat"
             ><PlusOutlined /> {{ t('btn_new_chat') }}</a-button
           >
         </div>
         <div class="page-left-body">
           <ChatList
+            class="test-chat-list"
             :list="myChatList"
             :active="dialogue_id"
             @openChat="handleOpenChat"
@@ -174,7 +280,7 @@
           />
         </div>
 
-        <div style="padding-top: 30px" class="chat-box-footer">
+        <div class="chat-box-footer">
           <MessageInput
             v-model:value="message"
             v-model:fileList="fileList"
@@ -242,6 +348,10 @@ const userStore = useUserStore()
 let isAllowedScrollToBottom = true
 const message = ref('')
 const fileList = ref([])
+const chatVersion = ref('draft')
+const chatVersionLoading = ref(true)
+const draftParams = computed(() => chatVersion.value === 'draft' ? { is_draft: 1 } : {})
+let chatVersionRequestSeq = 0
 const messageListRef = ref(null)
 
 const {
@@ -267,7 +377,7 @@ const isShowFromHeader = computed(() => {
 const route = useRoute()
 const isRobotInfo = ref(false)
 const checkChatRequestPermissionLoding = ref(false)
-const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value)
+const sendLoading = computed(() => sendLock.value || checkChatRequestPermissionLoding.value || chatVersionLoading.value)
 let sendRequestSeq = 0
 
 const onSendMesage = async () => {
@@ -289,7 +399,8 @@ const onSendMesage = async () => {
       openid: robot.value.openid,
       question: message.value,
       form_ids: robot.value.form_ids,
-      dialogue_id: dialogue_id.value
+      dialogue_id: dialogue_id.value,
+      ...draftParams.value
     })
 
   if (currentSendRequestSeq !== sendRequestSeq) {
@@ -359,8 +470,10 @@ const onStopMessage = () => {
 }
 
 const openNewChat = async () => {
+  onStopMessage()
   isAllowedScrollToBottom = true
   message.value = ''
+  fileList.value = []
 
   let query = route.query || {}
   let user_id = userStore.user_id
@@ -372,7 +485,8 @@ const openNewChat = async () => {
     nickname: query.nickname,
     is_background: 1,
     openid: user_id,
-    dialogue_id: 0
+    dialogue_id: 0,
+    ...draftParams.value
   }
 
   resetScroll()
@@ -380,7 +494,27 @@ const openNewChat = async () => {
   await createChat(data)
 }
 
+const loadChatVersion = async (version) => {
+  const currentVersionRequestSeq = ++chatVersionRequestSeq
+  chatVersionLoading.value = true
+  onStopMessage()
+  $reset()
+  chatVersion.value = version
+  try {
+    await getRobot(query.id, { useDraft: version === 'draft' })
+    if (currentVersionRequestSeq !== chatVersionRequestSeq) return
+    await openNewChat()
+    if (currentVersionRequestSeq !== chatVersionRequestSeq) return
+    await getMyChatList()
+  } finally {
+    chatVersionLoading.value = false
+  }
+}
+
+const handleVersionChange = (event) => loadChatVersion(event.target.value)
+
 const handleOpenChat = async (data) => {
+  if (chatVersionLoading.value) return
   if (dialogue_id.value == data.dialogue_id) {
     return
   }
@@ -396,7 +530,8 @@ const handleOpenChat = async (data) => {
     nickname: data.nickname,
     is_background: data.is_background,
     openid: data.openid,
-    dialogue_id: data.id
+    dialogue_id: data.id,
+    ...draftParams.value
   }
 
   resetScroll()
@@ -411,6 +546,7 @@ const handleOpenChat = async (data) => {
 
 // 点击菜单
 const onClickMsgMenu = (text) => {
+  if (sendLoading.value) return
   isAllowedScrollToBottom = true
 
   sendMessage({
@@ -561,18 +697,15 @@ watch(
 )
 
 onMounted(async () => {
-  // 创建对话
-  openNewChat()
-  // 获取对话记录
-  getMyChatList()
-
-  await getRobot(query.id)
+  await loadChatVersion('draft')
   isRobotInfo.value = true
   // 监听 updateAiMessage 触发消息列表滚动
   emitter.on('updateAiMessage', onUpdateAiMessage)
 })
 
 onUnmounted(() => {
+  chatVersionRequestSeq += 1
+  sendRequestSeq += 1
   $reset()
   emitter.off('updateAiMessage', onUpdateAiMessage)
 })

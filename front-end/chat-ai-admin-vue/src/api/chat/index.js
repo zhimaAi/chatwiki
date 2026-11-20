@@ -1,12 +1,15 @@
 import SSE from '@/utils/http/sse'
 import request from '@/utils/http/axios'
+import { useUserStore } from '@/stores/modules/user'
 
 const baseURL = import.meta.env.VITE_BASE_API_URL
 
 export const sendAiMessage = (data) => {
   return new SSE({
     url: baseURL + '/chat/request',
-    data: data
+    data: data,
+    // 草稿预览需要管理员身份，SSE 不经过 axios 的 token 拦截器。
+    token: Number(data.is_draft) === 1 ? useUserStore().getToken ?? '' : ''
   })
 }
 

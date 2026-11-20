@@ -32,20 +32,60 @@ func GetRobotDataImportInfo(c *gin.Context) {
 		return
 	}
 	id := cast.ToInt(c.Query(`id`))
+	if id <= 0 {
+		common.FmtError(c, `robot_id_param_error`)
+		return
+	}
 
-	nodes, _ := msql.Model(`work_flow_node`, define.Postgres).Where(`robot_id`, cast.ToString(id)).
-		Where(`data_type`, cast.ToString(define.DataTypeDraft)).Select()
+	robotModel := msql.Model(`chat_ai_robot`, define.Postgres).
+		Where(`id`, cast.ToString(id)).Where(`admin_user_id`, cast.ToString(adminUserId)).
+		Field(`application_type,library_ids,work_flow_ids`)
+	robot, err := robotModel.Find()
+	if err != nil {
+		logs.Error(`sql:%s,err:%s`, robotModel.GetLastSql(), err.Error())
+		common.FmtError(c, `sys_err`)
+		return
+	}
+	if len(robot) == 0 {
+		common.FmtError(c, `robot_info_not_exist`)
+		return
+	}
 
-	returnData := make(map[string]interface{})
+	isChatRobot := cast.ToInt(robot[`application_type`]) == define.ApplicationTypeChat
+	var libraryIds []string
+	nodeRobotIds := []string{cast.ToString(id)}
+	nodeModel := msql.Model(`work_flow_node`, define.Postgres).Alias(`n`).
+		Where(`n.admin_user_id`, cast.ToString(adminUserId)).Where(`n.data_type`, cast.ToString(define.DataTypeDraft)).
+		Field(`n.node_type,n.node_params,n.node_info_json`)
+	if isChatRobot {
+		libraryIds = strings.Split(robot[`library_ids`], `,`)
+		nodeRobotIds = uniqueCslReferenceIds(strings.Split(robot[`work_flow_ids`], `,`))
+		nodeModel.Join(`chat_ai_robot r`, `r.id = n.robot_id and r.admin_user_id = n.admin_user_id`, `inner`).
+			Where(`r.application_type`, cast.ToString(define.ApplicationTypeFlow)).
+			Where(`n.node_type`, cast.ToString(work_flow.NodeTypeLibs))
+	}
+	var nodes []msql.Params
+	if len(nodeRobotIds) > 0 {
+		nodes, err = nodeModel.Where(`n.robot_id`, `in`, strings.Join(nodeRobotIds, `,`)).Select()
+		if err != nil {
+			logs.Error(`sql:%s,err:%s`, nodeModel.GetLastSql(), err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
+	}
+
 	databaseMap := make(map[int]work_flow.ExportBaseFormInfo)
-	libraryIds := []string{}
 	for _, node := range nodes {
 		nodeInfo := work_flow.NodeInfo{}
 		_ = tool.JsonDecodeUseNumber(node[`node_info_json`], &nodeInfo)
 		switch cast.ToInt(node[`node_type`]) {
 		case work_flow.NodeTypeLibs:
 			libraryInfo := work_flow.ExportLibrary{}
-			_ = tool.JsonDecodeUseNumber(nodeInfo.DataRaw, &libraryInfo)
+			params := nodeInfo.DataRaw
+			if isChatRobot {
+				params = node[`node_params`]
+			}
+			_ = tool.JsonDecodeUseNumber(params, &libraryInfo)
 			libraryIds = append(libraryIds, strings.Split(libraryInfo.Libs.LibraryIds, ",")...)
 		case work_flow.NodeTypeFormInsert:
 			insertInfo := work_flow.ExportFormInsertInfo{}
@@ -66,21 +106,38 @@ func GetRobotDataImportInfo(c *gin.Context) {
 		}
 	}
 
-	if len(libraryIds) > 0 {
-		returnData["library"], _ = msql.Model(`chat_ai_library`, define.Postgres).Where(`id`, `in`, strings.Join(libraryIds, ",")).Where(`admin_user_id`, cast.ToString(adminUserId)).Field("id,admin_user_id,library_name").Select()
-	} else {
-		returnData["library"] = []interface{}{}
+	libraries := []msql.Params{}
+	if libraryIds = uniqueCslReferenceIds(libraryIds); len(libraryIds) > 0 {
+		libraryModel := msql.Model(`chat_ai_library`, define.Postgres).
+			Where(`id`, `in`, strings.Join(libraryIds, `,`)).Where(`admin_user_id`, cast.ToString(adminUserId)).
+			Field(`id,admin_user_id,library_name`)
+		libraries, err = libraryModel.Select()
+		if err != nil {
+			logs.Error(`sql:%s,err:%s`, libraryModel.GetLastSql(), err.Error())
+			common.FmtError(c, `sys_err`)
+			return
+		}
 	}
 
 	databaseList := []work_flow.ExportBaseFormInfo{}
 	for _, info := range databaseMap {
 		databaseList = append(databaseList, info)
 	}
-	returnData["databaseList"] = databaseList
-
-	c.String(http.StatusOK, lib_web.FmtJson(returnData, nil))
-
+	common.FmtOk(c, map[string]any{`library`: libraries, `databaseList`: databaseList})
 }
+
+func uniqueCslReferenceIds(ids []string) []string {
+	uniqueIds := make([]string, 0, len(ids))
+	seen := make(map[int]bool, len(ids))
+	for _, raw := range ids {
+		if id := cast.ToInt(raw); id > 0 && !seen[id] {
+			seen[id] = true
+			uniqueIds = append(uniqueIds, cast.ToString(id))
+		}
+	}
+	return uniqueIds
+}
+
 func RobotExport(c *gin.Context) {
 	var adminUserId int
 	if adminUserId = GetAdminUserId(c); adminUserId == 0 {

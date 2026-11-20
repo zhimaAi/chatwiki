@@ -88,6 +88,10 @@ func BridgeGetLibFileList(adminUserId, loginUserId int, lang string, req *Bridge
 		logs.Error(err.Error())
 		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
 	}
+	if err := common.AddLibFileFailureDetails(adminUserId, libraryId, lang, list); err != nil {
+		logs.Error(err.Error())
+		return nil, -1, errors.New(i18n.Show(lang, `sys_err`))
+	}
 
 	//====== Metadata and its values (also returned in the list) ======
 	//Built-in is_show: from chat_ai_library

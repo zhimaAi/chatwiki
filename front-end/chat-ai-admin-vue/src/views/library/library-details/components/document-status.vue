@@ -1,10 +1,24 @@
-<template><span class="workspace-document-status" :class="[kind, { 'on-card': card }]" :title="record.errmsg && record.errmsg !== 'success' ? record.errmsg : undefined"><img :src="kind === 'complete' ? icons.success : kind === 'error' ? icons.error : icons.clock" alt="" /><span>{{ label }}</span></span></template>
+<template>
+  <document-failure-tooltip :record="record">
+    <span
+      class="workspace-document-status"
+      :class="[kind, { 'on-card': card }]"
+      :tabindex="isConversionFailure ? 0 : undefined"
+      :title="!isConversionFailure && record.errmsg && record.errmsg !== 'success' ? record.errmsg : undefined"
+    >
+      <img :src="kind === 'complete' ? icons.success : kind === 'error' ? icons.error : icons.clock" alt="" />
+      <span>{{ label }}</span>
+    </span>
+  </document-failure-tooltip>
+</template>
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import icons from './workspace-document-icons'
+import DocumentFailureTooltip from './document-failure-tooltip.vue'
 const props = defineProps({ record: { type: Object, required: true }, card: Boolean })
 const { t } = useI18n('views.library.library-details.knowledge-document')
+const isConversionFailure = computed(() => props.record.status == 3 || props.record.status == 8)
 const kind = computed(() => [3, 7, 8].includes(Number(props.record.status)) ? 'error' : Number(props.record.status) === 2 ? 'complete' : 'waiting')
 const label = computed(() => {
   const status = Number(props.record.status)

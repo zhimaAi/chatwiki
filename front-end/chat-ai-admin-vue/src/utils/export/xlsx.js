@@ -3,8 +3,9 @@ const normalizeSheetName = (sheetName = 'Sheet1') =>
     .replace(/[\\/*?:[\]]/g, '_')
     .slice(0, 31) || 'Sheet1'
 
-export const exportAoAToXlsx = async ({ sheetName = 'Sheet1', fileName, rows = [], cols = [] }) => {
+export const exportAoAToXlsx = async ({ sheetName = 'Sheet1', fileName, rows = [], cols = [], signal }) => {
   const XLSX = await import('xlsx')
+  if (signal?.aborted) return
   const sheet = XLSX.utils.aoa_to_sheet(rows)
 
   if (Array.isArray(cols) && cols.length) {

@@ -2,6 +2,8 @@ import { toReasoningEffort } from '@/utils/reasoning-effort'
 import {reactive, ref} from 'vue'
 import {defineStore} from 'pinia'
 import {getChatVariables, getRobotGroupList, getRobotInfo, getRobotList} from '@/api/robot/index'
+import { useLocaleStoreWithOut } from '@/stores/modules/locale'
+import { resolveRobotDraft } from '@/utils/robot-draft'
 
 // WebApp配置
 const external_config_h5_default = {
@@ -66,6 +68,7 @@ const ensureAvatarShow = (config, applicationType, sourceConfig) => {
 }
 
 export const useRobotStore = defineStore('robot', () => {
+  let robotRequestVersion = 0
   const robotInfo = reactive({
     id: undefined,
     robot_key: '',
@@ -176,6 +179,9 @@ export const useRobotStore = defineStore('robot', () => {
     recall_neighbor_after_num: 1,
     library_search_type: 'fullTextSearch',
     multi_lang_configs: [],
+    published_time: 0,
+    has_draft: false,
+    draft_update_time: 0,
   })
 
   // WebApp配置
@@ -184,6 +190,7 @@ export const useRobotStore = defineStore('robot', () => {
   const external_config_pc = reactive(JSON.parse(JSON.stringify(external_config_pc_default)))
 
   const setRobotInfo = (data) => {
+    robotRequestVersion++
     let welcomes = JSON.parse(data.welcomes)
 
     welcomes.question = welcomes.question.map((content) => {
@@ -224,6 +231,7 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.en_name = data.en_name
     robotInfo.robot_intro = data.robot_intro
     robotInfo.robot_avatar_url = data.robot_avatar
+    robotInfo.robot_avatar = undefined
     robotInfo.use_model = data.use_model
     robotInfo.model_config_id = data.model_config_id
     robotInfo.optimize_question_dialogue_background = data.optimize_question_dialogue_background
@@ -315,9 +323,12 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.recall_neighbor_after_num = +data.recall_neighbor_after_num || 0
     robotInfo.library_search_type = data.library_search_type || 'fullTextSearch'
 
-    if(data.multi_lang_configs){
-      robotInfo.multi_lang_configs = JSON.parse(data.multi_lang_configs)
-    }
+    robotInfo.multi_lang_configs = typeof data.multi_lang_configs === 'string'
+      ? JSON.parse(data.multi_lang_configs || '[]')
+      : data.multi_lang_configs || []
+    robotInfo.published_time = Number(data.published_time) || 0
+    robotInfo.has_draft = data.has_draft
+    robotInfo.draft_update_time = Number(data.draft_update_time) || 0
 
     if (data.cache_config) {
       let parsedCacheConfig = {};
@@ -363,23 +374,25 @@ export const useRobotStore = defineStore('robot', () => {
 
   }
 
-  const getRobot = async (id) => {
-    const res = await getRobotInfo({ id })
+  const getRobot = async (id, { useDraft = true } = {}) => {
+    const version = ++robotRequestVersion
+    const res = await getRobotInfo({ id, with_draft: 1 })
 
-    if (res.code !== 0) {
+    if (version !== robotRequestVersion || res.code !== 0) {
       return false
     }
 
-    // 特殊处理，后端返回了library_ids: ",357,358,359,244" 处理成 正常的字符串数据
-    if (res.data.library_ids) {
-      res.data.library_ids = res.data.library_ids.split(',').filter(Boolean).join(',');
-    }
+    const lang = useLocaleStoreWithOut().getCurrentLocale.lang
+    const data = resolveRobotDraft(res.data, useDraft, lang)
 
-    let data = res.data
+    // 历史接口可能返回以逗号开头的 library_ids，草稿也需要同样处理。
+    if (data.library_ids) {
+      data.library_ids = data.library_ids.split(',').filter(Boolean).join(',')
+    }
 
     setRobotInfo(data)
 
-    return res
+    return { ...res, data }
   }
   const quickCommandLists = ref([])
   const setQuickCommand = async (data) => {

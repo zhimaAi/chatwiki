@@ -4,6 +4,8 @@ import { message } from 'ant-design-vue'
 import { DEFAULT_ROBOT_AVATAR } from '@/constants'
 import { deleteRobot, getRobotList, getRobotInfo, robotCopy, saveRobot } from '@/api/robot'
 import { saveClawbotConf } from '@/api/clawbot'
+import { resolveRobotDraft } from '@/utils/robot-draft'
+import { useLocaleStoreWithOut } from './locale'
 import { checkRole, getRobotPermission } from '@/utils/permission'
 import { usePermissionStore } from '@/stores/modules/permission'
 
@@ -145,8 +147,9 @@ export const useClawbotStore = defineStore('clawbot', () => {
   }
 
   function buildAssistantSavePayload(rawState = {}, patch = {}) {
+    // saveRobot 覆盖整份机器人草稿，沿用已有草稿，避免模型修改覆盖人设等配置。
     const formData = JSON.parse(JSON.stringify({
-      ...rawState,
+      ...resolveRobotDraft(rawState, true, useLocaleStoreWithOut().getCurrentLocale.lang),
       ...patch
     }))
 
@@ -194,11 +197,11 @@ export const useClawbotStore = defineStore('clawbot', () => {
     }
 
     try {
-      const res = await getRobotInfo({ id })
+      const res = await getRobotInfo({ id, with_draft: 1 })
       if (!isCurrent() || requestSeq !== robotInfoRequestSeq || currentAssistantId.value !== id) {
         return res
       }
-      replaceRobotInfo(res?.data || null)
+      replaceRobotInfo(res?.data ? resolveRobotDraft(res.data, true, useLocaleStoreWithOut().getCurrentLocale.lang) : null)
       return res
     } catch {
       if (isCurrent() && requestSeq === robotInfoRequestSeq && currentAssistantId.value === id) {

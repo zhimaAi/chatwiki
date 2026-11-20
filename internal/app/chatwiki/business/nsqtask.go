@@ -224,7 +224,7 @@ func ConvertVector(msg string, _ ...string) error {
 		}
 
 		//check finish
-		CheckFileLearned(fileId, define.FileStatusPartException)
+		CheckFileLearned(fileId)
 		return nil
 	}
 
@@ -245,32 +245,58 @@ func ConvertVector(msg string, _ ...string) error {
 	}
 
 	//check finish
-	CheckFileLearned(fileId, define.FileStatusLearned)
+	CheckFileLearned(fileId)
 	return nil
 }
 
-func CheckFileLearned(fileId, status int) {
+func CheckFileLearned(fileId int) {
+	if fileId <= 0 {
+		return
+	}
 	mtx, _ := CheckFileLearnedMutex.LoadOrStore(fileId, &sync.Mutex{})
 	mutex := mtx.(*sync.Mutex)
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	m := msql.Model(`chat_ai_library_file_data_index`, define.Postgres)
-
-	total, err := m.Where(`file_id`, cast.ToString(fileId)).Where(`status`, cast.ToString(define.VectorStatusInitial)).Count(`1`)
+	file, err := msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, cast.ToString(fileId)).Where(`delete_time`, `0`).Find()
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	if len(file) == 0 {
+		return
+	}
+	// A failed split has an unused initial vector index; it must not keep learning pending.
+	total, err := msql.Model(`chat_ai_library_file_data_index`, define.Postgres).Alias(`i`).
+		Join(`chat_ai_library_file_data d`, `i.data_id=d.id`, `inner`).
+		Where(`i.file_id`, file[`id`]).Where(`i.admin_user_id`, file[`admin_user_id`]).
+		Where(`i.library_id`, file[`library_id`]).Where(`i.delete_time`, `0`).
+		Where(`d.file_id`, file[`id`]).Where(`d.admin_user_id`, file[`admin_user_id`]).
+		Where(`d.library_id`, file[`library_id`]).Where(`d.delete_time`, `0`).
+		Where(`d.split_status`, `<>`, cast.ToString(define.SplitStatusException)).
+		Where(`i.status`, `in`, fmt.Sprintf(`%d,%d`, define.VectorStatusInitial, define.VectorStatusConverting)).Count(`1`)
 	if err != nil {
 		logs.Error(err.Error())
 		return
 	}
 	if total > 0 {
-		return //not finish
+		return
 	}
-
-	// finished
-	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).Where(`id`, cast.ToString(fileId)).Update(msql.Datas{
-		`status`:      status,
-		`update_time`: tool.Time2Int(),
-	})
+	failures, err := common.GetLibFileErrors(cast.ToInt(file[`admin_user_id`]), cast.ToInt(file[`library_id`]), []string{file[`id`]})
+	if err != nil {
+		logs.Error(err.Error())
+		return
+	}
+	status, errmsg := define.FileStatusLearned, ``
+	if failure, ok := failures[file[`id`]]; ok {
+		status, errmsg = define.FileStatusPartException, common.MbSubstr(failure, 0, 1000) // errmsg is varchar(1000)
+	}
+	_, err = msql.Model(`chat_ai_library_file`, define.Postgres).
+		Where(`id`, file[`id`]).Where(`admin_user_id`, file[`admin_user_id`]).
+		Where(`library_id`, file[`library_id`]).Where(`delete_time`, `0`).
+		Where(`status`, `in`, fmt.Sprintf(`%d,%d,%d`, define.FileStatusLearning, define.FileStatusLearned, define.FileStatusPartException)).
+		Update(msql.Datas{`status`: status, `errmsg`: errmsg, `update_time`: tool.Time2Int()})
 	if err != nil {
 		logs.Error(err.Error())
 		return
