@@ -110,6 +110,7 @@ const formState = reactive({
   chat_type: robotInfo.chat_type,
   library_qa_direct_reply_score: robotInfo.library_qa_direct_reply_score,
   library_qa_direct_reply_switch: robotInfo.library_qa_direct_reply_switch,
+  library_multimodal_direct_reply_switch: Number(robotInfo.library_multimodal_direct_reply_switch) === 2 ? 2 : 1,
   mixture_qa_direct_reply_score: robotInfo.mixture_qa_direct_reply_score,
   mixture_qa_direct_reply_switch: robotInfo.mixture_qa_direct_reply_switch
 })
@@ -118,6 +119,7 @@ const onSave = (data) => {
   formState.chat_type = data.chat_type
   formState.library_qa_direct_reply_score = data.library_qa_direct_reply_score
   formState.library_qa_direct_reply_switch = data.library_qa_direct_reply_switch
+  formState.library_multimodal_direct_reply_switch = data.library_multimodal_direct_reply_switch
   formState.mixture_qa_direct_reply_score = data.mixture_qa_direct_reply_score
   formState.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
 

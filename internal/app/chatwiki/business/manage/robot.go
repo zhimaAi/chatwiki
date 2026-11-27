@@ -314,6 +314,18 @@ func BridgeGetRobotList(adminUserId, userId int, lang string, applicationType in
 	return BridgeGetRobotListWithOption(adminUserId, userId, lang, applicationType, nil)
 }
 
+// parseLibraryMultimodalDirectReplySwitch parses the 1 (on) / 2 (off) switch; 0 means not provided.
+func parseLibraryMultimodalDirectReplySwitch(value string) int {
+	switch cast.ToInt(strings.TrimSpace(value)) {
+	case define.LibraryMultimodalSwitchOn:
+		return define.LibraryMultimodalSwitchOn
+	case define.LibraryMultimodalSwitchOff:
+		return define.LibraryMultimodalSwitchOff
+	default:
+		return 0
+	}
+}
+
 func SaveRobot(c *gin.Context) {
 	var userId int
 	if userId = GetAdminUserId(c); userId == 0 {
@@ -374,6 +386,8 @@ func SaveRobot(c *gin.Context) {
 
 	libraryQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`library_qa_direct_reply_switch`, `true`))
 	libraryQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`library_qa_direct_reply_score`, `0.9`))
+	// 1 = on, 2 = off; omitted by old clients, which must keep the saved value
+	libraryMultimodalDirectReplySwitch := c.PostForm(`library_multimodal_direct_reply_switch`)
 
 	mixtureQaDirectReplySwitch := cast.ToBool(c.DefaultPostForm(`mixture_qa_direct_reply_switch`, `true`))
 	mixtureQaDirectReplyScore := cast.ToFloat32(c.DefaultPostForm(`mixture_qa_direct_reply_score`, `0.9`))
@@ -556,6 +570,23 @@ func SaveRobot(c *gin.Context) {
 			return
 		}
 	}
+	// old clients may omit the field on update: keep the saved value instead of resetting it
+	libraryMultimodalDirectReplySwitchValue := parseLibraryMultimodalDirectReplySwitch(libraryMultimodalDirectReplySwitch)
+	if libraryMultimodalDirectReplySwitchValue == 0 && id > 0 {
+		savedSwitch, switchErr := msql.Model(`chat_ai_robot`, define.Postgres).
+			Where(`id`, cast.ToString(id)).
+			Where(`admin_user_id`, cast.ToString(userId)).
+			Value(`library_multimodal_direct_reply_switch`)
+		if switchErr != nil {
+			logs.Error(switchErr.Error())
+			c.String(http.StatusOK, lib_web.FmtJson(nil, errors.New(i18n.Show(common.GetLang(c), `sys_err`))))
+			return
+		}
+		libraryMultimodalDirectReplySwitchValue = parseLibraryMultimodalDirectReplySwitch(savedSwitch)
+	}
+	if libraryMultimodalDirectReplySwitchValue == 0 {
+		libraryMultimodalDirectReplySwitchValue = define.LibraryMultimodalSwitchOn
+	}
 	//format check
 	welcomes, err = common.CheckMenuJson(welcomes)
 	if err != nil {
@@ -707,64 +738,65 @@ func SaveRobot(c *gin.Context) {
 
 	//database dispose
 	data := msql.Datas{
-		`robot_name`:                            robotName,
-		`robot_intro`:                           robotIntro,
-		`prompt_type`:                           promptType,
-		`prompt`:                                prompt,
-		`prompt_struct`:                         promptStruct,
-		`library_ids`:                           libraryIds,
-		`form_ids`:                              formIds,
-		`welcomes`:                              welcomes,
-		`model_config_id`:                       modelConfigId,
-		`use_model`:                             useModel,
-		`rerank_status`:                         rerankStatus,
-		`rerank_model_config_id`:                rerankModelConfigId,
-		`rerank_use_model`:                      rerankUseModel,
-		`temperature`:                           temperature,
-		`max_token`:                             maxToken,
-		`context_pair`:                          contextPair,
-		`enable_thinking`:                       enableThinking,
-		`reasoning_effort`:                      reasoningEffort,
-		`question_multiple_switch`:              questionMultipleSwitch,
-		`top_k`:                                 topK,
-		`similarity`:                            similarity,
-		`recall_neighbor_switch`:                recallNeighborSwitch,
-		`recall_neighbor_before_num`:            recallNeighborBeforeNum,
-		`recall_neighbor_after_num`:             recallNeighborAfterNum,
-		`recall_neighbor_top_k`:                 recallNeighborTopK,
-		`search_type`:                           searchType,
-		`library_search_type`:                   librarySearchType,
-		`rrf_weight`:                            rrfWeight,
-		`chat_type`:                             chatType,
-		`library_qa_direct_reply_switch`:        libraryQaDirectReplySwitch,
-		`library_qa_direct_reply_score`:         libraryQaDirectReplyScore,
-		`mixture_qa_direct_reply_switch`:        mixtureQaDirectReplySwitch,
-		`mixture_qa_direct_reply_score`:         mixtureQaDirectReplyScore,
-		`answer_source_switch`:                  answerSourceSwitch,
-		`enable_question_optimize`:              enableQuestionOptimize,
-		`optimize_question_model_config_id`:     optimizeQuestionModelConfigId,
-		`optimize_question_dialogue_background`: optimizeQuestionDialogueBackground,
-		`optimize_question_use_model`:           optimizeQuestionUseModel,
-		`optimize_question_enable_thinking`:     optimizeQuestionEnableThinking,
-		`optimize_question_reasoning_effort`:    optimizeQuestionReasoningEffort,
-		`enable_question_guide`:                 enableQuestionGuide,
-		`question_guide_num`:                    questionGuideNum,
-		`question_guide_mode`:                   questionGuideMode,
-		`question_guide_prompt`:                 questionGuidePrompt,
-		`question_guide_workflow_key`:           questionGuideWorkflowKey,
-		`enable_common_question`:                enableCommonQuestion,
-		`common_question_list`:                  commonQuestionList,
-		`think_switch`:                          thinkSwitch,
-		`feedback_switch`:                       feedbackSwitch,
-		`sensitive_words_switch`:                sensitiveWordsSwitch,
-		`cache_config`:                          cacaheConfig,
-		`prompt_role_type`:                      promptRoleType,
-		`tips_before_answer_switch`:             tipsBeforeAnswerSwitch,
-		`tips_before_answer_content`:            tipsBeforeAnswerContent,
-		`meta_search_switch`:                    metaSearchSwitch,
-		`meta_search_type`:                      metaSearchType,
-		`meta_search_condition_list`:            metaSearchConditionList,
-		`update_time`:                           tool.Time2Int(),
+		`robot_name`:                             robotName,
+		`robot_intro`:                            robotIntro,
+		`prompt_type`:                            promptType,
+		`prompt`:                                 prompt,
+		`prompt_struct`:                          promptStruct,
+		`library_ids`:                            libraryIds,
+		`form_ids`:                               formIds,
+		`welcomes`:                               welcomes,
+		`model_config_id`:                        modelConfigId,
+		`use_model`:                              useModel,
+		`rerank_status`:                          rerankStatus,
+		`rerank_model_config_id`:                 rerankModelConfigId,
+		`rerank_use_model`:                       rerankUseModel,
+		`temperature`:                            temperature,
+		`max_token`:                              maxToken,
+		`context_pair`:                           contextPair,
+		`enable_thinking`:                        enableThinking,
+		`reasoning_effort`:                       reasoningEffort,
+		`question_multiple_switch`:               questionMultipleSwitch,
+		`top_k`:                                  topK,
+		`similarity`:                             similarity,
+		`recall_neighbor_switch`:                 recallNeighborSwitch,
+		`recall_neighbor_before_num`:             recallNeighborBeforeNum,
+		`recall_neighbor_after_num`:              recallNeighborAfterNum,
+		`recall_neighbor_top_k`:                  recallNeighborTopK,
+		`search_type`:                            searchType,
+		`library_search_type`:                    librarySearchType,
+		`rrf_weight`:                             rrfWeight,
+		`chat_type`:                              chatType,
+		`library_qa_direct_reply_switch`:         libraryQaDirectReplySwitch,
+		`library_qa_direct_reply_score`:          libraryQaDirectReplyScore,
+		`library_multimodal_direct_reply_switch`: libraryMultimodalDirectReplySwitchValue,
+		`mixture_qa_direct_reply_switch`:         mixtureQaDirectReplySwitch,
+		`mixture_qa_direct_reply_score`:          mixtureQaDirectReplyScore,
+		`answer_source_switch`:                   answerSourceSwitch,
+		`enable_question_optimize`:               enableQuestionOptimize,
+		`optimize_question_model_config_id`:      optimizeQuestionModelConfigId,
+		`optimize_question_dialogue_background`:  optimizeQuestionDialogueBackground,
+		`optimize_question_use_model`:            optimizeQuestionUseModel,
+		`optimize_question_enable_thinking`:      optimizeQuestionEnableThinking,
+		`optimize_question_reasoning_effort`:     optimizeQuestionReasoningEffort,
+		`enable_question_guide`:                  enableQuestionGuide,
+		`question_guide_num`:                     questionGuideNum,
+		`question_guide_mode`:                    questionGuideMode,
+		`question_guide_prompt`:                  questionGuidePrompt,
+		`question_guide_workflow_key`:            questionGuideWorkflowKey,
+		`enable_common_question`:                 enableCommonQuestion,
+		`common_question_list`:                   commonQuestionList,
+		`think_switch`:                           thinkSwitch,
+		`feedback_switch`:                        feedbackSwitch,
+		`sensitive_words_switch`:                 sensitiveWordsSwitch,
+		`cache_config`:                           cacaheConfig,
+		`prompt_role_type`:                       promptRoleType,
+		`tips_before_answer_switch`:              tipsBeforeAnswerSwitch,
+		`tips_before_answer_content`:             tipsBeforeAnswerContent,
+		`meta_search_switch`:                     metaSearchSwitch,
+		`meta_search_type`:                       metaSearchType,
+		`meta_search_condition_list`:             metaSearchConditionList,
+		`update_time`:                            tool.Time2Int(),
 	}
 	if len(robotAvatar) > 0 {
 		data[`robot_avatar`] = robotAvatar

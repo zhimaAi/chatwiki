@@ -41,6 +41,9 @@ func initConfig() {
 		logs.Error(err.Error())
 		panic(`read config webservice error`)
 	}
+	if define.Config.WebService[`llm_runner_agent_host`] == `` {
+		define.Config.WebService[`llm_runner_agent_host`] = define.Config.WebService[`llm_runner_host`]
+	}
 	//the ip and port of the domain name are not configured
 	ip := lib_web.GetPublicIp()
 	if len(define.Config.WebService[`image_domain`]) == 0 {

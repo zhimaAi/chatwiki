@@ -66,6 +66,8 @@ type (
 		// function center - auto reply: (keyword reply + received message reply)
 		ReplyContentList []common.ReplyContent `json:"reply_content_list,omitempty"`
 		AnswerList       []string              `json:"answer_list,omitempty"`
+
+		ManualTransferOutsideHours bool `json:"manual_transfer_outside_hours,omitempty"`
 	}
 	ChatMessagesMetaData struct {
 		Usage Usage `json:"usage,omitempty"`
@@ -162,6 +164,8 @@ func ChatMessages(c *gin.Context) {
 		}
 		if isSwitchManual := cast.ToBool(message[`is_switch_manual`]); isSwitchManual {
 			res.IsSwitchManual = &isSwitchManual
+		} else if params.WechatappAppid != "" {
+			res.ManualTransferOutsideHours = params.ManualTransfer.OutsideHours()
 		}
 		if len(message[`answer_list`]) > 0 { // QA direct reply multiple answers list
 			_ = tool.JsonDecodeUseNumber(message[`answer_list`], &res.AnswerList)

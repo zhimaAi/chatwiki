@@ -75,6 +75,7 @@ type ChatRequestParam struct {
 	ManualTransfer       *ManualTransferState `json:"-"` // shared only within this request's nested calls
 	WorkFlowGlobal       map[string]any
 	QuoteLib             bool
+	MultimodalSkipRecall bool `json:"-"` // runtime flag: library-only mode media-only input with direct-reply switch off; skip recall and send to model
 	LoopTestParams       []any
 	BatchTestParams      []any
 	HeaderToken          string

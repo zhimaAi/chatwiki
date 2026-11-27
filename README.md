@@ -136,6 +136,18 @@ Feel free to contact us for help or to provide suggestions to improve ChatWiki. 
 ---
 For the complete changelog, please click 👉️👉️[UpdateLog.md](./UpdateLog.md)
 
+**2026/11/27**
+
+1.Optimized the K value in the BM25 division algorithm to align the BM25 relevant/irrelevant cutoff with the vector
+search cutoff
+2.Fixed workflow HTTP request nodes throwing errors when a JsonBody variable placeholder value contains special
+characters that need escaping
+3.[STD] The API now returns an extra flag field when human handoff is triggered outside handoff hours
+4.Added support for configuring a dedicated Runner container instance for Agent command execution
+5.Added a multimodal filter switch to the chatbot knowledge base only mode
+6.Added a system-level prompt injection guard to Agent bots
+7.Added a script for setting ACL permissions on the runtime directory
+
 **2026/11/20**
 
 1.Kept left sidebar menu positions consistent when switching apps<br/>
@@ -167,40 +179,6 @@ configured<br/>
 11.Date filters in Analytics now support ranges of up to 31 days<br/>
 12.[STD] Updated AI suggested reply logic in Original Text and Traditional modes<br/>
 13.Alibaba Cloud Model Studio: Replaced `reasoning_effort=none` with a thinking toggle<br/>
-
-**2026/11/06**
-
-1.[STD] H5 cloud customer service: Added like and dislike buttons to LLM bot replies<br/>
-2.[STD] Fixed the credit prices shown for ChatWiki's own models in the model selector<br/>
-3.Added adjustable reasoning effort for LLMs in Deep Thinking mode<br/>
-4.Permissions can now be set separately for each Agent bot<br/>
-5.[STD] Fixed human handoff detection for repeated questions in multimodal input<br/>
-6.Fixed plain text extraction from multimodal input<br/>
-7.Fixed missing line breaks in bot replies in conversation history<br/>
-8.Switched full-text search to the BM25 index in `pg_search`<br/>
-9.Chat API: Added support for Smart Menus in fallback replies to unknown questions<br/>
-10.[STD] Improved how cloud Agents handle human handoff nodes when calling workflows<br/>
-11.[STD] Added a built-in human handoff tool for cloud Agents<br/>
-12.Workflow end nodes now send multiple configured replies as separate messages<br/>
-13.Added support for configuring when bot conversations end<br/>
-14.Workflow code execution: Blocked subprocesses and network requests in Python and limited mounts to essential
-read-only paths<br/>
-15.Added system modes: AI Customer Service, Agent Customer Service, and AI Knowledge Base and Workflows (Advanced)<br/>
-16.[STD] Added a credit usage history for ChatWiki's own models<br/>
-17.Fixed HTTP status code passthrough in the internationalization middleware<br/>
-18.Enforced tenant ownership and permission checks when updating data through the user management API<br/>
-19.Disabled MPTCP by default for containerized Go services via `CHATWIKI_GODEBUG`<br/>
-20.Added horizontal resizing and scrolling to the Agent persona page<br/>
-21.Knowledge base web fetch service: Upgraded to Playwright 1.64.1 and bundled its driver and browsers in the image<br/>
-22.[STD] Grouped related items in the Settings menu<br/>
-23.Retrieval settings and tests: Added a similarity threshold for the Word Segmentation Search mode of full-text
-search<br/>
-24.[STD] Fixed permission checks so super admins can access the model menu<br/>
-25.Security: Restricted Quick Command management to the current tenant<br/>
-26.Security: Validated that form fields belong to the correct tenant and form<br/>
-27.Security: Added authorization checks for single-page previews of knowledge base PDFs<br/>
-28.New UI: Added a notice when no backup model is configured<br/>
-29.New UI: Added the Skill menu<br/>
 
 ## License
 

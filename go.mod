@@ -3,6 +3,7 @@ module chatwiki
 go 1.25.0
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/pkg/sftp v1.13.10 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 )
@@ -111,7 +112,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
 	github.com/glebarez/go-sqlite v1.20.3 // indirect
 	github.com/glebarez/sqlite v1.7.0 // indirect

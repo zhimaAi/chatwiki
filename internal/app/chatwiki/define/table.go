@@ -128,6 +128,11 @@ const (
 )
 
 const (
+	LibraryMultimodalSwitchOn  = 1 // multimodal content directly replies with the unknown-question prompt
+	LibraryMultimodalSwitchOff = 2 // multimodal content skips recall and is sent to the model
+)
+
+const (
 	DocTypeLocal    = 1
 	DocTypeOnline   = 2
 	DocTypeCustom   = 3

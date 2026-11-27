@@ -114,6 +114,7 @@ export const useRobotStore = defineStore('robot', () => {
     chat_type: '',
     library_qa_direct_reply_score: '',
     library_qa_direct_reply_switch: '',
+    library_multimodal_direct_reply_switch: 1,
     mixture_qa_direct_reply_score: '',
     mixture_qa_direct_reply_switch: '',
     unknown_question_prompt: {
@@ -269,6 +270,8 @@ export const useRobotStore = defineStore('robot', () => {
     robotInfo.chat_type = data.chat_type
     robotInfo.library_qa_direct_reply_score = data.library_qa_direct_reply_score
     robotInfo.library_qa_direct_reply_switch = data.library_qa_direct_reply_switch
+    // 后端仅 2 表示关闭；缺失或未知值按默认开启回填。
+    robotInfo.library_multimodal_direct_reply_switch = Number(data.library_multimodal_direct_reply_switch) === 2 ? 2 : 1
     robotInfo.mixture_qa_direct_reply_score = data.mixture_qa_direct_reply_score
     robotInfo.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
     robotInfo.h5_domain = data.h5_domain
