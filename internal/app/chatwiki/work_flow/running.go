@@ -377,19 +377,30 @@ func (flow *WorkFlow) VariableReplace(content string) string {
 func (flow *WorkFlow) VariableReplaceJson(jsonStr string) string {
 	//Replace global variables first
 	for key, field := range flow.global {
-		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【global.%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+		jsonStr = replaceJSONVariable(jsonStr, fmt.Sprintf(`【global.%s】`, key), field)
 	}
 	//Then replace node output variables
 	for nodeKey, output := range flow.outputs {
 		for key, field := range output {
-			jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s.%s】`, nodeKey, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+			jsonStr = replaceJSONVariable(jsonStr, fmt.Sprintf(`【%s.%s】`, nodeKey, key), field)
 		}
 	}
 	//Legacy compatibility for old data
 	for key, field := range flow.output {
-		jsonStr = strings.ReplaceAll(jsonStr, fmt.Sprintf(`【%s】`, key), strings.ReplaceAll(field.ShowVals(), `"`, `\"`))
+		jsonStr = replaceJSONVariable(jsonStr, fmt.Sprintf(`【%s】`, key), field)
 	}
 	return regexp.MustCompile(`【([a-f0-9]{32}\.)?[a-zA-Z_][a-zA-Z0-9_\-.]*】`).ReplaceAllString(jsonStr, ``)
+}
+
+func replaceJSONVariable(jsonStr, placeholder string, field common.SimpleField) string {
+	if !strings.Contains(jsonStr, placeholder) {
+		return jsonStr
+	}
+	encoded := tool.JsonEncodeNoError(field.ShowVals())
+	// The template already contains the string's surrounding quotes.
+	escaped := strings.TrimPrefix(encoded, `"`)
+	escaped = strings.TrimSuffix(escaped, `"`)
+	return strings.ReplaceAll(jsonStr, placeholder, escaped)
 }
 
 func (flow *WorkFlow) GetVariable(key string) (field common.SimpleField, exist bool) {

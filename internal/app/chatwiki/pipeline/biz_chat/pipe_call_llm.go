@@ -175,6 +175,10 @@ func DoChatTypeMixture(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 // DoChatTypeLibrary knowledge base only mode chat logic
 func DoChatTypeLibrary(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
 	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeLibrary {
+		if in.params.MultimodalSkipRecall {
+			DoRequestChatUnify(in, out) // media-only input skips recall and goes straight to the model
+			return pipeline.PipeStop
+		}
 		if !in.needRunWorkFlow && len(out.list) == 0 {
 			DisposeUnknownQuestionPrompt(in, out)                     // unknown question (no workflow scene)
 			in.Stream(sse.Event{Event: `sending`, Data: out.content}) // send to client so stream has content

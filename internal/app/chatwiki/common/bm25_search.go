@@ -19,13 +19,13 @@ type bm25IndexMatch struct {
 	Similarity float64
 }
 
-// normalizeBM25Score maps positive finite BM25 scores to (0, 1) using score / (score + 1).
+// normalizeBM25Score maps positive finite BM25 scores to (0, 1) using score / (score + 7.56).
 // It returns zero for invalid scores and clamps rounding to keep the result below one.
 func normalizeBM25Score(score float64) float64 {
 	if score <= 0 || math.IsNaN(score) || math.IsInf(score, 0) {
 		return 0
 	}
-	similarity := score / (score + 1)
+	similarity := score / (score + 7.56)
 	if similarity >= 1 {
 		return math.Nextafter(1, 0)
 	}

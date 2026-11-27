@@ -117,6 +117,22 @@
                 <span>{{ t('label_reply_directly_when_exceeds') }}</span>
             </div>
 
+            <div class="qa" v-if="item.chat_type === '1' && chat_typeValue == item.direct_id" @click.stop>
+                <div class="prompt-form-item-label">
+                    <span class="qa-title">{{ t('label_multimodal_direct_reply') }}</span>
+                    <a-tooltip :title="t('tooltip_multimodal_direct_reply')">
+                        <QuestionCircleOutlined class="question-icon" />
+                    </a-tooltip>
+                    <div class="direct-switch">
+                        <a-switch
+                            :checked="formState.library_multimodal_direct_reply_switch === 1"
+                            :aria-label="t('label_multimodal_direct_reply')"
+                            @change="checked => formState.library_multimodal_direct_reply_switch = checked ? 1 : 2"
+                        />
+                    </div>
+                </div>
+            </div>
+
             </a-radio>
         </a-radio-group>
     </a-modal>
@@ -171,6 +187,7 @@ const formState = reactive({
   chat_type: '',
   library_qa_direct_reply_score: '',
   library_qa_direct_reply_switch: 'false',
+  library_multimodal_direct_reply_switch: 1,
   mixture_qa_direct_reply_score: '',
   mixture_qa_direct_reply_switch: 'false'
 })
@@ -208,6 +225,7 @@ const open = (data) => {
     formState.chat_type = data.chat_type
     formState.library_qa_direct_reply_score = data.library_qa_direct_reply_score
     formState.library_qa_direct_reply_switch = data.library_qa_direct_reply_switch
+    formState.library_multimodal_direct_reply_switch = Number(data.library_multimodal_direct_reply_switch) === 2 ? 2 : 1
     formState.mixture_qa_direct_reply_score = data.mixture_qa_direct_reply_score
     formState.mixture_qa_direct_reply_switch = data.mixture_qa_direct_reply_switch
 

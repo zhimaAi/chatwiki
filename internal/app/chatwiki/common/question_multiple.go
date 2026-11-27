@@ -7,9 +7,33 @@ import (
 	lib_define "chatwiki/internal/pkg/lib_define"
 	"strings"
 
+	"github.com/spf13/cast"
+	"github.com/zhimaAi/go_tools/msql"
 	"github.com/zhimaAi/go_tools/tool"
 	"github.com/zhimaAi/llm_adaptor/v2/chat"
 )
+
+// IsMultimodalWithoutText reports whether the question consists only of media parts
+// (image/audio/video) without any text. Mixed text+media input is treated as normal text input.
+func IsMultimodalWithoutText(question string) bool {
+	parts, ok := ParseInputQuestion(question)
+	if !ok {
+		return false
+	}
+	for _, part := range parts {
+		if part.Type == chat.ContentPartText {
+			return false
+		}
+	}
+	return true
+}
+
+// LibraryMultimodalDirectReplyEnabled reports whether multimodal input directly replies with the
+// unknown-question prompt in library-only mode. The value uses 1 (on) and 2 (off); missing or
+// unknown values keep the default (enabled).
+func LibraryMultimodalDirectReplyEnabled(robot msql.Params) bool {
+	return cast.ToInt(robot[`library_multimodal_direct_reply_switch`]) != define.LibraryMultimodalSwitchOff
+}
 
 // ParseInputQuestion checks whether the input is a valid multimodal part array.
 func ParseInputQuestion(question string) ([]chat.ContentPart, bool) {

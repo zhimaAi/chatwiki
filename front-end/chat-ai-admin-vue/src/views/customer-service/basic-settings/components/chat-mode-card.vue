@@ -27,6 +27,10 @@
             <a-input-number :value="form[qaMode.scoreKey]" :min="0" :max="1" :step="0.01" :precision="2" :controls="false" :disabled="qaDisabled || !form[qaMode.switchKey]" :status="isValidScore(form[qaMode.scoreKey]) ? undefined : 'error'" :aria-label="t('label_similarity_exceeds')" @change="value => setScore(qaMode, value)" @blur="restoreScore(qaMode)" />
             <span>{{ t('label_reply_directly_when_exceeds') }}</span>
           </div>
+          <div v-if="form.chat_type === '1'" class="multimodal-setting">
+            <span>{{ t('label_multimodal_direct_reply') }} <a-tooltip :title="t('tooltip_multimodal_direct_reply')"><QuestionCircleOutlined /></a-tooltip></span>
+            <a-switch :checked="form.library_multimodal_direct_reply_switch === 1" :disabled="saving" :aria-label="t('label_multimodal_direct_reply')" @change="setMultimodalDirectReply" />
+          </div>
         </div>
       </div>
       <a-alert v-if="saveFailed" type="error" :message="commonT('save_failed')" show-icon>
@@ -65,6 +69,7 @@ function getConfig() {
     chat_type: String(info.chat_type || '1'),
     library_qa_direct_reply_switch: enabled(info.library_qa_direct_reply_switch),
     library_qa_direct_reply_score: isValidScore(info.library_qa_direct_reply_score) ? Number(info.library_qa_direct_reply_score) : 0.9,
+    library_multimodal_direct_reply_switch: Number(info.library_multimodal_direct_reply_switch) === 2 ? 2 : 1,
     mixture_qa_direct_reply_switch: enabled(info.mixture_qa_direct_reply_switch),
     mixture_qa_direct_reply_score: isValidScore(info.mixture_qa_direct_reply_score) ? Number(info.mixture_qa_direct_reply_score) : 0.9
   }
@@ -109,6 +114,10 @@ function setDirectReply(mode, checked) {
   if (qaDisabled.value || form[mode.switchKey] === checked) return
   form[mode.switchKey] = checked
 }
+function setMultimodalDirectReply(checked) {
+  if (saving.value || form.chat_type !== '1') return
+  form.library_multimodal_direct_reply_switch = checked ? 1 : 2
+}
 function setScore(mode, value) {
   if (qaDisabled.value || !form[mode.switchKey] || form[mode.scoreKey] === value) return
   form[mode.scoreKey] = value
@@ -122,6 +131,7 @@ async function persist() {
     chat_type: form.chat_type,
     library_qa_direct_reply_switch: String(form.library_qa_direct_reply_switch),
     library_qa_direct_reply_score: String(form.library_qa_direct_reply_score),
+    library_multimodal_direct_reply_switch: String(form.library_multimodal_direct_reply_switch),
     mixture_qa_direct_reply_switch: String(form.mixture_qa_direct_reply_switch),
     mixture_qa_direct_reply_score: String(form.mixture_qa_direct_reply_score)
   }
@@ -170,6 +180,7 @@ onBeforeUnmount(() => { alive = false })
 .threshold :deep(.ant-input-number) { width: 88px; height: 32px; border-color: #d8d8d8; border-radius: 6px; }
 .threshold :deep(.ant-input-number-input) { height: 30px; padding: 0 12px; }
 .threshold :deep(.ant-input-number-disabled) { background: #f5f5f5; border-color: #e8e8e8; color: #ababab; }
+.multimodal-setting { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; }
 .summary { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; line-height: 22px; color: #595959; }
 .chat-mode-form + :deep(.ant-alert) { margin-top: 12px; }
 @media (max-width: 760px) { .chat-mode-form { padding: 8px; } .mode-options { grid-template-columns: 1fr; } .mode-option { min-height: 0; } }

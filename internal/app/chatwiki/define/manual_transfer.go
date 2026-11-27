@@ -10,16 +10,17 @@ import (
 )
 
 // ManualTransferState belongs to one request and is shared by its nested calls.
-// Only a successful transfer publishes a result; the first success wins.
+// The first successful transfer wins.
 type ManualTransferState struct {
-	transferMu  sync.Mutex
-	mu          sync.RWMutex
-	content     string
-	transferred bool
-	done        chan struct{}
-	robot       msql.Params // original channel robot, preserved across nested robot changes
-	source      ManualTransferSource
-	sourceSet   bool
+	transferMu   sync.Mutex
+	mu           sync.RWMutex
+	content      string
+	transferred  bool
+	outsideHours bool
+	done         chan struct{}
+	robot        msql.Params // original channel robot, preserved across nested robot changes
+	source       ManualTransferSource
+	sourceSet    bool
 }
 
 // ManualTransferSource identifies the customer-facing entry, independently of
@@ -107,4 +108,24 @@ func (s *ManualTransferState) Transfer(content string, run func() error) error {
 	s.content, s.transferred = content, true
 	close(s.done)
 	return nil
+}
+
+// MarkOutsideHours records a transfer attempt rejected by the service schedule.
+func (s *ManualTransferState) MarkOutsideHours() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.outsideHours = true
+}
+
+// OutsideHours reports a schedule restriction unless the request transferred successfully.
+func (s *ManualTransferState) OutsideHours() bool {
+	if s == nil {
+		return false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.outsideHours && !s.transferred
 }

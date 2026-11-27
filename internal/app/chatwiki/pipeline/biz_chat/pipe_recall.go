@@ -192,6 +192,7 @@ func CheckChatTypeNotDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeRes
 	}()
 	// actual recall pipeline
 	recall := pipeline.NewPipeline(in, out)
+	recall.Pipe(SetMultimodalSkipRecall)     // media-only input skips recall when direct reply is off
 	recall.Pipe(CheckRepetitionSwitchManual) // transfer to human for repeated questions
 	recall.Pipe(StartQuoteFile)              // show citation start signal
 	recall.Pipe(RecallByChatCache)           // recall from knowledge base via chat cache
@@ -218,6 +219,17 @@ func CheckChatTypeNotDirect(in *ChatInParam, out *ChatOutParam) pipeline.PipeRes
 		return pipeline.PipeStop
 	}
 	return pipeline.PipeStop
+}
+
+// SetMultimodalSkipRecall marks media-only input in library-only mode to skip recall
+// and go to the model when the direct reply switch is off.
+func SetMultimodalSkipRecall(in *ChatInParam, out *ChatOutParam) pipeline.PipeResult {
+	if cast.ToInt(in.params.Robot[`chat_type`]) == define.ChatTypeLibrary &&
+		common.IsMultimodalWithoutText(in.params.Question) &&
+		!common.LibraryMultimodalDirectReplyEnabled(in.params.Robot) {
+		in.params.MultimodalSkipRecall = true
+	}
+	return pipeline.PipeContinue
 }
 
 // CheckRepetitionSwitchManual handles repeated question transfer to human
